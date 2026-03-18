@@ -86,6 +86,12 @@ export interface TestResult {
   error?: string;
 }
 
+export interface PreRequestResult {
+  logs: string[];
+  error: string | null;
+  durationMs: number;
+}
+
 export interface ApiResponse {
   status: number;
   statusText: string;
@@ -95,6 +101,8 @@ export interface ApiResponse {
   size: number;
   /** Test results when testScript is used */
   testResults?: TestResult[];
+  /** Pre-request script result when preRequestScript is used */
+  preRequestResult?: PreRequestResult;
 }
 
 export interface Environment {

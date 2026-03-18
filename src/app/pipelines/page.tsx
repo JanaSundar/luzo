@@ -2,14 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { generateAIReport } from "@/app/actions/ai-report";
 import { AIConfigurator } from "@/components/pipelines/AIConfigurator";
 import { PipelineBuilder } from "@/components/pipelines/PipelineBuilder";
 import { PipelineLayout } from "@/components/pipelines/PipelineLayout";
 import { ReportPreview } from "@/components/pipelines/ReportPreview";
 import { ResponseStream } from "@/components/pipelines/ResponseStream";
+import { buildReducedContext } from "@/lib/pipeline/context-reducer";
+import { deriveReportTitle } from "@/lib/utils/report-title";
+import { exportReportToPDF } from "@/lib/utils/export-report-pdf";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
 
 export default function PipelinesPage() {
   const pipelines = usePipelineStore((s) => s.pipelines);
@@ -29,6 +34,7 @@ export default function PipelinesPage() {
   const refreshSignals = usePipelineDebugStore((s) => s.refreshSignals);
   const snapshots = usePipelineDebugStore((s) => s.snapshots);
   const setGeneratingReport = usePipelineDebugStore((s) => s.setGeneratingReport);
+  const setExportingPDF = usePipelineDebugStore((s) => s.setExportingPDF);
   const setReportOutput = usePipelineDebugStore((s) => s.setReportOutput);
   const aiProviderConfig = usePipelineDebugStore((s) => s.aiProvider);
 
@@ -53,14 +59,62 @@ export default function PipelinesPage() {
     }
   }, [hydrated, pipelines.length, addPipeline]);
 
+  // Sync AI provider from settings (useProvidersConfigStore) to report generation (usePipelineDebugStore)
+  // so report uses the configured provider even when user goes directly to pipelines
+  const providers = useProvidersConfigStore((s) => s.providers);
+  const activeProvider = useProvidersConfigStore((s) => s.activeProvider);
+  const setAIProvider = usePipelineDebugStore((s) => s.setAIProvider);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const config = providers[activeProvider];
+    if (config?.apiKey && config.apiKey.length >= 10) {
+      setAIProvider({
+        provider: activeProvider,
+        model: config.model ?? "",
+        apiKey: config.apiKey,
+      });
+    }
+  }, [providers, activeProvider, setAIProvider]);
+
   useEffect(() => {
     const isDone =
       runtime.status === "completed" || runtime.status === "failed" || runtime.status === "aborted";
 
     if (isDone && snapshots.length > 0 && activePipeline) {
       refreshSignals(activePipeline.steps);
+
+      // Populate executionResult so ReportPreview has data (for both Run and Debug flows)
+      const requestSnapshots = snapshots.filter(
+        (s) => s.reducedResponse && s.status !== "pending" && s.status !== "running"
+      );
+      if (requestSnapshots.length > 0) {
+        setExecutionResult({
+          pipelineId: activePipeline.id,
+          startTime: requestSnapshots[0]?.startedAt ?? new Date().toISOString(),
+          endTime:
+            requestSnapshots[requestSnapshots.length - 1]?.completedAt ?? new Date().toISOString(),
+          status:
+            runtime.status === "completed"
+              ? "completed"
+              : runtime.status === "failed"
+                ? "failed"
+                : "running",
+          results: requestSnapshots.map((s) => ({
+            stepId: s.stepId,
+            stepName: s.stepName,
+            method: s.method,
+            url: s.url,
+            status: s.reducedResponse!.status,
+            statusText: s.reducedResponse!.statusText,
+            headers: s.fullHeaders ?? s.reducedResponse!.headers ?? {},
+            body: s.fullBody ?? JSON.stringify(s.reducedResponse!.summary ?? {}),
+            time: s.reducedResponse!.latencyMs ?? 0,
+            size: s.reducedResponse!.sizeBytes ?? 0,
+          })),
+        });
+      }
     }
-  }, [runtime.status, snapshots.length, activePipeline, refreshSignals]);
+  }, [runtime.status, snapshots, activePipeline, refreshSignals, setExecutionResult]);
 
   const handleRun = useCallback(async () => {
     if (!activePipeline || isExecuting) return;
@@ -84,6 +138,40 @@ export default function PipelinesPage() {
       }
 
       await continueAll();
+
+      // Populate executionResult from snapshots so ReportPreview has data
+      const { snapshots: completedSnapshots, runtime: completedRuntime } =
+        usePipelineDebugStore.getState();
+      const requestSnapshots = completedSnapshots.filter(
+        (s) => s.reducedResponse && s.status !== "pending" && s.status !== "running"
+      );
+      if (requestSnapshots.length > 0 && activePipeline) {
+        setExecutionResult({
+          pipelineId: activePipeline.id,
+          startTime: requestSnapshots[0]?.startedAt ?? new Date().toISOString(),
+          endTime:
+            requestSnapshots[requestSnapshots.length - 1]?.completedAt ?? new Date().toISOString(),
+          status:
+            completedRuntime.status === "completed"
+              ? "completed"
+              : completedRuntime.status === "failed"
+                ? "failed"
+                : "running",
+          results: requestSnapshots.map((s) => ({
+            stepId: s.stepId,
+            stepName: s.stepName,
+            method: s.method,
+            url: s.url,
+            status: s.reducedResponse!.status,
+            statusText: s.reducedResponse!.statusText,
+            headers: s.fullHeaders ?? s.reducedResponse!.headers ?? {},
+            body: s.fullBody ?? JSON.stringify(s.reducedResponse!.summary ?? {}),
+            time: s.reducedResponse!.latencyMs ?? 0,
+            size: s.reducedResponse!.sizeBytes ?? 0,
+          })),
+        });
+      }
+
       toast.success("Pipeline executed successfully");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "An unexpected error occurred";
@@ -130,20 +218,69 @@ export default function PipelinesPage() {
   }, [stopExecution, setExecuting]);
 
   const handleGenerateReport = useCallback(async () => {
+    const { signalGroups, selectedSignals, snapshots, reportConfig } =
+      usePipelineDebugStore.getState();
+    const { executionResult } = usePipelineStore.getState();
+    if (snapshots.length === 0 || signalGroups.length === 0) {
+      toast.error("Run the pipeline first to generate a report");
+      return;
+    }
     setGeneratingReport(true);
-    // Mock generation for now - matches logic in ReportPreview
-    setTimeout(() => {
-      setReportOutput(
-        `# API Intelligence Summary\n\n## Overview\nThe pipeline **${activePipeline?.name}** was executed successfully. All endpoints responded within expected parameters, though some latency spikes were observed in downstream services.\n\n## Key Findings\n- **Latency Stability**: Majority of requests completed under 500ms.\n- **Data Consistency**: JSON schemas were validated across all steps.\n- **Recommendations**: Monitor the /recipes endpoint for potential optimization as it approached the P95 threshold.\n\n### Narrative Summary\n*Generation triggered at ${new Date().toLocaleTimeString()} using ${aiProviderConfig.model} (AI Generated)*`
-      );
-      setGeneratingReport(false);
+    try {
+      const context = buildReducedContext(signalGroups, selectedSignals, snapshots, {
+        maskSensitive: true,
+      });
+      const derivedTitle = executionResult
+        ? deriveReportTitle(executionResult.results.map((r) => ({ method: r.method, url: r.url })))
+        : undefined;
+      const result = await generateAIReport({
+        context,
+        config: reportConfig,
+        provider: aiProviderConfig,
+        derivedTitle,
+      });
+      setReportOutput(result.output, result.reportTitle);
+      setView("report");
       toast.success("Intelligence report generated");
-    }, 1500);
-  }, [activePipeline?.name, aiProviderConfig.model, setGeneratingReport, setReportOutput]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Report generation failed");
+    } finally {
+      setGeneratingReport(false);
+    }
+  }, [aiProviderConfig, setGeneratingReport, setReportOutput, setView]);
 
-  const handleExportPDF = useCallback(() => {
-    window.print();
-  }, []);
+  const handleExportPDF = useCallback(async () => {
+    const { reportOutput, reportTitle: aiReportTitle } = usePipelineDebugStore.getState();
+    const { executionResult } = usePipelineStore.getState();
+
+    if (!executionResult || !reportOutput) {
+      toast.error("No report data to export. Generate a report first.");
+      return;
+    }
+
+    const pipeline = pipelines.find((p) => p.id === executionResult.pipelineId);
+    const derivedTitle = deriveReportTitle(
+      executionResult.results.map((r) => ({ method: r.method, url: r.url }))
+    );
+    const reportTitle = aiReportTitle ?? derivedTitle;
+
+    setExportingPDF(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    try {
+      await exportReportToPDF({
+        pipelineName: pipeline?.name ?? "Pipeline",
+        reportTitle,
+        reportOutput,
+        executionResult,
+      });
+      toast.success("PDF downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "PDF export failed");
+    } finally {
+      setExportingPDF(false);
+    }
+  }, [pipelines, setExportingPDF]);
 
   return (
     <PipelineLayout

@@ -41,6 +41,10 @@ export interface StepSnapshot {
   };
   status: StepStatus;
   reducedResponse: ReducedResponse | null;
+  /** Full response body (stream/debug only; never sent to AI) */
+  fullBody?: string;
+  /** Full response headers (stream/debug only; never sent to AI) */
+  fullHeaders?: Record<string, string>;
   /** Pre-request script result (only for entryType: "pre_request" or "request") */
   preRequestResult?: ScriptResult;
   /** Test script result (only for entryType: "test" or "request") */

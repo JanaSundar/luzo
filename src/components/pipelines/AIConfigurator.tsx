@@ -62,10 +62,12 @@ export function AIConfigurator() {
     [handleUpdate, setReportConfig]
   );
 
-  // Estimate tokens when signals change
+  // Estimate tokens when signals change (use maskSensitive so estimate matches AI payload)
   useEffect(() => {
     if (snapshots.length > 0 && signalGroups.length > 0) {
-      const reduced = buildReducedContext(signalGroups, selectedSignals, snapshots);
+      const reduced = buildReducedContext(signalGroups, selectedSignals, snapshots, {
+        maskSensitive: true,
+      });
       setEstimatedTokens(reduced.estimatedTokens);
     }
   }, [selectedSignals, snapshots, signalGroups, setEstimatedTokens]);

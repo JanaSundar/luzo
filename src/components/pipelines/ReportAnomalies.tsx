@@ -1,10 +1,49 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 
 interface ReportAnomaliesProps {
   anomalies: StepSnapshot[];
+}
+
+function AnomalyCard({ anomaly }: { anomaly: StepSnapshot }) {
+  const isError = anomaly.status === "error";
+  const isHighLatency = (anomaly.reducedResponse?.latencyMs ?? 0) > 1000;
+
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 p-4 rounded-lg border-2",
+        isError ? "bg-red-500/10 border-red-500/40" : "bg-amber-500/10 border-amber-500/40"
+      )}
+    >
+      {isError ? (
+        <XCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+      ) : (
+        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+      )}
+      <div className="space-y-1.5 min-w-0">
+        <p className="text-sm font-bold truncate">
+          {anomaly.method} {anomaly.stepName}
+        </p>
+        <p className="text-xs leading-relaxed">
+          {isError && (
+            <span className="font-bold text-red-600">
+              Error: {anomaly.error ?? "Request failed"}
+            </span>
+          )}
+          {isError && isHighLatency && " • "}
+          {isHighLatency && (
+            <span className="font-bold text-amber-600">
+              High latency: {anomaly.reducedResponse?.latencyMs}ms
+            </span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function ReportAnomalies({ anomalies }: ReportAnomaliesProps) {
@@ -18,23 +57,7 @@ export function ReportAnomalies({ anomalies }: ReportAnomaliesProps) {
       </h3>
       <div className="space-y-3">
         {anomalies.map((a) => (
-          <div
-            key={a.stepId}
-            className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg"
-          >
-            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="space-y-1 min-w-0">
-              <p className="text-sm font-semibold truncate">
-                {a.method} {a.stepName}
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {a.status === "error" && `Error: ${a.error ?? "Request failed"}. `}
-                {a.reducedResponse &&
-                  a.reducedResponse.latencyMs > 1000 &&
-                  `High latency: ${a.reducedResponse.latencyMs}ms. `}
-              </p>
-            </div>
-          </div>
+          <AnomalyCard key={a.stepId} anomaly={a} />
         ))}
       </div>
     </section>

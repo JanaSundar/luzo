@@ -182,8 +182,10 @@ export async function POST(request: NextRequest) {
   let mutatedEnv = { ...envVariables };
   let finalHeaders = { ...headers };
   let finalUrl = targetUrl;
+  let preRequestResult: { logs: string[]; error: string | null; durationMs: number } | undefined;
 
   if (preRequestScript?.trim()) {
+    const preStartTime = Date.now();
     const result = runPreRequestScript(preRequestScript, {
       request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
       config: { method, url: targetUrl, headers: finalHeaders, data: bodyFormData },
@@ -192,6 +194,11 @@ export async function POST(request: NextRequest) {
     finalHeaders = { ...(result.config.headers as Record<string, string>) };
     finalUrl = result.config.url ?? targetUrl;
     mutatedEnv = result.envVariables;
+    preRequestResult = {
+      logs: result.result.logs,
+      error: result.result.error,
+      durationMs: Date.now() - preStartTime,
+    };
   }
 
   const finalUrlResult = validateUrl(finalUrl);
@@ -251,5 +258,10 @@ export async function POST(request: NextRequest) {
     testExecution = result.execution;
   }
 
-  return Response.json({ ...apiResponse, testResults, testExecution });
+  return Response.json({
+    ...apiResponse,
+    preRequestResult,
+    testResults,
+    testExecution,
+  });
 }

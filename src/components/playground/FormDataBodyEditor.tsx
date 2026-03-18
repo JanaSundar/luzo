@@ -55,12 +55,7 @@ export function FormDataBodyEditor({
 
       <div className="space-y-2">
         {fields.map((field, i) => (
-          <div
-            key={
-              field.key || field.fileName || field.file?.name || `${field.type}-${field.value}-${i}`
-            }
-            className="flex items-center gap-2"
-          >
+          <div key={i} className="flex items-center gap-2">
             <Switch
               checked={field.enabled}
               onCheckedChange={(v) => update(i, { enabled: v })}

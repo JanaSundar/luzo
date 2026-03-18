@@ -1,12 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import type { PointerEvent } from "react";
 import { Plus, Workflow } from "lucide-react";
-import { motion, Reorder } from "motion/react";
+import { motion, Reorder, useDragControls } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import type { PipelineStep } from "@/types";
 import { StepCard } from "./StepCard";
+
+function DraggableStepCard({
+  step,
+  index,
+  isExpanded,
+  onToggleExpand,
+  onUpdate,
+  onDuplicate,
+  onDelete,
+}: {
+  step: PipelineStep;
+  index: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onUpdate: (updates: Partial<PipelineStep>) => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={step}
+      as="div"
+      dragListener={false}
+      dragControls={controls}
+      className="relative"
+    >
+      <StepCard
+        step={step}
+        index={index}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
+        onUpdate={onUpdate}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+        dragHandleProps={{
+          onPointerDown: (e: PointerEvent) => controls.start(e),
+        }}
+      />
+    </Reorder.Item>
+  );
+}
 
 export function PipelineBuilder() {
   const {
@@ -18,11 +61,12 @@ export function PipelineBuilder() {
     updateStep,
     duplicateStep,
     removeStep,
+    expandedStepIds,
+    setExpandedStepId,
   } = usePipelineStore();
 
-  const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
-
   const pipeline = pipelines.find((p) => p.id === activePipelineId);
+  const expandedStepId = activePipelineId ? (expandedStepIds[activePipelineId] ?? null) : null;
 
   if (!pipeline) return null;
 
@@ -86,6 +130,7 @@ export function PipelineBuilder() {
           <>
             <Reorder.Group
               axis="y"
+              as="div"
               values={pipeline.steps}
               onReorder={(newSteps) =>
                 reorderSteps(
@@ -96,14 +141,18 @@ export function PipelineBuilder() {
               className="w-full space-y-6"
             >
               {pipeline.steps.map((step, index) => (
-                <StepCard
+                <DraggableStepCard
                   key={step.id}
                   step={step}
                   index={index}
                   isExpanded={expandedStepId === step.id}
-                  onToggleExpand={() =>
-                    setExpandedStepId(expandedStepId === step.id ? null : step.id)
-                  }
+                  onToggleExpand={() => {
+                    if (!activePipelineId) return;
+                    setExpandedStepId(
+                      activePipelineId,
+                      expandedStepId === step.id ? null : step.id
+                    );
+                  }}
                   onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
                   onDuplicate={() => duplicateStep(pipeline.id, step.id)}
                   onDelete={() => removeStep(pipeline.id, step.id)}

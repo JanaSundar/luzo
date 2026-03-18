@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormDataBodyEditor } from "@/components/playground/FormDataBodyEditor";
+import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import {
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TemplateTextarea } from "@/components/ui/template-textarea";
 import { cn } from "@/lib/utils";
 import type {
   ApiRequest,
@@ -120,7 +120,7 @@ export function RequestForm({
       )}
 
       {!showTabsOnly && (
-        <div className="flex-1 min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {activeTab === "params" && (
             <AnimatedTabContent>
               <KeyValueEditor
@@ -144,70 +144,74 @@ export function RequestForm({
           )}
 
           {activeTab === "body" && (
-            <AnimatedTabContent>
-              <div className="space-y-4">
-                <Select
-                  value={bodyType}
-                  onValueChange={(v) => {
-                    const newType = v as ApiRequest["bodyType"];
-                    onChange({
-                      bodyType: newType,
-                      body: newType === "form-data" ? null : body,
-                      formDataFields:
-                        newType === "form-data" && !formDataFields?.length ? [] : formDataFields,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="w-40 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="json">JSON</SelectItem>
-                    <SelectItem value="raw">Raw</SelectItem>
-                    <SelectItem value="form-data">Form Data</SelectItem>
-                    <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
-                  </SelectContent>
-                </Select>
+            <AnimatedTabContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+                <div className="flex shrink-0 items-center justify-between gap-2">
+                  <Select
+                    value={bodyType}
+                    onValueChange={(v) => {
+                      const newType = v as ApiRequest["bodyType"];
+                      onChange({
+                        bodyType: newType,
+                        body: newType === "form-data" ? null : body,
+                        formDataFields:
+                          newType === "form-data" && !formDataFields?.length ? [] : formDataFields,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="json">JSON</SelectItem>
+                      <SelectItem value="raw">Raw</SelectItem>
+                      <SelectItem value="form-data">Form Data</SelectItem>
+                      <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {bodyType === "json" && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => {
+                        const current = body ?? "";
+                        if (!current.trim()) return;
+                        try {
+                          const parsed = JSON.parse(current);
+                          onChange({ body: JSON.stringify(parsed, null, 2) });
+                        } catch {
+                          // ignore parse errors
+                        }
+                      }}
+                    >
+                      Prettify
+                    </button>
+                  )}
+                </div>
 
                 {bodyType === "form-data" && (
                   <FormDataBodyEditor
                     fields={formDataFields ?? []}
                     onChange={(updated) => onChange({ formDataFields: updated })}
+                    suggestions={suggestions}
                   />
                 )}
 
                 {bodyType !== "none" && bodyType !== "form-data" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{bodyType === "json" ? "JSON body" : "Raw body"}</span>
-                      {bodyType === "json" && (
-                        <button
-                          type="button"
-                          className="text-xs text-primary hover:underline"
-                          onClick={() => {
-                            const current = body ?? "";
-                            if (!current.trim()) return;
-                            try {
-                              const parsed = JSON.parse(current);
-                              onChange({ body: JSON.stringify(parsed, null, 2) });
-                            } catch {
-                              // ignore parse errors
-                            }
-                          }}
-                        >
-                          Prettify
-                        </button>
-                      )}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="mb-1 shrink-0 text-xs text-muted-foreground">
+                      {bodyType === "json" ? "JSON body" : "Raw body"}
                     </div>
-                    <TemplateTextarea
+                    <JsonBodyEditor
                       value={body ?? ""}
                       onChange={(val) => onChange({ body: val })}
                       suggestions={suggestions}
                       placeholder={
                         bodyType === "json" ? '{\n  "key": "value"\n}' : "Request body..."
                       }
-                      textareaClassName="min-h-[120px] font-mono text-sm p-4"
+                      className="min-h-[200px]"
+                      mode={bodyType === "json" ? "json" : "text"}
                     />
                   </div>
                 )}

@@ -27,6 +27,7 @@ export function StatCard({ label, value, accent }: StatCardProps) {
 
 interface ReportHeaderProps {
   pipelineName: string;
+  reportTitle: string;
   successRate: number;
   avgLatency: number;
   p95Latency: number;
@@ -35,6 +36,7 @@ interface ReportHeaderProps {
 
 export function ReportHeader({
   pipelineName,
+  reportTitle,
   successRate,
   avgLatency,
   p95Latency,
@@ -44,9 +46,7 @@ export function ReportHeader({
     <div className="p-8 sm:p-12 pb-8 border-b border-muted/30 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-4">
-          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-            API Health & Compliance Report
-          </h2>
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{reportTitle}</h2>
           <div className="flex flex-col gap-1 uppercase tracking-widest text-[10px] font-bold text-muted-foreground">
             <span>PIPELINE: {pipelineName || "N/A"}</span>
           </div>

@@ -29,7 +29,7 @@ export function WorkspaceSection({
             {title}
           </span>
           {description && (
-            <span className="text-[10px] text-muted-foreground opacity-60 mt-0.5 font-medium italic">
+            <span className="text-[10px] text-muted-foreground mt-0.5 font-medium italic">
               {description}
             </span>
           )}

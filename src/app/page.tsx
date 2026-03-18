@@ -32,9 +32,31 @@ function RequestPane() {
 }
 
 function ResponsePane() {
+  const response = usePlaygroundStore((s) => s.response);
+  const isLoading = usePlaygroundStore((s) => s.isLoading);
+
+  const status = isLoading ? "LOADING" : response ? `${response.status}` : "READY";
+
+  const dotColor = isLoading
+    ? "bg-yellow-500"
+    : response
+      ? response.status >= 400
+        ? "bg-red-500"
+        : response.status >= 300
+          ? "bg-yellow-500"
+          : "bg-green-500"
+      : "bg-muted-foreground";
+
   return (
     <WorkspacePane>
-      <WorkspaceHeader title="Response Stream" icon={Activity} status="IDLE" />
+      <WorkspaceHeader title="Response Stream" icon={Activity}>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            {status}
+          </span>
+          <div className={cn("h-2 w-2 rounded-full", dotColor)} />
+        </div>
+      </WorkspaceHeader>
       <div className="flex-1 min-h-0 overflow-hidden p-5 flex flex-col bg-background/40">
         <ResponseViewer />
       </div>
@@ -144,10 +166,10 @@ function PlaygroundContent() {
 
         <div className="ml-auto flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
               Layout
             </span>
-            <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border/40">
+            <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border">
               <Button
                 variant="ghost"
                 size="sm"
@@ -155,7 +177,7 @@ function PlaygroundContent() {
                   "h-7 w-7 p-0 rounded-md transition-all",
                   responseLayout === "vertical"
                     ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground opacity-50"
+                    : "text-muted-foreground"
                 )}
                 onClick={() => setResponseLayout("vertical")}
                 title="Vertical Layout"
@@ -169,7 +191,7 @@ function PlaygroundContent() {
                   "h-7 w-7 p-0 rounded-md transition-all",
                   responseLayout === "horizontal"
                     ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground opacity-50"
+                    : "text-muted-foreground"
                 )}
                 onClick={() => setResponseLayout("horizontal")}
                 title="Horizontal Layout"

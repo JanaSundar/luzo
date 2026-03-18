@@ -12,15 +12,21 @@ import { generateText } from "ai";
 import { formatContextForAI } from "@/lib/pipeline/context-reducer";
 import type { AIProviderConfig, AIReportConfig, ReducedContext } from "@/types/pipeline-debug";
 
+const REPORT_TITLE_PREFIX = "REPORT_TITLE:";
+const MAX_DERIVED_TITLE_LENGTH = 55;
+
 interface GenerateReportInput {
   context: ReducedContext;
   config: AIReportConfig;
   provider: AIProviderConfig;
+  /** Derived title from URLs; when too long, AI will suggest a shorter one */
+  derivedTitle?: string;
 }
 
 interface GenerateReportResult {
   output: string;
   mode: "ai" | "preview";
+  reportTitle?: string | null;
   tokensUsed?: number;
 }
 
@@ -40,8 +46,7 @@ export async function generateAIReport(input: GenerateReportInput): Promise<Gene
 
   try {
     const formattedContext = formatContextForAI(context);
-
-    const systemPrompt = buildSystemPrompt(config.tone, context);
+    const systemPrompt = buildSystemPrompt(config.tone, context, input.derivedTitle);
 
     const userPrompt = `${config.prompt}
 
@@ -58,9 +63,12 @@ ${formattedContext}`;
       temperature: 0.7,
     });
 
+    const { output: cleanedOutput, reportTitle } = parseReportOutput(result.text);
+
     return {
-      output: result.text,
+      output: cleanedOutput,
       mode: "ai",
+      reportTitle,
       tokensUsed: result.usage?.totalTokens,
     };
   } catch (error) {
@@ -104,7 +112,25 @@ function createProviderModel(provider: AIProviderConfig) {
   }
 }
 
-function buildSystemPrompt(tone: string, context: ReducedContext): string {
+function parseReportOutput(text: string): { output: string; reportTitle: string | null } {
+  const lines = text.split("\n");
+  let reportTitle: string | null = null;
+  const kept: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith(REPORT_TITLE_PREFIX)) {
+      reportTitle = trimmed.slice(REPORT_TITLE_PREFIX.length).trim();
+    } else {
+      kept.push(line);
+    }
+  }
+  return {
+    output: kept.join("\n").trimEnd(),
+    reportTitle: reportTitle || null,
+  };
+}
+
+function buildSystemPrompt(tone: string, context: ReducedContext, derivedTitle?: string): string {
   const toneInstructions: Record<string, string> = {
     technical:
       "You are a senior API engineer writing a detailed technical report. Include specific metrics, header analysis, and performance observations. Use markdown formatting with clear sections.",
@@ -129,7 +155,17 @@ Prioritize analysis of:
 2. Slow steps exceeding 1000ms (high priority)
 3. Dependency-related values and data flow
 
-Generate a structured report with clear sections.`;
+Generate a structured report with clear sections.${
+    needsShortTitle(derivedTitle)
+      ? `
+
+The current report title is too long. At the very end of your response, add a single line with a concise alternative title (max 50 chars), e.g. "REPORT_TITLE: API Health Summary for User & Order Services"`
+      : ""
+  }`;
+}
+
+function needsShortTitle(derivedTitle?: string): boolean {
+  return Boolean(derivedTitle && derivedTitle.length > MAX_DERIVED_TITLE_LENGTH);
 }
 
 function generateTemplateReport(context: ReducedContext, config: AIReportConfig): string {

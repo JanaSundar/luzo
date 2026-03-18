@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Header } from "./Header";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -26,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </motion.main>
     </div>
   );

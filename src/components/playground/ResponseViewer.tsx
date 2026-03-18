@@ -1,4 +1,4 @@
-import { Activity, ChevronDown, ChevronUp, Copy, Download, Search } from "lucide-react";
+import { Activity, Check, ChevronDown, ChevronUp, Copy, Download, Search } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
@@ -31,6 +31,7 @@ import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function ResponseViewer() {
@@ -39,8 +40,17 @@ export function ResponseViewer() {
   const [matchCount, setMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [bodyView, setBodyView] = useState<"preview" | "raw">("preview");
-  const [activeTab, setActiveTab] = useState<"body" | "headers" | "tests">("body");
+  const [activeTab, setActiveTab] = useState<"body" | "headers" | "pre-request" | "tests">("body");
+  const [copied, setCopied] = useState(false);
   const jsonViewerRef = useRef<JsonResponseViewerRef>(null);
+
+  const copy = useCallback(async () => {
+    if (!response) return;
+    await navigator.clipboard.writeText(response.body);
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  }, [response]);
 
   const onMatchChange = useCallback((count: number, index: number) => {
     setMatchCount(count);
@@ -105,8 +115,6 @@ export function ResponseViewer() {
     URL.revokeObjectURL(url);
   };
 
-  const copy = () => navigator.clipboard.writeText(response.body);
-
   const dataUrl =
     isBinaryPreview && response.body ? `data:${contentType};base64,${response.body}` : null;
 
@@ -119,7 +127,7 @@ export function ResponseViewer() {
   const hasMatches = matchCount > 0;
 
   return (
-    <div className="flex flex-col gap-3 h-full min-h-0">
+    <div className="flex flex-1 flex-col gap-3 min-h-0 overflow-hidden">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 flex-wrap shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
           <ResponseStats
@@ -188,8 +196,18 @@ export function ResponseViewer() {
 
         <div className="flex items-center gap-2">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copy}>
-              <Copy className="h-3.5 w-3.5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={copy}
+              title={copied ? "Copied!" : "Copy"}
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
             </Button>
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -201,10 +219,20 @@ export function ResponseViewer() {
       </div>
 
       <div className="shrink-0 flex flex-col gap-3">
-        <nav className="inline-flex items-center gap-0.5 rounded-full bg-muted/50 p-0.5 border border-border/50 w-fit">
+        <nav className="inline-flex items-center gap-0.5 rounded-lg bg-muted/30 p-0.5 border border-border/50 w-fit">
           {[
-            { id: "body", label: "Body" },
+            { id: "body", label: "Response" },
             { id: "headers", label: `Headers (${Object.keys(response.headers).length})` },
+            ...(response.preRequestResult
+              ? [
+                  {
+                    id: "pre-request",
+                    label: response.preRequestResult.error
+                      ? "Pre-request (Error)"
+                      : `Pre-request (${response.preRequestResult.durationMs}ms)`,
+                  },
+                ]
+              : []),
             ...(response.testResults && response.testResults.length > 0
               ? [
                   {
@@ -219,7 +247,7 @@ export function ResponseViewer() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as "body" | "headers" | "tests")}
+                onClick={() => setActiveTab(tab.id as "body" | "headers" | "pre-request" | "tests")}
                 className={cn(
                   "relative flex h-7 items-center px-4 text-[11px] uppercase tracking-wider font-semibold transition-all rounded-full outline-none",
                   isActive
@@ -241,10 +269,13 @@ export function ResponseViewer() {
         </nav>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
-        <AnimatedTabContent key={activeTab} className="flex-1 flex flex-col min-h-0">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <AnimatedTabContent
+          key={activeTab}
+          className="flex flex-1 flex-col min-h-0 overflow-hidden"
+        >
           {activeTab === "body" && (
-            <div className="mt-2 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="mt-2 flex flex-1 flex-col min-h-0 overflow-hidden">
               <div className="flex items-center justify-between mb-2 gap-2">
                 <div className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/40 p-0.5 text-xs">
                   <button
@@ -274,7 +305,7 @@ export function ResponseViewer() {
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background overflow-hidden flex flex-col">
+              <div className="flex flex-1 flex-col min-h-0 overflow-hidden rounded-md border border-border/40 bg-background">
                 <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
                   {bodyView === "raw" ? (
                     <div className="min-h-0 p-4">
@@ -320,6 +351,34 @@ export function ResponseViewer() {
                       <span className="text-muted-foreground text-sm">Empty response body</span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "pre-request" && response.preRequestResult && (
+            <div className="mt-2 flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-4">
+                  <div className="space-y-3">
+                    {response.preRequestResult.error && (
+                      <div className="text-xs text-destructive bg-destructive/5 px-3 py-2 rounded-md font-mono">
+                        {response.preRequestResult.error}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                      Duration: {response.preRequestResult.durationMs}ms
+                    </div>
+                    {response.preRequestResult.logs.length > 0 ? (
+                      <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-muted/30 p-3 rounded-md">
+                        {response.preRequestResult.logs.join("\n")}
+                      </pre>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        No console output from pre-request script
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
