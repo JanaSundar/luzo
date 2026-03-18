@@ -63,7 +63,7 @@ export function getAutocompleteSuggestions(
       }
 
       if (resp.body !== undefined) {
-        const bodyFlat = flattenObject(resp.body, `${alias.alias}.response.body`, 4);
+        const bodyFlat = flattenObject(resp.body, `${alias.alias}.response.body`, 6);
         bodyFlat.forEach(({ path }) => {
           const shortLabel = path.replace(`${alias.alias}.response.body.`, "");
           suggestions.push({
@@ -75,13 +75,22 @@ export function getAutocompleteSuggestions(
         });
       }
     } else {
-      // Fallback: provide basic placeholders if no execution data
-      suggestions.push({
-        path: `${alias.alias}.response.body`,
-        label: `${alias.alias} → Response Body`,
-        stepId: alias.stepId,
-        type: "body",
-      });
+      // Fallback: provide granular placeholders when no execution data exists
+      // so users can type req1.response.data.name and get partial matches
+      suggestions.push(
+        {
+          path: `${alias.alias}.response.headers`,
+          label: `${alias.alias} → Response Headers`,
+          stepId: alias.stepId,
+          type: "header",
+        },
+        {
+          path: `${alias.alias}.response.body`,
+          label: `${alias.alias} → Response Body`,
+          stepId: alias.stepId,
+          type: "body",
+        }
+      );
     }
   }
 

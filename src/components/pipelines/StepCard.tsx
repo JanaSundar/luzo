@@ -6,6 +6,7 @@ import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { getAutocompleteSuggestions } from "@/lib/pipeline/autocomplete";
+import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export function StepCard({
 }: StepCardProps) {
   const { activePipelineId, pipelines } = usePipelineStore();
   const { getActiveEnvironmentVariables } = usePlaygroundStore();
+  const runtimeVariables = usePipelineDebugStore((s) => s.runtimeVariables);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -50,11 +52,12 @@ export function StepCard({
     }
   }, [renamingId]);
 
-  // Pass active environment variables to suggestions
+  // Pass active environment variables and runtime vars for nuclear-level suggestions
   const suggestions = getAutocompleteSuggestions(
     pipeline,
     step.id,
-    getActiveEnvironmentVariables()
+    getActiveEnvironmentVariables(),
+    runtimeVariables as Record<string, unknown>
   );
 
   const handleRenameStart = () => {

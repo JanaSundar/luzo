@@ -32,38 +32,39 @@ export function KeyValueEditor({
     <div className="space-y-4">
       <div className="space-y-2">
         {pairs.map((pair, i) => (
-          <div
-            key={pair.key || `${pair.value}-${pair.enabled}-${i}`}
-            className="flex items-center gap-2"
-          >
+          <div key={i} className="flex items-center gap-2">
             <Switch
               checked={pair.enabled}
               onCheckedChange={(v) => update(i, "enabled", v)}
               className="shrink-0"
             />
-            <Input
-              value={pair.key}
-              onChange={(e) => update(i, "key", e.target.value)}
-              placeholder={placeholder}
-              className="h-8 text-sm"
-            />
-            {suggestions.length > 0 ? (
-              <TemplateInput
-                value={pair.value}
-                onChange={(v) => update(i, "value", v)}
-                suggestions={suggestions}
-                placeholder="Value"
-                inputClassName="h-8 text-sm border border-input rounded-md bg-background px-3"
-                className="flex-1"
-              />
-            ) : (
+            <div className="flex-1 min-w-0">
               <Input
-                value={pair.value}
-                onChange={(e) => update(i, "value", e.target.value)}
-                placeholder="Value"
-                className="h-8 text-sm"
+                value={pair.key}
+                onChange={(e) => update(i, "key", e.target.value)}
+                placeholder={placeholder}
+                className="h-8 text-sm w-full"
               />
-            )}
+            </div>
+            <div className="flex-1 min-w-0">
+              {suggestions.length > 0 ? (
+                <TemplateInput
+                  value={pair.value}
+                  onChange={(v) => update(i, "value", v)}
+                  suggestions={suggestions}
+                  placeholder="Value"
+                  inputClassName="h-8 text-sm border border-input rounded-md bg-background px-3 w-full"
+                  className="w-full"
+                />
+              ) : (
+                <Input
+                  value={pair.value}
+                  onChange={(e) => update(i, "value", e.target.value)}
+                  placeholder="Value"
+                  className="h-8 text-sm w-full"
+                />
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"

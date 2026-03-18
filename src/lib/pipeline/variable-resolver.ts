@@ -4,7 +4,7 @@ const VARIABLE_REGEX = /\{\{([^}]+)\}\}/g;
  * Safely traverse an object by a dot-separated path.
  * Supports array indexing: "data.users[0].name" or "data.users.0.name"
  */
-function getByPath(obj: unknown, path: string): unknown {
+export function getByPath(obj: unknown, path: string): unknown {
   if (obj == null) return undefined;
 
   const segments = path
@@ -29,17 +29,21 @@ function getByPath(obj: unknown, path: string): unknown {
 
 /**
  * Resolve all {{path}} variables in a template string.
- * Resolution order: runtimeVariables → envVariables → unresolved (kept as-is).
+ * Resolution order: variableOverrides → runtimeVariables → envVariables → unresolved (kept as-is).
  */
 export function resolveTemplate(
   template: string,
   runtimeVariables: Record<string, unknown>,
-  envVariables: Record<string, string> = {}
+  envVariables: Record<string, string> = {},
+  variableOverrides: Record<string, string> = {}
 ): string {
   if (!template) return template;
 
   return template.replace(VARIABLE_REGEX, (match, rawPath: string) => {
     const path = rawPath.trim();
+
+    const overrideValue = variableOverrides[path];
+    if (overrideValue !== undefined) return overrideValue;
 
     const runtimeValue = getByPath(runtimeVariables, path);
     if (runtimeValue !== undefined) {

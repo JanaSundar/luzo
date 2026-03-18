@@ -56,17 +56,26 @@ export function TemplateTextarea({
   useEffect(() => setMounted(true), []);
 
   const updateDropdownPos = useCallback(() => {
-    if (!textareaRef.current) return;
-    const rect = textareaRef.current.getBoundingClientRect();
+    const el = textareaRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight) || 20;
+    const paddingTop = parseFloat(style.paddingTop) || 8;
+    const valueBeforeCaret = value.slice(0, cursorPosRef.current);
+    const lineNumber = valueBeforeCaret.split("\n").length - 1;
+    const offsetY = paddingTop + lineNumber * lineHeight;
+    const visibleY = Math.max(0, Math.min(offsetY - el.scrollTop, el.clientHeight - lineHeight));
+    const top = rect.top + visibleY + lineHeight + 4;
     setDropdownStyle({
       position: "fixed",
-      top: rect.bottom + 4,
+      top,
       left: rect.left,
       width: Math.max(rect.width, 240),
       maxWidth: "calc(100vw - 16px)",
       zIndex: 9999,
     });
-  }, []);
+  }, [value]);
 
   const refreshItems = useCallback(
     (val: string, cursor: number) => {
@@ -130,9 +139,22 @@ export function TemplateTextarea({
     };
   }, [isOpen, updateDropdownPos]);
 
-  const { ref: _downshiftRef, ...downshiftProps } = getInputProps({
+  const { ref: downshiftRef, ...restInputProps } = getInputProps({
     ref: textareaRef as unknown as React.Ref<HTMLInputElement>,
   });
+
+  const setRef = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+      const inputEl = el as unknown as HTMLInputElement | null;
+      if (typeof downshiftRef === "function") {
+        downshiftRef(inputEl);
+      } else if (downshiftRef) {
+        (downshiftRef as React.MutableRefObject<HTMLInputElement | null>).current = inputEl;
+      }
+    },
+    [downshiftRef]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     cursorPosRef.current = e.currentTarget.selectionStart ?? 0;
@@ -140,15 +162,18 @@ export function TemplateTextarea({
       e.stopPropagation();
       closeMenu();
     }
-    // Call downshift's handler if needed, though useCombobox handles most via the props spread
-    if (downshiftProps.onKeyDown) downshiftProps.onKeyDown(e);
+    if (restInputProps.onKeyDown) {
+      (restInputProps.onKeyDown as (e: React.KeyboardEvent<HTMLTextAreaElement>) => void)(e);
+    }
     if (props.onKeyDown) props.onKeyDown(e);
   };
 
   const handleClick = (e: React.MouseEvent<HTMLTextAreaElement>) => {
     cursorPosRef.current = e.currentTarget.selectionStart ?? 0;
     refreshItems(value, cursorPosRef.current);
-    if (downshiftProps.onClick) downshiftProps.onClick(e);
+    if (restInputProps.onClick) {
+      (restInputProps.onClick as (e: React.MouseEvent<HTMLTextAreaElement>) => void)(e);
+    }
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -157,7 +182,6 @@ export function TemplateTextarea({
     cursorPosRef.current = cursor;
     onChange(val);
     refreshItems(val, cursor);
-    // Do NOT call downshiftProps.onChange here as it expects an InputChangeEvent
   };
 
   const groups = groupSuggestions(items);
@@ -212,8 +236,8 @@ export function TemplateTextarea({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <textarea
-        ref={textareaRef}
-        {...downshiftProps}
+        ref={setRef}
+        {...restInputProps}
         value={value}
         onChange={handleTextareaChange}
         onKeyDown={handleKeyDown}

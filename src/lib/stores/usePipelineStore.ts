@@ -23,6 +23,8 @@ interface PipelineState {
   isExecuting: boolean;
   aiProvider: AIProviderConfig;
   selectedStepId: string | null;
+  /** Per-pipeline expanded step id (persisted) */
+  expandedStepIds: Record<string, string | null>;
   preferences: {
     skipDeleteConfirmation: boolean;
   };
@@ -35,6 +37,8 @@ interface PipelineState {
   setExecuting: (isExecuting: boolean) => void;
   setAIProvider: (config: Partial<AIProviderConfig>) => void;
   setSelectedStepId: (id: string | null) => void;
+  setExpandedStepId: (pipelineId: string, stepId: string | null) => void;
+  getExpandedStepId: (pipelineId: string) => string | null;
   setPreferences: (partial: Partial<{ skipDeleteConfirmation: boolean }>) => void;
 
   // Pipeline Management
@@ -74,6 +78,7 @@ export const usePipelineStore = create<PipelineState>()(
       isExecuting: false,
       aiProvider: { ...DEFAULT_AI_PROVIDER },
       selectedStepId: null,
+      expandedStepIds: {},
       preferences: {
         skipDeleteConfirmation: false,
       },
@@ -88,6 +93,11 @@ export const usePipelineStore = create<PipelineState>()(
           Object.assign(state.aiProvider, config);
         }),
       setSelectedStepId: (selectedStepId) => set({ selectedStepId }),
+      setExpandedStepId: (pipelineId, stepId) =>
+        set((state) => ({
+          expandedStepIds: { ...state.expandedStepIds, [pipelineId]: stepId },
+        })),
+      getExpandedStepId: (pipelineId) => _get().expandedStepIds[pipelineId] ?? null,
       setPreferences: (prefs) =>
         set((state) => {
           Object.assign(state.preferences, prefs);
@@ -220,6 +230,7 @@ export const usePipelineStore = create<PipelineState>()(
         pipelines: s.pipelines,
         activePipelineId: s.activePipelineId,
         currentView: s.currentView,
+        expandedStepIds: s.expandedStepIds,
         aiProvider: {
           ...s.aiProvider,
           apiKey: "", // never persist API key

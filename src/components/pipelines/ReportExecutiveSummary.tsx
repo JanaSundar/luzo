@@ -1,141 +1,119 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Badge } from "./StepCard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ReportExecutiveSummaryProps {
   reportOutput: string | null;
-  mode: "ai" | "preview";
-  providerInfo?: string;
 }
 
-export function ReportExecutiveSummary({
-  reportOutput,
-  mode,
-  providerInfo,
-}: ReportExecutiveSummaryProps) {
+export function ReportExecutiveSummary({ reportOutput }: ReportExecutiveSummaryProps) {
   return (
     <section className="space-y-6">
-      <div className="flex items-center gap-3">
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          Executive Summary
-        </h3>
-        <Badge
-          className={cn(
-            "text-[9px] font-bold px-1.5 py-0.5 border",
-            mode === "ai"
-              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-              : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-          )}
-        >
-          {mode === "ai" ? "AI Generated" : "Static Template"}
-        </Badge>
-        {providerInfo && (
-          <span className="text-[9px] text-muted-foreground font-medium truncate uppercase tracking-tight">
-            ({providerInfo})
-          </span>
-        )}
-      </div>
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        Executive Summary
+      </h3>
 
-      <div className="text-[13px] leading-relaxed text-foreground/80 whitespace-pre-wrap bg-muted/5 p-6 rounded-2xl border border-muted-foreground/10">
-        {reportOutput ? (
-          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:mb-4 prose-headings:mt-6 first:prose-headings:mt-0">
-            <RenderMarkdown text={reportOutput} />
+      {reportOutput ? (
+        <ReportMarkdown content={reportOutput} />
+      ) : (
+        <div className="text-center py-8 text-muted-foreground space-y-3">
+          <Sparkles className="h-8 w-8 mx-auto opacity-20" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground/60">No narrative generated yet</p>
+            <p className="text-xs">
+              Configure your signals, then click "Generate Report" above to see insights.
+            </p>
           </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground space-y-3">
-            <Sparkles className="h-8 w-8 mx-auto opacity-20" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-foreground/60">No narrative generated yet</p>
-              <p className="text-xs">
-                Configure your signals, then click "Generate Report" above to see insights.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
 
-function RenderMarkdown({ text }: { text: string }) {
-  const lines = text.split("\n");
-
+function ReportMarkdown({ content }: { content: string }) {
   return (
-    <div className="space-y-4">
-      {lines.map((line, i) => {
-        const key = `line-${i}`;
-        if (!line.trim()) return <div key={key} className="h-2" />;
-
-        if (line.startsWith("### "))
-          return (
-            <h4 key={key} className="text-base font-bold text-foreground">
-              {processInline(line.slice(4))}
-            </h4>
-          );
-        if (line.startsWith("## "))
-          return (
-            <h3
-              key={key}
-              className="text-lg font-bold text-foreground border-b border-muted/30 pb-1 w-fit pr-8"
-            >
-              {processInline(line.slice(3))}
-            </h3>
-          );
-        if (line.startsWith("# "))
-          return (
-            <h2 key={key} className="text-xl font-bold text-foreground">
-              {processInline(line.slice(2))}
+    <div className="report-markdown text-sm leading-relaxed text-foreground/90">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => (
+            <h1 className="mb-6 mt-8 text-2xl font-bold tracking-tight text-foreground first:mt-0">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mb-4 mt-8 border-b border-border/50 pb-2 text-xl font-bold text-foreground">
+              {children}
             </h2>
-          );
-
-        if (line.match(/^[-*]\s/)) {
-          return (
-            <div key={key} className="flex items-start gap-3 pl-2">
-              <span className="text-primary mt-2 h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0" />
-              <span className="flex-1">{processInline(line.slice(2))}</span>
-            </div>
-          );
-        }
-
-        if (line.startsWith("*") && line.endsWith("*") && !line.startsWith("**")) {
-          return (
-            <p
-              key={key}
-              className="italic text-muted-foreground text-xs pl-4 border-l-2 border-primary/20 bg-primary/5 py-2 rounded-r-lg"
-            >
-              {line.slice(1, -1)}
-            </p>
-          );
-        }
-
-        return (
-          <p key={key} className="text-foreground/90">
-            {processInline(line)}
-          </p>
-        );
-      })}
+          ),
+          h3: ({ children }) => (
+            <h3 className="mb-3 mt-6 text-base font-semibold text-foreground">{children}</h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="mb-2 mt-4 text-sm font-semibold text-foreground">{children}</h4>
+          ),
+          p: ({ children }) => <p className="mb-4 leading-relaxed last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="mb-4 ml-4 list-disc space-y-1.5">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-4 ml-4 list-decimal space-y-1.5">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
+          em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+          code: ({ children, className }) =>
+            className ? (
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{children}</code>
+            ) : (
+              <code className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-xs">
+                {children}
+              </code>
+            ),
+          pre: ({ children }) => (
+            <pre className="mb-4 overflow-x-auto rounded-lg border border-border/50 bg-muted/30 p-4 font-mono text-xs">
+              {children}
+            </pre>
+          ),
+          table: ({ children }) => (
+            <Card className="mb-6 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>{children}</Table>
+                </div>
+              </CardContent>
+            </Card>
+          ),
+          thead: ({ children }) => <TableHeader>{children}</TableHeader>,
+          tbody: ({ children }) => <TableBody>{children}</TableBody>,
+          tr: ({ children }) => <TableRow>{children}</TableRow>,
+          th: ({ children }) => (
+            <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {children}
+            </TableHead>
+          ),
+          td: ({ children }) => (
+            <TableCell className="px-4 py-3 font-mono text-xs">{children}</TableCell>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="mb-4 border-l-2 border-primary/30 bg-primary/5 py-2 pl-4 italic text-muted-foreground">
+              {children}
+            </blockquote>
+          ),
+          hr: () => <hr className="my-6 border-border/50" />,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
-}
-
-function processInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
-  return parts.map((part, i) => {
-    const key = `inline-${i}`;
-    if (part.startsWith("**") && part.endsWith("**"))
-      return (
-        <strong key={key} className="font-bold text-foreground">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    if (part.startsWith("*") && part.endsWith("*"))
-      return (
-        <em key={key} className="italic">
-          {part.slice(1, -1)}
-        </em>
-      );
-    return <span key={key}>{part}</span>;
-  });
 }

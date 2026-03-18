@@ -32,7 +32,7 @@ export function WorkspaceHeader({
         {status && (
           <>
             <div className="h-4 w-[1px] bg-border mx-3" />
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider opacity-60">
+            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
               {status}
             </span>
           </>

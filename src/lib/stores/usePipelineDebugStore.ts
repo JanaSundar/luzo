@@ -15,7 +15,11 @@ import { extractSignals, getDefaultSelectedSignals } from "../pipeline/context-s
 import { validatePipelineDag } from "../pipeline/dag-validator";
 import { createPipelineGenerator } from "../pipeline/generator-executor";
 
-type AsyncPipelineGenerator = AsyncGenerator<GeneratorYield, void, void>;
+type AsyncPipelineGenerator = AsyncGenerator<
+  GeneratorYield,
+  void,
+  Record<string, string> | undefined
+>;
 
 interface DebugStore {
   runtime: DebugRuntimeState;
@@ -29,11 +33,18 @@ interface DebugStore {
   selectedSignals: string[];
   showSensitive: boolean;
 
+  /** User-entered overrides for unresolved variables when paused in debug mode */
+  variableOverrides: Record<string, string>;
+  setVariableOverride: (path: string, value: string) => void;
+  clearVariableOverrides: () => void;
+
   reportConfig: AIReportConfig;
   reportCache: AIReportCache | null;
   reportOutput: string | null;
+  reportTitle: string | null;
   isReportDirty: boolean;
   isGeneratingReport: boolean;
+  isExportingPDF: boolean;
   estimatedTokens: number;
 
   aiProvider: DebugAIProviderConfig;
@@ -56,9 +67,10 @@ interface DebugStore {
   setSelectedSignals: (signals: string[]) => void;
 
   setReportConfig: (partial: Partial<AIReportConfig>) => void;
-  setReportOutput: (output: string) => void;
+  setReportOutput: (output: string, reportTitle?: string | null) => void;
   setReportCache: (cache: AIReportCache) => void;
   setGeneratingReport: (generating: boolean) => void;
+  setExportingPDF: (exporting: boolean) => void;
   markReportDirty: () => void;
   setEstimatedTokens: (tokens: number) => void;
 
@@ -104,12 +116,15 @@ export const usePipelineDebugStore = create<DebugStore>()(
       signalGroups: [],
       selectedSignals: [],
       showSensitive: false,
+      variableOverrides: {},
 
       reportConfig: { ...INITIAL_REPORT_CONFIG },
       reportCache: null,
       reportOutput: null,
+      reportTitle: null,
       isReportDirty: false,
       isGeneratingReport: false,
+      isExportingPDF: false,
       estimatedTokens: 0,
 
       aiProvider: { ...INITIAL_AI_PROVIDER },
@@ -149,7 +164,9 @@ export const usePipelineDebugStore = create<DebugStore>()(
           state.generator = gen as unknown as AsyncPipelineGenerator;
           state.signalGroups = [];
           state.selectedSignals = [];
+          state.variableOverrides = {};
           state.reportOutput = null;
+          state.reportTitle = null;
           state.reportCache = null;
           state.isReportDirty = false;
         });
@@ -167,7 +184,8 @@ export const usePipelineDebugStore = create<DebugStore>()(
           });
         }
 
-        const result = await generator.next();
+        const variableOverrides = get().variableOverrides ?? {};
+        const result = await generator.next(variableOverrides);
 
         if (result.done) {
           set((state) => {
@@ -190,7 +208,8 @@ export const usePipelineDebugStore = create<DebugStore>()(
         });
 
         if (yielded.type === "step_ready") {
-          const stepResult = await generator.next();
+          const stepOverrides = get().variableOverrides ?? {};
+          const stepResult = await generator.next(stepOverrides);
 
           if (stepResult.done) {
             set((state) => {
@@ -264,7 +283,8 @@ export const usePipelineDebugStore = create<DebugStore>()(
         let done = false;
 
         while (!done) {
-          const result = await generator.next();
+          const variableOverrides = get().variableOverrides ?? {};
+          const result = await generator.next(variableOverrides);
 
           if (result.done) {
             done = true;
@@ -342,12 +362,29 @@ export const usePipelineDebugStore = create<DebugStore>()(
           state.generator = null;
           state.signalGroups = [];
           state.selectedSignals = [];
+          state.variableOverrides = {};
           state.reportOutput = null;
+          state.reportTitle = null;
           state.reportCache = null;
           state.isReportDirty = false;
           state.isGeneratingReport = false;
         });
       },
+
+      setVariableOverride: (path, value) =>
+        set((state) => {
+          if (!state.variableOverrides) state.variableOverrides = {};
+          if (value === "") {
+            delete state.variableOverrides[path];
+          } else {
+            state.variableOverrides[path] = value;
+          }
+        }),
+
+      clearVariableOverrides: () =>
+        set((state) => {
+          state.variableOverrides = {};
+        }),
 
       updateSnapshot: (snapshot) =>
         set((state) => {
@@ -415,9 +452,10 @@ export const usePipelineDebugStore = create<DebugStore>()(
           state.isReportDirty = true;
         }),
 
-      setReportOutput: (output) =>
+      setReportOutput: (output, reportTitle) =>
         set((state) => {
           state.reportOutput = output;
+          state.reportTitle = reportTitle ?? null;
           state.isReportDirty = false;
         }),
 
@@ -429,6 +467,11 @@ export const usePipelineDebugStore = create<DebugStore>()(
       setGeneratingReport: (generating) =>
         set((state) => {
           state.isGeneratingReport = generating;
+        }),
+
+      setExportingPDF: (exporting) =>
+        set((state) => {
+          state.isExportingPDF = exporting;
         }),
 
       markReportDirty: () =>

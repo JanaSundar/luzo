@@ -45,7 +45,7 @@ export async function* createPipelineGenerator(
     abortControls: Map<string, StepAbortControl>;
     masterAbort: AbortController;
   }
-): AsyncGenerator<GeneratorYield, void, void> {
+): AsyncGenerator<GeneratorYield, void, Record<string, string> | undefined> {
   const { stepTimeoutMs = DEFAULT_STEP_TIMEOUT_MS, abortControls, masterAbort } = options;
   const aliases = buildStepAliases(pipeline.steps);
   const aliasMap = new Map(aliases.map((a) => [a.stepId, a.alias]));
@@ -79,11 +79,11 @@ export async function* createPipelineGenerator(
     pendingSnapshot.startedAt = new Date().toISOString();
     snapshots.push(pendingSnapshot);
 
-    yield {
+    const variableOverrides = (yield {
       type: "step_ready",
       snapshot: cloneSnapshot(pendingSnapshot),
       allSnapshots: cloneSnapshots(snapshots),
-    };
+    }) as Record<string, string> | undefined;
 
     const stepAbort = new AbortController();
     const timeoutId = setTimeout(() => stepAbort.abort(), stepTimeoutMs);
@@ -93,7 +93,12 @@ export async function* createPipelineGenerator(
     masterAbort.signal.addEventListener("abort", onMasterAbort, { once: true });
 
     try {
-      const resolvedStep = resolveStep(step, runtimeVariables, envVariables);
+      const resolvedStep = resolveStep(
+        step,
+        runtimeVariables,
+        envVariables,
+        variableOverrides ?? {}
+      );
       const resolvedRequest: StepSnapshot["resolvedRequest"] = {
         url: resolvedStep.url,
         headers: Object.fromEntries(
@@ -181,7 +186,8 @@ export async function* createPipelineGenerator(
         stepError,
         resolvedRequest,
         preRequestResult,
-        testResult
+        testResult,
+        { body: response.body, headers: response.headers }
       );
       snapshots[i] = completedSnapshot;
 
@@ -245,9 +251,10 @@ export async function* createPipelineGenerator(
 function resolveStep(
   step: PipelineStep,
   runtimeVars: Record<string, unknown>,
-  envVars: Record<string, string>
+  envVars: Record<string, string>,
+  variableOverrides: Record<string, string> = {}
 ): PipelineStep {
-  const resolve = (val: string) => resolveTemplate(val, runtimeVars, envVars);
+  const resolve = (val: string) => resolveTemplate(val, runtimeVars, envVars, variableOverrides);
 
   return {
     ...step,
@@ -289,7 +296,8 @@ function createCompletedSnapshot(
   error: string | null,
   resolvedRequest?: StepSnapshot["resolvedRequest"],
   preRequestResult?: ScriptResult,
-  testResult?: ScriptResult
+  testResult?: ScriptResult,
+  fullResponse?: { body: string; headers: Record<string, string> }
 ): StepSnapshot {
   return {
     ...base,
@@ -301,6 +309,10 @@ function createCompletedSnapshot(
     completedAt: new Date().toISOString(),
     preRequestResult,
     testResult,
+    ...(fullResponse && {
+      fullBody: fullResponse.body,
+      fullHeaders: fullResponse.headers,
+    }),
   };
 }
 

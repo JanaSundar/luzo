@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
@@ -41,8 +41,16 @@ export function PipelineLayout({
     setPreferences,
   } = usePipelineStore();
 
-  const { runtime, isGeneratingReport, isReportDirty, reportOutput, selectedSignals } =
-    usePipelineDebugStore();
+  const {
+    runtime,
+    snapshots,
+    isGeneratingReport,
+    isExportingPDF,
+    isReportDirty,
+    reportOutput,
+    selectedSignals,
+    resetSession,
+  } = usePipelineDebugStore();
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -79,6 +87,7 @@ export function PipelineLayout({
 
   const handleDeleteClick = (id: string) => {
     if (preferences.skipDeleteConfirmation) {
+      resetSession();
       deletePipeline(id);
     } else {
       setPendingDeleteIds([id]);
@@ -89,6 +98,7 @@ export function PipelineLayout({
   const handleBatchDeleteClick = () => {
     if (selectedIds.length === 0) return;
     if (preferences.skipDeleteConfirmation) {
+      resetSession();
       deletePipelines(selectedIds);
       setSelectedIds([]);
       setSelectionMode(false);
@@ -99,6 +109,7 @@ export function PipelineLayout({
   };
 
   const confirmDelete = () => {
+    resetSession();
     if (pendingDeleteIds.length === 1) {
       deletePipeline(pendingDeleteIds[0]);
     } else {
@@ -165,6 +176,7 @@ export function PipelineLayout({
           currentView={currentView}
           isExecuting={isAnyExecuting}
           activePipelineId={activePipelineId}
+          snapshotsCount={snapshots.length}
           onSetView={setView}
           onRun={onRun || (() => {})}
           onDebug={onDebug || (() => {})}
@@ -172,6 +184,7 @@ export function PipelineLayout({
           onGenerateReport={onGenerateReport}
           onExportPDF={onExportPDF}
           isGeneratingReport={isGeneratingReport}
+          isExportingPDF={isExportingPDF}
           isReportDirty={isReportDirty}
           reportOutput={reportOutput}
           selectedSignalsCount={selectedSignals.length}
@@ -198,6 +211,20 @@ export function PipelineLayout({
           )}
         </main>
       </div>
+
+      {isExportingPDF && (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="mt-4 text-sm font-medium">Generating PDF...</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            This may take a moment. Please don&apos;t close the page.
+          </p>
+        </div>
+      )}
 
       <DeletePipelineDialog
         open={showConfirmDialog}

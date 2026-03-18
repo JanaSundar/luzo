@@ -111,7 +111,10 @@ export function RequestBuilder() {
           { ...request, preRequestScript: finalPreRequestScript, testScript: finalTestScript },
           envVars
         );
-        setResponse(resp);
+        setResponse({
+          ...resp,
+          testResults: resp.testResults ?? resp.testResult?.testResults,
+        });
       }
 
       addToHistory(`${request.method} ${request.url}`, request);
