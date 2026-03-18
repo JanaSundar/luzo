@@ -239,13 +239,17 @@ export async function POST(request: NextRequest) {
   };
 
   let testResults: Array<{ name: string; passed: boolean; error?: string }> | undefined;
+  let testExecution: { logs: string[]; error: string | null } | undefined;
+
   if (testScript?.trim()) {
-    testResults = runTestScript(testScript, {
+    const result = runTestScript(testScript, {
       request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
       response: apiResponse,
       envVariables: mutatedEnv,
     });
+    testResults = result.testResults;
+    testExecution = result.execution;
   }
 
-  return Response.json({ ...apiResponse, testResults });
+  return Response.json({ ...apiResponse, testResults, testExecution });
 }

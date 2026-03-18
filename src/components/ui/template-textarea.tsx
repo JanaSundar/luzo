@@ -130,10 +130,8 @@ export function TemplateTextarea({
     };
   }, [isOpen, updateDropdownPos]);
 
-  // Downshift's getInputProps is typed for HTMLInputElement.
-  // We use "as any" to spread it onto the textarea, then manually override the essential handlers.
-  const downshiftProps = getInputProps({
-    ref: textareaRef as unknown as React.RefObject<HTMLInputElement>,
+  const { ref: _downshiftRef, ...downshiftProps } = getInputProps({
+    ref: textareaRef as unknown as React.Ref<HTMLInputElement>,
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -214,6 +212,7 @@ export function TemplateTextarea({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <textarea
+        ref={textareaRef}
         {...downshiftProps}
         value={value}
         onChange={handleTextareaChange}
