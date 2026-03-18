@@ -1,13 +1,25 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": {
-    "enabled": false,
+    "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": false
+    "useIgnoreFile": true
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx"]
+    "includes": [
+      "**/*.js",
+      "**/*.ts",
+      "**/*.jsx",
+      "**/*.tsx",
+      "!.next",
+      "!node_modules",
+      "!dist",
+      "!build",
+      "!.pnpm-store",
+      "!public",
+      "!tsconfig.tsbuildinfo"
+    ]
   },
   "assist": {
     "actions": {

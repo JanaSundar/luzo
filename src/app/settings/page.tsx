@@ -1,213 +1,154 @@
 "use client";
 
-import { Eye, EyeOff, Save } from "lucide-react";
+import { Cpu, Database, Info } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { toast } from "@/components/ui/use-toast";
-import { PROVIDER_CONFIGS } from "@/config/ai-providers";
-import { useAvailableModels } from "@/lib/hooks/useAvailableModels";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import type { AiProvider } from "@/types";
+import { Suspense, useState } from "react";
+import { AIConfigView } from "@/components/settings/AIConfigView";
+import { PersistenceView } from "@/components/settings/PersistenceView";
+import { WorkspacePane } from "@/components/ui/workspace-pane";
+import { cn } from "@/lib/utils";
 
-const PROVIDERS: AiProvider[] = ["openrouter", "groq", "openai"];
+const TABS = [
+  { id: "ai", label: "AI Intelligence", icon: Cpu },
+  { id: "database", label: "Database", icon: Database },
+] as const;
 
-function ApiKeyField({ provider }: { provider: AiProvider }) {
-  const { apiKeys, setApiKey } = useSettingsStore();
-  const [visible, setVisible] = useState(false);
-  const value = apiKeys[provider];
+type TabId = (typeof TABS)[number]["id"];
 
+function TabButton({
+  tab,
+  isActive,
+  onClick,
+}: {
+  tab: (typeof TABS)[number];
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const Icon = tab.icon;
   return (
-    <div className="flex gap-2">
-      <Input
-        type={visible ? "text" : "password"}
-        value={value}
-        onChange={(e) => setApiKey(provider, e.target.value)}
-        placeholder={`Enter ${PROVIDER_CONFIGS[provider].name} API key`}
-        className="font-mono text-sm"
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative flex h-9 items-center gap-2 px-4 text-[10px] uppercase tracking-wider font-bold transition-all rounded-full outline-none whitespace-nowrap",
+        isActive
+          ? "text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+      )}
+    >
+      {isActive && (
+        <motion.div
+          layoutId="settings-tab"
+          className="absolute inset-0 bg-primary rounded-full shadow-sm"
+          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+        />
+      )}
+      <Icon
+        className={cn(
+          "relative z-10 h-3.5 w-3.5",
+          isActive ? "text-primary-foreground" : "text-muted-foreground"
+        )}
       />
-      <Button variant="ghost" size="icon" onClick={() => setVisible((v) => !v)}>
-        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </Button>
+      <span className="relative z-10">{tab.label}</span>
+    </button>
+  );
+}
+
+function SectionCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("rounded-2xl border bg-background shadow-sm overflow-hidden", className)}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-4 border-b border-border/50">
+      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-primary" />
+      </div>
+      <div>
+        <h2 className="text-sm font-bold tracking-tight">{title}</h2>
+        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest opacity-60">
+          {description}
+        </p>
+      </div>
     </div>
   );
 }
 
 export default function SettingsPage() {
-  const { aiConfig, apiKeys, setAiConfig } = useSettingsStore();
-  const [hasAutoSelectedModel, setHasAutoSelectedModel] = useState(false);
-  const activeApiKey = apiKeys[aiConfig.provider];
-  const { data: models = [], isLoading: modelsAreLoading } = useAvailableModels(
-    aiConfig.provider,
-    activeApiKey
-  );
-
-  const activeModels = useMemo(
-    () =>
-      models.length > 0
-        ? models
-        : PROVIDER_CONFIGS[aiConfig.provider].models.map((model) => ({
-            id: model.id,
-            name: model.name,
-            contextWindow: model.contextWindow,
-          })),
-    [aiConfig.provider, models]
-  );
-
-  useEffect(() => {
-    if (!activeModels.length) return;
-
-    const currentModelExists = activeModels.some((model) => model.id === aiConfig.model);
-    if (!currentModelExists) {
-      setAiConfig({ model: activeModels[0].id });
-    }
-  }, [activeModels, aiConfig.model, setAiConfig]);
-
-  useEffect(() => {
-    setHasAutoSelectedModel(false);
-  }, []);
-
-  const save = () => {
-    toast("Settings saved");
-  };
+  const [activeTab, setActiveTab] = useState<TabId>("ai");
 
   return (
-    <motion.div
-      className="flex-1 overflow-auto p-6 max-w-2xl mx-auto space-y-6"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-    >
-      <h1 className="text-2xl font-bold">Settings</h1>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>AI Model Configuration</CardTitle>
-          <CardDescription>
-            Configure the AI model used for chat and assistance features.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Provider</Label>
-            <Select
-              value={aiConfig.provider}
-              onValueChange={(v) => {
-                const provider = v as AiProvider;
-                setAiConfig({
-                  provider,
-                  model: PROVIDER_CONFIGS[provider].defaultModel,
-                });
-                setHasAutoSelectedModel(true);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROVIDERS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {PROVIDER_CONFIGS[p].name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Model</Label>
-            <Select
-              value={aiConfig.model}
-              onValueChange={(model) => {
-                if (model) setAiConfig({ model });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activeModels.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {modelsAreLoading
-                ? "Loading models from the selected provider..."
-                : hasAutoSelectedModel && !activeApiKey
-                  ? "Showing the built-in fallback list until you add an API key."
-                  : "Available models are loaded from the provider API when possible."}
+    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
+      <div className="flex-1 flex flex-col p-4 md:p-6 space-y-6 h-full overflow-hidden">
+        <div className="flex items-center justify-between shrink-0">
+          <div className="space-y-0.5">
+            <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest opacity-60">
+              Manage AI & Database Configuration
             </p>
           </div>
-
-          <div className="space-y-2">
-            <Label>Temperature: {aiConfig.temperature ?? 0.7}</Label>
-            <Slider
-              min={0}
-              max={2}
-              step={0.1}
-              defaultValue={aiConfig.temperature ?? 0.7}
-              onValueChange={(v: number | readonly number[]) => {
-                const val = Array.isArray(v) ? (v as number[])[0] : (v as number);
-                setAiConfig({ temperature: val });
-              }}
-            />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/50">
+            <Info className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+              Session Memory
+            </span>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label>Max Tokens: {aiConfig.maxTokens ?? 4096}</Label>
-            <Slider
-              min={256}
-              max={16384}
-              step={256}
-              defaultValue={aiConfig.maxTokens ?? 4096}
-              onValueChange={(v: number | readonly number[]) => {
-                const val = Array.isArray(v) ? (v as number[])[0] : (v as number);
-                setAiConfig({ maxTokens: val });
-              }}
+        <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-full w-fit border border-border/50">
+          {TABS.map((tab) => (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>API Keys</CardTitle>
-          <CardDescription>
-            Add your provider API keys. Keys stay in local browser storage and are also used to
-            fetch the latest model list from each provider.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {PROVIDERS.map((provider) => (
-            <div key={provider} className="space-y-1.5">
-              <Label>{PROVIDER_CONFIGS[provider].name}</Label>
-              <ApiKeyField provider={provider} />
-            </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
 
-      <Separator />
-
-      <Button onClick={save} className="gap-2">
-        <Save className="h-4 w-4" />
-        Save Settings
-      </Button>
-    </motion.div>
+        <Suspense fallback={null}>
+          <WorkspacePane className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 h-full overflow-y-auto custom-scrollbar p-6">
+              {activeTab === "ai" && (
+                <SectionCard>
+                  <SectionHeader
+                    icon={Cpu}
+                    title="AI Intelligence"
+                    description="Model Providers & API Keys"
+                  />
+                  <div className="p-6">
+                    <AIConfigView />
+                  </div>
+                </SectionCard>
+              )}
+              {activeTab === "database" && (
+                <SectionCard>
+                  <SectionHeader
+                    icon={Database}
+                    title="Database"
+                    description="PostgreSQL Connection"
+                  />
+                  <div className="p-6">
+                    <PersistenceView />
+                  </div>
+                </SectionCard>
+              )}
+            </div>
+          </WorkspacePane>
+        </Suspense>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Folder, History, Settings, Terminal } from "lucide-react";
+import { Folder, History, Settings, Terminal, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,6 +25,11 @@ export function Sidebar() {
       href: "/history",
       label: "History",
       icon: History,
+    },
+    {
+      href: "/automation",
+      label: "Automation",
+      icon: Wand2,
     },
     {
       href: "/settings",
@@ -64,7 +69,7 @@ export function Sidebar() {
       <div className="p-4 border-t bg-muted/5">
         <div className="flex flex-col gap-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
-            DevWiz v2
+            Luzo v2
           </p>
           <p className="text-[10px] font-bold text-muted-foreground opacity-20">
             Internal API Toolkit

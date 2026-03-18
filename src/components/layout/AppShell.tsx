@@ -6,7 +6,7 @@ import { Header } from "./Header";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen flex flex-col bg-background selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
+    <div className="relative h-screen flex flex-col bg-background selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
       {/* Premium Monochromatic Background Layer */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-muted/50 blur-[120px]" />

@@ -56,12 +56,12 @@ export default function CollectionsPage() {
 
   return (
     <motion.div
-      className="flex-1 overflow-hidden flex gap-0"
+      className="flex-1 overflow-hidden flex flex-col md:flex-row gap-0"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
     >
-      <div className="w-64 border-r flex flex-col">
+      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r flex flex-col max-h-48 md:max-h-none">
         <div className="p-3 border-b flex items-center justify-between">
           <span className="text-sm font-medium">Collections</span>
           <Dialog>

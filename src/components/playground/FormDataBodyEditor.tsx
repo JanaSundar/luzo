@@ -4,23 +4,26 @@ import { FileUp, Plus, Trash2 } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { TemplateInput } from "@/components/ui/template-input";
 import { cn } from "@/lib/utils";
 import { LIMITS } from "@/lib/utils/security";
 import type { FormDataField } from "@/types";
+import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 interface FormDataBodyEditorProps {
   fields: FormDataField[];
   onChange: (fields: FormDataField[]) => void;
+  suggestions?: VariableSuggestion[];
 }
 
-export function FormDataBodyEditor({ fields, onChange }: FormDataBodyEditorProps) {
+export function FormDataBodyEditor({
+  fields,
+  onChange,
+  suggestions = [],
+}: FormDataBodyEditorProps) {
   const addField = (type: "text" | "file") =>
-    onChange([
-      ...fields,
-      { key: "", type, value: "", enabled: true, ...(type === "file" ? {} : {}) },
-    ]);
+    onChange([...fields, { key: "", type, value: "", enabled: true }]);
 
   const update = (index: number, updates: Partial<FormDataField>) =>
     onChange(fields.map((f, i) => (i === index ? { ...f, ...updates } : f)));
@@ -63,18 +66,20 @@ export function FormDataBodyEditor({ fields, onChange }: FormDataBodyEditorProps
               onCheckedChange={(v) => update(i, { enabled: v })}
               className="shrink-0"
             />
-            <Input
+            <TemplateInput
               value={field.key}
-              onChange={(e) => update(i, { key: e.target.value })}
+              onChange={(v) => update(i, { key: v })}
+              suggestions={suggestions}
               placeholder="Field name"
-              className="h-8 text-sm w-40 shrink-0"
+              inputClassName="h-8 text-sm w-40 shrink-0"
             />
             {field.type === "text" ? (
-              <Input
+              <TemplateInput
                 value={field.value}
-                onChange={(e) => update(i, { value: e.target.value })}
+                onChange={(v) => update(i, { value: v })}
+                suggestions={suggestions}
                 placeholder="Value"
-                className="h-8 text-sm flex-1 min-w-0"
+                inputClassName="h-8 text-sm flex-1 min-w-0 border border-input rounded-md bg-background px-3"
               />
             ) : (
               <FileDropzone

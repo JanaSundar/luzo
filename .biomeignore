@@ -1,4 +1,7 @@
-maxSize
-ignoreUnknown
-includes
-experimentalScannerIgnores
+.next
+node_modules
+dist
+build
+.pnpm-store
+public
+tsconfig.tsbuildinfo
