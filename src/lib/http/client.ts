@@ -106,7 +106,15 @@ export async function executeApiRequest(
     testScript?: string;
   }
 ): Promise<
-  ApiResponse & { testResults?: Array<{ name: string; passed: boolean; error?: string }> }
+  ApiResponse & {
+    preRequestResult?: { logs: string[]; error: string | null; durationMs: number };
+    testResult?: {
+      logs: string[];
+      error: string | null;
+      durationMs: number;
+      testResults: Array<{ name: string; passed: boolean; error?: string }>;
+    };
+  }
 > {
   // 1. Validation
   validateRequest(request, options);
@@ -129,7 +137,9 @@ export async function executeApiRequest(
   let mutatedEnv = { ...envVariables };
 
   // 3. Pre-request Script
+  let preRequestResult: { logs: string[]; error: string | null; durationMs: number } | undefined;
   if (options?.preRequestScript?.trim()) {
+    const preStartTime = Date.now();
     const result = runPreRequestScript(options.preRequestScript, {
       request,
       config,
@@ -137,6 +147,11 @@ export async function executeApiRequest(
     });
     config = result.config;
     mutatedEnv = result.envVariables;
+    preRequestResult = {
+      logs: result.result.logs,
+      error: result.result.error,
+      durationMs: Date.now() - preStartTime,
+    };
   }
 
   const finalUrl = config.url ?? fullUrl;
@@ -170,16 +185,30 @@ export async function executeApiRequest(
   };
 
   // 6. Test Results
-  let testResults: Array<{ name: string; passed: boolean; error?: string }> | undefined;
+  let testResult:
+    | {
+        logs: string[];
+        error: string | null;
+        durationMs: number;
+        testResults: Array<{ name: string; passed: boolean; error?: string }>;
+      }
+    | undefined;
   if (options?.testScript?.trim()) {
-    testResults = runTestScript(options.testScript, {
+    const testStartTime = Date.now();
+    const { testResults, execution } = runTestScript(options.testScript, {
       request,
       response: apiResponse,
       envVariables: mutatedEnv,
     });
+    testResult = {
+      logs: execution.logs,
+      error: execution.error,
+      durationMs: Date.now() - testStartTime,
+      testResults,
+    };
   }
 
-  return { ...apiResponse, testResults };
+  return { ...apiResponse, preRequestResult, testResult };
 }
 
 function validateRequest(

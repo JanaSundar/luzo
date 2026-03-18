@@ -10,7 +10,32 @@ export interface TestResult {
   error?: string;
 }
 
+export interface ScriptExecutionResult {
+  logs: string[];
+  error: string | null;
+}
+
 const SCRIPT_TIMEOUT_MS = 3000;
+
+/**
+ * Capture console.log output from scripts
+ */
+function createCapturingConsole(): {
+  console: { log: (...args: unknown[]) => void };
+  getLogs: () => string[];
+} {
+  const logs: string[] = [];
+  return {
+    console: {
+      log: (...args: unknown[]) => {
+        logs.push(
+          args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")
+        );
+      },
+    },
+    getLogs: () => logs,
+  };
+}
 
 /**
  * Run pre-request script (Postman/Requestly style).
@@ -19,19 +44,29 @@ const SCRIPT_TIMEOUT_MS = 3000;
 export function runPreRequestScript(
   script: string,
   ctx: RequestContext
-): { config: HttpRequestConfig; envVariables: Record<string, string> } {
-  const result = validateScript(script);
-  if (!result.valid) {
-    throw new Error(result.error);
+): {
+  config: HttpRequestConfig;
+  envVariables: Record<string, string>;
+  result: ScriptExecutionResult;
+} {
+  const result: ScriptExecutionResult = { logs: [], error: null };
+
+  const resultValidate = validateScript(script);
+  if (!resultValidate.valid) {
+    result.error = resultValidate.error ?? "Script validation failed";
+    return { config: ctx.config, envVariables: ctx.envVariables, result };
   }
   if (script.length > LIMITS.MAX_SCRIPT_LENGTH) {
-    throw new Error(`Script exceeds maximum length of ${LIMITS.MAX_SCRIPT_LENGTH / 1024}KB`);
+    result.error = `Script exceeds maximum length of ${LIMITS.MAX_SCRIPT_LENGTH / 1024}KB`;
+    return { config: ctx.config, envVariables: ctx.envVariables, result };
   }
 
   const envVariables = { ...ctx.envVariables };
   let config = { ...ctx.config };
 
   const headers: Record<string, string> = { ...(config.headers as Record<string, string>) };
+  const capturingConsole = createCapturingConsole();
+
   const pm = {
     request: {
       get url() {
@@ -75,7 +110,7 @@ export function runPreRequestScript(
 
   const sandbox = {
     pm,
-    console: { log: (..._args: unknown[]) => {} },
+    console: capturingConsole.console,
   };
 
   try {
@@ -83,19 +118,26 @@ export function runPreRequestScript(
     runInContext(`(function() { "use strict"; ${script} })();`, scriptObj, {
       timeout: SCRIPT_TIMEOUT_MS,
     });
+    result.logs = capturingConsole.getLogs();
   } catch (err: unknown) {
-    console.error("[Pre-request script error]", err);
+    result.error = err instanceof Error ? err.message : String(err);
   }
 
-  return { config: { ...config, headers }, envVariables };
+  return { config: { ...config, headers }, envVariables, result };
 }
 
 /**
  * Run test script (Postman/Requestly style).
  * Exposes pm.response, pm.test for assertions.
  */
-export function runTestScript(script: string, ctx: ResponseContext): TestResult[] {
-  const results: TestResult[] = [];
+export function runTestScript(
+  script: string,
+  ctx: ResponseContext
+): { testResults: TestResult[]; execution: ScriptExecutionResult } {
+  const testResults: TestResult[] = [];
+  const execution: ScriptExecutionResult = { logs: [], error: null };
+
+  const capturingConsole = createCapturingConsole();
 
   const pm = {
     response: {
@@ -131,9 +173,9 @@ export function runTestScript(script: string, ctx: ResponseContext): TestResult[
     test: (name: string, fn: () => void) => {
       try {
         fn();
-        results.push({ name, passed: true });
+        testResults.push({ name, passed: true });
       } catch (err: unknown) {
-        results.push({
+        testResults.push({
           name,
           passed: false,
           error: err instanceof Error ? err.message : String(err),
@@ -149,28 +191,25 @@ export function runTestScript(script: string, ctx: ResponseContext): TestResult[
         return ctx.envVariables[key] ?? "";
       },
     },
-    console: { log: (..._args: unknown[]) => {} },
   };
 
   const sandbox = {
     pm,
     _,
     expect: chai.expect,
-    console: { log: (..._args: unknown[]) => {} },
+    console: capturingConsole.console,
   };
 
-  const scriptResult = validateScript(script);
-  if (!scriptResult.valid) {
-    results.push({ name: "Script validation", passed: false, error: scriptResult.error });
-    return results;
+  const scriptValidate = validateScript(script);
+  if (!scriptValidate.valid) {
+    execution.error = scriptValidate.error ?? "Script validation failed";
+    testResults.push({ name: "Script validation", passed: false, error: execution.error });
+    return { testResults, execution };
   }
   if (script.length > LIMITS.MAX_SCRIPT_LENGTH) {
-    results.push({
-      name: "Script validation",
-      passed: false,
-      error: `Script exceeds maximum length of ${LIMITS.MAX_SCRIPT_LENGTH / 1024}KB`,
-    });
-    return results;
+    execution.error = `Script exceeds maximum length of ${LIMITS.MAX_SCRIPT_LENGTH / 1024}KB`;
+    testResults.push({ name: "Script validation", passed: false, error: execution.error });
+    return { testResults, execution };
   }
 
   try {
@@ -178,13 +217,15 @@ export function runTestScript(script: string, ctx: ResponseContext): TestResult[
     runInContext(`(function() { "use strict"; ${script} })();`, scriptObj, {
       timeout: SCRIPT_TIMEOUT_MS,
     });
+    execution.logs = capturingConsole.getLogs();
   } catch (err: unknown) {
-    results.push({
+    execution.error = err instanceof Error ? err.message : String(err);
+    testResults.push({
       name: "Script execution",
       passed: false,
-      error: err instanceof Error ? err.message : String(err),
+      error: execution.error,
     });
   }
 
-  return results;
+  return { testResults, execution };
 }

@@ -30,27 +30,6 @@ function customRender(ui: ReactElement, options?: Omit<RenderOptions, "wrapper">
 export * from "@testing-library/react";
 export { customRender as render };
 
-export function createMockConversation(overrides = {}) {
-  return {
-    id: "conv-1",
-    title: "Test Conversation",
-    messages: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  };
-}
-
-export function createMockMessage(overrides = {}) {
-  return {
-    id: "msg-1",
-    role: "user" as const,
-    content: "Hello",
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  };
-}
-
 export function createMockRequest(overrides = {}) {
   return {
     method: "GET" as const,

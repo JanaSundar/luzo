@@ -1,9 +1,8 @@
 "use client";
 
-import { Activity, ChevronRight, PanelLeft, PanelTop, Terminal, Wand2 } from "lucide-react";
+import { Activity, PanelLeft, PanelTop, Terminal } from "lucide-react";
 import { motion } from "motion/react";
 import { Suspense, useEffect, useState } from "react";
-import { AutomationPanel } from "@/components/playground/AutomationPanel";
 import { CodeGenerator } from "@/components/playground/CodeGenerator";
 import { EnvironmentSelector } from "@/components/playground/EnvironmentSelector";
 import { RequestBuilder } from "@/components/playground/RequestBuilder";
@@ -11,55 +10,41 @@ import { ResponseViewer } from "@/components/playground/ResponseViewer";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
+import { WorkspaceHeader } from "@/components/ui/workspace-header";
+import { WorkspacePane } from "@/components/ui/workspace-pane";
 import { getPersistedLayout, usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
 
 function RequestPane() {
   return (
-    <div className="h-full flex flex-col min-h-0 glass border-0 rounded-xl overflow-hidden shadow-premium transition-all duration-300">
-      <div className="px-5 py-3 border-b border-border/40 bg-muted/50 flex items-center justify-between shrink-0">
-        <div className="flex items-center">
-          <Terminal className="h-3.5 w-3.5 mr-2.5 opacity-70" />
-          <span className="text-[11px] font-bold uppercase tracking-widest opacity-80">
-            Request Pipeline
-          </span>
-        </div>
+    <WorkspacePane>
+      <WorkspaceHeader title="Request Pipeline" icon={Terminal}>
         <div className="flex items-center gap-1.5 opacity-50">
           <div className="h-1.5 w-1.5 rounded-full bg-foreground/20" />
           <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
         </div>
-      </div>
+      </WorkspaceHeader>
       <div className="flex-1 min-h-0 overflow-auto p-5 custom-scrollbar">
         <RequestBuilder />
       </div>
-    </div>
+    </WorkspacePane>
   );
 }
 
 function ResponsePane() {
   return (
-    <div className="h-full flex flex-col min-h-0 glass border-0 rounded-xl overflow-hidden shadow-premium transition-all duration-300">
-      <div className="px-5 py-3 border-b border-border/40 bg-muted/50 flex items-center justify-between shrink-0">
-        <div className="flex items-center">
-          <Activity className="h-3.5 w-3.5 mr-2.5 opacity-70" />
-          <span className="text-[11px] font-bold uppercase tracking-widest opacity-80">
-            Response Stream
-          </span>
-        </div>
-        <div className="h-4 w-[1px] bg-border/40 mx-2" />
-        <span className="text-[10px] text-muted-foreground font-mono">IDLE</span>
-      </div>
+    <WorkspacePane>
+      <WorkspaceHeader title="Response Stream" icon={Activity} status="IDLE" />
       <div className="flex-1 min-h-0 overflow-hidden p-5 flex flex-col bg-background/40">
         <ResponseViewer />
       </div>
-    </div>
+    </WorkspacePane>
   );
 }
 
 function PlaygroundContent() {
   const storeLayout = usePlaygroundStore((s) => s.responseLayout);
   const setResponseLayout = usePlaygroundStore((s) => s.setResponseLayout);
-  // Use persisted value on first paint to avoid vertical→horizontal flicker on reload
   const [responseLayout, setResponseLayoutLocal] = useState(getPersistedLayout);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"request" | "response">("request");
@@ -84,9 +69,7 @@ function PlaygroundContent() {
   }, []);
 
   const effectiveOrientation = isSmallScreen ? "vertical" : responseLayout;
-  const [showAutomation, setShowAutomation] = useState(false);
 
-  // Optimized, easy-to-scan layout for mobile/tablet using tabs (no duplicated pane code)
   if (isSmallScreen) {
     return (
       <div className="flex flex-col flex-1">
@@ -150,10 +133,9 @@ function PlaygroundContent() {
     );
   }
 
-  // Desktop layout with resizable panes
   return (
-    <div className="flex flex-col flex-1 p-3 gap-3">
-      <div className="flex items-center gap-3 px-6 py-2 glass rounded-2xl border-0 shadow-premium">
+    <div className="flex flex-col flex-1 p-3 pt-2 gap-3 min-h-0 overflow-hidden">
+      <WorkspacePane className="h-auto flex-row items-center gap-3 px-6 py-2 rounded-2xl shrink-0">
         <div className="flex items-center gap-3">
           <EnvironmentSelector />
           <div className="h-4 w-[1px] bg-border/40 mx-2" />
@@ -196,20 +178,10 @@ function PlaygroundContent() {
               </Button>
             </div>
           </div>
-
-          <div className="h-4 w-[1px] bg-border/40" />
-
-          <div className="flex items-center gap-2 group cursor-help transition-opacity hover:opacity-100 opacity-60">
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">
-              Automation Ready
-            </span>
-          </div>
         </div>
-      </div>
+      </WorkspacePane>
 
       <div className="flex-1 min-h-0 flex gap-3">
-        {/* Main Workspace */}
         <ResizablePanelGroup orientation={effectiveOrientation} className="flex-1 min-h-0 gap-3">
           <ResizablePanel defaultSize={55} minSize={30} className="min-h-0">
             <RequestPane />
@@ -221,47 +193,6 @@ function PlaygroundContent() {
             <ResponsePane />
           </ResizablePanel>
         </ResizablePanelGroup>
-
-        {/* AI QA Automation Prep: Sidebar */}
-        {!isSmallScreen && (
-          <div
-            className={cn(
-              "h-full glass border-0 rounded-2xl flex transition-all duration-500 shadow-premium overflow-hidden shrink-0",
-              showAutomation ? "w-80 opacity-100" : "w-12 opacity-80"
-            )}
-            style={{ flexBasis: showAutomation ? "320px" : "48px" }}
-          >
-            {showAutomation ? (
-              <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-4 right-4 h-8 w-8 rounded-full z-20 hover:bg-muted/50"
-                  onClick={() => setShowAutomation(false)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <AutomationPanel />
-              </div>
-            ) : (
-              <div className="w-12 h-full flex flex-col items-center py-4 gap-6 opacity-40 hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-muted/50"
-                  onClick={() => setShowAutomation(true)}
-                  title="Open Automation"
-                >
-                  <Wand2 className="h-4 w-4 text-primary" />
-                </Button>
-                <div className="flex-1 w-[1px] bg-border/40" />
-                <div className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-30 select-none">
-                  Automation
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,5 +1,3 @@
-"use client";
-
 import { Activity, ChevronDown, ChevronUp, Copy, Download, Search } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
@@ -28,27 +26,12 @@ import {
   JsonResponseViewer,
   type JsonResponseViewerRef,
 } from "@/components/playground/JsonResponseViewer";
+import { ResponseStats } from "@/components/playground/ResponseStats";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
-
-function getStatusColor(status: number): string {
-  if (status >= 200 && status < 300)
-    return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
-  if (status >= 300 && status < 400) return "bg-blue-500/15 text-blue-600 dark:text-blue-400";
-  if (status >= 400 && status < 500) return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
-  if (status >= 500) return "bg-red-500/15 text-red-600 dark:text-red-400";
-  return "bg-muted text-muted-foreground";
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 export function ResponseViewer() {
   const { response, isLoading } = usePlaygroundStore();
@@ -139,11 +122,12 @@ export function ResponseViewer() {
     <div className="flex flex-col gap-3 h-full min-h-0">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 flex-wrap shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
-          <Badge className={cn("font-mono font-semibold text-sm", getStatusColor(response.status))}>
-            {response.status} {response.statusText}
-          </Badge>
-          <span className="text-sm text-muted-foreground">{response.time}ms</span>
-          <span className="text-sm text-muted-foreground">{formatSize(response.size)}</span>
+          <ResponseStats
+            status={response.status}
+            statusText={response.statusText}
+            time={response.time}
+            size={response.size}
+          />
         </div>
 
         <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0 sm:justify-end">
@@ -290,74 +274,78 @@ export function ResponseViewer() {
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 max-h-[calc(100vh-260px)] rounded-md border border-border/40 bg-background overflow-auto">
-                {bodyView === "raw" ? (
-                  <div className="min-h-0 p-4">
-                    {isJson ? (
-                      <pre className="m-0 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all">
-                        <JsonColorized text={response.body} />
-                      </pre>
-                    ) : (
-                      <pre className="m-0 text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
-                        {response.body}
-                      </pre>
-                    )}
-                  </div>
-                ) : dataUrl ? (
-                  <div className="min-h-0 p-4 flex flex-col items-center">
-                    {isImageResponse && dataUrl && (
-                      <Image
-                        src={dataUrl}
-                        alt="Response"
-                        width={800}
-                        height={600}
-                        className="max-w-full h-auto object-contain"
-                      />
-                    )}
-                    {isPdfResponse && (
-                      <iframe
-                        src={dataUrl}
-                        title="PDF response"
-                        className="w-full flex-1 min-h-[500px] rounded border-0"
-                      />
-                    )}
-                  </div>
-                ) : displayBody ? (
-                  <JsonResponseViewer
-                    ref={jsonViewerRef}
-                    text={displayBody}
-                    searchQuery={searchQuery}
-                    onMatchChange={onMatchChange}
-                    className="flex-1"
-                  />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center p-4">
-                    <span className="text-muted-foreground text-sm">Empty response body</span>
-                  </div>
-                )}
+              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+                  {bodyView === "raw" ? (
+                    <div className="min-h-0 p-4">
+                      {isJson ? (
+                        <pre className="m-0 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all">
+                          <JsonColorized text={response.body} />
+                        </pre>
+                      ) : (
+                        <pre className="m-0 text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
+                          {response.body}
+                        </pre>
+                      )}
+                    </div>
+                  ) : dataUrl ? (
+                    <div className="min-h-0 p-4 flex flex-col items-center">
+                      {isImageResponse && dataUrl && (
+                        <Image
+                          src={dataUrl}
+                          alt="Response"
+                          width={800}
+                          height={600}
+                          className="max-w-full h-auto object-contain"
+                        />
+                      )}
+                      {isPdfResponse && (
+                        <iframe
+                          src={dataUrl}
+                          title="PDF response"
+                          className="w-full flex-1 min-h-[500px] rounded border-0"
+                        />
+                      )}
+                    </div>
+                  ) : displayBody ? (
+                    <JsonResponseViewer
+                      ref={jsonViewerRef}
+                      text={displayBody}
+                      searchQuery={searchQuery}
+                      onMatchChange={onMatchChange}
+                      className="flex-1"
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center p-4">
+                      <span className="text-muted-foreground text-sm">Empty response body</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "headers" && (
-            <div className="mt-2 flex-1 min-h-0">
-              <div className="flex-1 min-h-0 max-h-[calc(100vh-260px)] rounded-md border overflow-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="px-3 py-2 text-left font-medium">Header</th>
-                      <th className="px-3 py-2 text-left font-medium">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(response.headers).map(([key, value]) => (
-                      <tr key={key} className="border-b last:border-0">
-                        <td className="px-3 py-2 font-mono text-muted-foreground">{key}</td>
-                        <td className="px-3 py-2 font-mono break-all">{value}</td>
+            <div className="mt-2 flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="px-3 py-2 text-left font-medium">Header</th>
+                        <th className="px-3 py-2 text-left font-medium">Value</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {Object.entries(response.headers).map(([key, value]) => (
+                        <tr key={key} className="border-b last:border-0">
+                          <td className="px-3 py-2 font-mono text-muted-foreground">{key}</td>
+                          <td className="px-3 py-2 font-mono break-all">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

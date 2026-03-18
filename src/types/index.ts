@@ -1,5 +1,7 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
+export type AiProvider = "openai" | "groq" | "openrouter";
+
 export type AuthType = "none" | "api-key" | "basic" | "bearer" | "oauth2" | "aws-sigv4";
 
 export interface AuthConfig {
@@ -116,78 +118,48 @@ export interface Collection {
   createdAt: string;
 }
 
-export interface ConversationMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  createdAt: string;
-  metadata?: {
-    model?: string;
-    tokens?: number;
-    cost?: number;
-  };
+export type PipelineView = "builder" | "stream" | "ai-config" | "report";
+export type NarrativeTone = "technical" | "executive" | "compliance";
+
+export interface AINarrativeConfig {
+  tone: NarrativeTone;
+  prompt: string;
+  enabled: boolean;
 }
 
-export interface Conversation {
+export interface PipelineStep extends ApiRequest {
   id: string;
-  title?: string;
-  messages: ConversationMessage[];
+  name: string;
+}
+
+export interface Pipeline {
+  id: string;
+  name: string;
+  description?: string;
+  steps: PipelineStep[];
+  narrativeConfig: AINarrativeConfig;
   createdAt: string;
   updatedAt: string;
 }
 
-export type AiProvider = "openrouter" | "groq" | "openai";
-
-export interface AiModelConfig {
-  provider: AiProvider;
-  model: string;
-  temperature?: number;
-  maxTokens?: number;
-  apiKey?: string;
+export interface StepExecutionResult extends ApiResponse {
+  stepId: string;
+  stepName: string;
+  method: string;
+  url: string;
 }
 
-export interface ProviderModel {
-  id: string;
-  name: string;
-  contextWindow?: number;
-  capabilities?: string[];
+export interface PipelineExecutionResult {
+  pipelineId: string;
+  startTime: string;
+  endTime?: string;
+  results: StepExecutionResult[];
+  status: "running" | "completed" | "failed";
+  error?: string;
+  aiNarrative?: string;
 }
 
 export type ResponseLayout = "vertical" | "horizontal";
-
-export interface UserSettings {
-  theme: "light" | "dark" | "system";
-  aiConfig: AiModelConfig;
-  apiKeys: Record<AiProvider, string>;
-}
-
-export interface AutomationStep {
-  id: string;
-  type: "request";
-  name: string;
-  method: string;
-  url: string;
-  headers: KeyValuePair[];
-  params: KeyValuePair[];
-  body: string | null;
-  bodyType: "none" | "json" | "form-data" | "x-www-form-urlencoded" | "raw";
-  testScript?: string;
-  response?: {
-    status: number;
-    statusText: string;
-    headers: Record<string, string>;
-    body: unknown;
-    responseTime: number;
-  } | null;
-  timestamp: number;
-}
-
-export interface AutomationSequence {
-  id: string;
-  name: string;
-  steps: AutomationStep[];
-  createdAt: number;
-}
 
 export interface CodeGenerationOptions {
   language:

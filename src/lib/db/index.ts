@@ -1,17 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+/**
+ * Runtime DB layer — BYODB (Bring Your Own Database)
+ *
+ * No global singleton. Connection created dynamically from user-provided URL.
+ * Optionally cached per dbUrl. All interactions are runtime-driven.
+ */
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
-export function isDatabaseConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL);
-}
+export type { DbClient } from "./runtime";
+export { clearClient, createDbClient, getClient, initSchema, testConnection } from "./runtime";
