@@ -9,6 +9,19 @@ interface ReportPerformanceTableProps {
 }
 
 export function ReportPerformanceTable({ results }: ReportPerformanceTableProps) {
+  const safeResults = results ?? [];
+
+  if (safeResults.length === 0) {
+    return (
+      <section className="space-y-6">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Endpoint Performance Metrics
+        </h3>
+        <p className="text-sm text-muted-foreground">No performance data available.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -26,7 +39,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
               </tr>
             </thead>
             <tbody className="divide-y divide-muted/30 font-mono">
-              {results.map((r) => {
+              {safeResults.map((r) => {
                 const isError = r.outcome === "error";
                 const isHighLatency = (r.latencyMs ?? 0) > 1000;
                 const isOutlier = isError || isHighLatency;

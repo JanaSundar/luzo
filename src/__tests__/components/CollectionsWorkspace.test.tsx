@@ -1,19 +1,19 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CollectionsWorkspace } from "@/components/collections/CollectionsWorkspace";
-import { useDbStore } from "@/lib/stores/useDbStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { render } from "@/test/utils";
 
 describe("CollectionsWorkspace", () => {
   beforeEach(() => {
-    useDbStore.setState({
+    useSettingsStore.setState({
       dbUrl: "",
-      status: "disconnected",
-      error: null,
-      latencyMs: null,
-      schemaReady: false,
-      warnings: [],
-      tables: [],
+      dbStatus: "disconnected",
+      dbError: null,
+      dbLatencyMs: null,
+      dbSchemaReady: false,
+      dbWarnings: [],
+      dbTables: [],
     });
   });
 

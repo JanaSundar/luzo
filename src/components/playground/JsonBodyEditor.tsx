@@ -37,7 +37,7 @@ function variableCompletions(
     options: filtered.map((s) => ({
       label: s.path,
       detail: s.label,
-      apply: s.path + "}}",
+      apply: `${s.path}}}`,
     })),
   };
 }

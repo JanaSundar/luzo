@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
-import { useDbStore } from "@/lib/stores/useDbStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import type { ApiRequest } from "@/types";
 
 interface SaveToCollectionDialogProps {
@@ -37,7 +37,7 @@ export function SaveToCollectionDialog({
   defaultName,
   trigger,
 }: SaveToCollectionDialogProps) {
-  const { status, schemaReady } = useDbStore();
+  const { dbStatus: status, dbSchemaReady: schemaReady } = useSettingsStore();
   const { data: collections = [] } = useCollectionsQuery();
   const { saveCollection, saveRequest } = useCollectionMutations();
   const [open, setOpen] = useState(false);
@@ -77,6 +77,16 @@ export function SaveToCollectionDialog({
 
   const handleSave = async () => {
     if (!canSave) return;
+
+    const collection = collections.find((c) => c.id === selectedCollectionId);
+    const isDuplicate = collection?.requests.some(
+      (r) => r.request.url === request.url && r.request.method === request.method
+    );
+
+    if (isDuplicate) {
+      toast.error("This request already exists in this collection.");
+      return;
+    }
 
     await saveRequest.mutateAsync({
       id: crypto.randomUUID(),
@@ -129,7 +139,9 @@ export function SaveToCollectionDialog({
                 onValueChange={(value) => setSelectedCollectionId(value ?? "")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a collection" />
+                  <SelectValue placeholder="Choose a collection">
+                    {collections.find((c) => c.id === selectedCollectionId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {collections.map((collection) => (

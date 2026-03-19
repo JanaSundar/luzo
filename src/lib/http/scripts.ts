@@ -38,8 +38,8 @@ function createCapturingConsole(): {
 }
 
 /**
- * Run pre-request script (Postman/Requestly style).
- * Exposes pm.request, pm.env for modifying request before send.
+ * Run pre-request script (Luzo-style).
+ * Exposes lz.request, lz.env for modifying request before send.
  */
 export function runPreRequestScript(
   script: string,
@@ -67,7 +67,7 @@ export function runPreRequestScript(
   const headers: Record<string, string> = { ...(config.headers as Record<string, string>) };
   const capturingConsole = createCapturingConsole();
 
-  const pm = {
+  const lz = {
     request: {
       get url() {
         return config.url ?? "";
@@ -109,7 +109,8 @@ export function runPreRequestScript(
   };
 
   const sandbox = {
-    pm,
+    lz,
+    pm: lz, // Legacy alias
     console: capturingConsole.console,
   };
 
@@ -127,8 +128,8 @@ export function runPreRequestScript(
 }
 
 /**
- * Run test script (Postman/Requestly style).
- * Exposes pm.response, pm.test for assertions.
+ * Run test script (Luzo-style).
+ * Exposes lz.response, lz.test for assertions.
  */
 export function runTestScript(
   script: string,
@@ -139,7 +140,7 @@ export function runTestScript(
 
   const capturingConsole = createCapturingConsole();
 
-  const pm = {
+  const lz = {
     response: {
       get status() {
         return ctx.response.status;
@@ -194,7 +195,8 @@ export function runTestScript(
   };
 
   const sandbox = {
-    pm,
+    lz,
+    pm: lz, // Legacy alias
     _,
     expect: chai.expect,
     console: capturingConsole.console,

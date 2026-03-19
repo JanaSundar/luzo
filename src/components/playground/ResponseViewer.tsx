@@ -31,11 +31,11 @@ import { ResponseStats } from "@/components/playground/ResponseStats";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { useExecutionStore } from "@/lib/stores/useExecutionStore";
 import { cn } from "@/lib/utils";
 
 export function ResponseViewer() {
-  const { response, isLoading } = usePlaygroundStore();
+  const { activeRawResponse: response, isLoading } = useExecutionStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [matchCount, setMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
@@ -98,11 +98,21 @@ export function ResponseViewer() {
   const download = () => {
     let blob: Blob;
     let filename = "response";
+    const SAFE_LIMIT = 5 * 1024 * 1024; // 5MB
+
     if (isBinaryPreview && response.body) {
-      const binary = Uint8Array.from(atob(response.body), (c) => c.charCodeAt(0));
-      blob = new Blob([binary], { type: contentType });
-      const ext = isImageResponse ? contentType.replace("image/", "") : "pdf";
-      filename = `response.${ext === "jpeg" ? "jpg" : ext}`;
+      if (response.body.length > SAFE_LIMIT) {
+        toast.error("Response body too large for browser preview. Data might be truncated.");
+      }
+      try {
+        const binary = Uint8Array.from(atob(response.body), (c) => c.charCodeAt(0));
+        blob = new Blob([binary], { type: contentType });
+        const ext = isImageResponse ? contentType.replace("image/", "") : "pdf";
+        filename = `response.${ext === "jpeg" ? "jpg" : ext}`;
+      } catch (_err) {
+        toast.error("Failed to decode large response body");
+        return;
+      }
     } else {
       blob = new Blob([response.body], { type: isJson ? "application/json" : "text/plain" });
       filename = isJson ? "response.json" : "response.txt";
@@ -219,7 +229,10 @@ export function ResponseViewer() {
       </div>
 
       <div className="shrink-0 flex flex-col gap-3">
-        <nav className="inline-flex items-center gap-0.5 rounded-lg bg-muted/30 p-0.5 border border-border/50 w-fit">
+        <div
+          role="tablist"
+          className="inline-flex items-center gap-0.5 rounded-lg bg-muted/30 p-0.5 border border-border/50 w-fit"
+        >
           {[
             { id: "body", label: "Response" },
             { id: "headers", label: `Headers (${Object.keys(response.headers).length})` },
@@ -247,6 +260,8 @@ export function ResponseViewer() {
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id as "body" | "headers" | "pre-request" | "tests")}
                 className={cn(
                   "relative flex h-7 items-center px-4 text-[11px] uppercase tracking-wider font-semibold transition-all rounded-full outline-none",
@@ -266,7 +281,7 @@ export function ResponseViewer() {
               </button>
             );
           })}
-        </nav>
+        </div>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

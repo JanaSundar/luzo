@@ -20,12 +20,18 @@ export async function processResponseBody(
 
   let body: string;
   if (isBinaryPreview && rawData.byteLength > 0) {
-    const bytes = new Uint8Array(rawData);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    if (typeof Buffer !== "undefined") {
+      body = Buffer.from(rawData).toString("base64");
+    } else {
+      // Browser fallback (efficient chunked approach)
+      const bytes = new Uint8Array(rawData);
+      let binary = "";
+      const CHUNK_SIZE = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE));
+      }
+      body = btoa(binary);
     }
-    body = typeof btoa !== "undefined" ? btoa(binary) : "";
   } else {
     body = new TextDecoder().decode(rawData);
   }

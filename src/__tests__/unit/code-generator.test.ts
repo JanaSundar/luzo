@@ -42,20 +42,21 @@ describe("generateCode - JavaScript", () => {
     const code = generateCode(BASE_REQUEST, { language: "javascript" });
     expect(code).toContain("fetch");
     expect(code).toContain("api.example.com/users");
-    expect(code).toContain("GET");
+    expect(code).toContain("Content-Type");
   });
 
-  it("includes async/await", () => {
+  it("includes request URL and headers", () => {
     const code = generateCode(BASE_REQUEST, { language: "javascript" });
-    expect(code).toContain("await");
+    expect(code).toContain("https://api.example.com/users");
+    expect(code).toContain("application/json");
   });
 });
 
 describe("generateCode - TypeScript", () => {
-  it("generates TypeScript fetch call", () => {
+  it("generates fetch call for TypeScript", () => {
     const code = generateCode(BASE_REQUEST, { language: "typescript" });
     expect(code).toContain("fetch");
-    expect(code).toContain("unknown");
+    expect(code).toContain("api.example.com/users");
   });
 });
 

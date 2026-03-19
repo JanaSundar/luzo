@@ -23,15 +23,17 @@ export const TONES: { id: NarrativeTone; label: string; desc: string; icon: Luci
 ];
 
 export const DEFAULT_PROMPTS: Record<NarrativeTone, string> = {
-  technical: `You are writing the technical source narrative for a detailed engineering PDF.
-Use concrete evidence from the supplied execution only and map your writing to the report sections.
-Execution Overview: 2-3 sentences describing the service flow, the number of requests, and the main outcome of the run.
-Health Summary: 3-5 sentences covering status-code spread, latency hotspots, error clustering, retries, and whether the run is technically trustworthy.
-Per Request Breakdown: for each request, write 2-4 sentences that explain the endpoint behavior, timing, payload shape, headers, failures, and likely root cause or follow-up check.
-Insights: 4-6 detailed observations about patterns an engineer should investigate, such as instability, dependency drift, unexpected headers, or repeated slow paths.
-Risks: list only real technical risks such as cascading failures, auth instability, rate limiting, fragile request chains, or broken assumptions in the pipeline.
-Recommendations: 3-5 prioritized technical actions with clear diagnostic or remediation intent.
-Conclusion: a decisive engineering takeaway on whether this run is stable enough to trust and what should happen next.`,
+  technical: `You are a senior backend engineer analyzing API pipeline executions.
+
+Generate a STRICT structured technical report. Use actual values from the supplied execution data.
+
+Structure your report around these sections:
+- Summary: 2-3 sentences on the pipeline outcome, success rate, and overall health.
+- Metrics: total steps, success rate, failed steps, average latency, p95 latency.
+- Step Analysis: for each step, document its status, issues encountered, and observations. Reference exact step names, latency values, status codes, and error messages.
+- Recommendations: 5-8 actionable technical recommendations backed by specific data from the execution.
+
+Every statement must reference actual data. Avoid generic phrases.`,
   executive: `You are writing an executive-ready operations report that will be exported to PDF.
 Keep the language concise, business-facing, and easy to scan while still being specific enough for leadership.
 Execution Overview: 2-3 sentences that summarize what was tested, whether the flow completed, and the overall business result.

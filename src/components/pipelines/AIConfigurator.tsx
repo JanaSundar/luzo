@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
 import { buildReducedContext } from "@/lib/pipeline/context-reducer";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { NarrativeTone } from "@/types";
+import { LengthSelection } from "./ai-configurator/LengthSelection";
 import { PromptEditor } from "./ai-configurator/PromptEditor";
 import { SignalSelection } from "./ai-configurator/SignalSelection";
 import { ToneSelection } from "./ai-configurator/ToneSelection";
@@ -15,7 +16,7 @@ export function AIConfigurator() {
   const { pipelines, activePipelineId, updatePipeline } = usePipelineStore();
   const { signalGroups, selectedSignals, setReportConfig, estimatedTokens, setEstimatedTokens } =
     usePipelineDebugStore();
-  const snapshots = usePipelineRuntimeStore((state) => state.snapshots);
+  const snapshots = usePipelineExecutionStore((state) => state.snapshots);
 
   const pipeline = pipelines.find((p) => p.id === activePipelineId);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,7 +26,10 @@ export function AIConfigurator() {
     prompt: DEFAULT_PROMPTS.technical,
     promptOverrides: { technical: DEFAULT_PROMPTS.technical },
     enabled: true,
+    length: "medium",
   };
+
+  const currentLength = narrativeConfig.length ?? "medium";
   const currentPrompt =
     narrativeConfig.promptOverrides?.[narrativeConfig.tone] ??
     narrativeConfig.prompt ??
@@ -64,6 +68,24 @@ export function AIConfigurator() {
     [handleUpdate, narrativeConfig.promptOverrides, narrativeConfig.tone, setReportConfig]
   );
 
+  const handleLengthChange = useCallback(
+    (length: "short" | "medium" | "long") => {
+      handleUpdate({ length });
+      setReportConfig({ length });
+    },
+    [handleUpdate, setReportConfig]
+  );
+
+  // Sync length from pipeline narrativeConfig to reportConfig store
+  useEffect(() => {
+    const pipelineLength = pipeline?.narrativeConfig?.length;
+    if (pipelineLength) {
+      setReportConfig({ length: pipelineLength });
+    } else {
+      setReportConfig({ length: "medium" });
+    }
+  }, [pipeline?.narrativeConfig, setReportConfig]);
+
   // Estimate tokens when signals change (use maskSensitive so estimate matches AI payload)
   useEffect(() => {
     if (snapshots.length > 0 && signalGroups.length > 0) {
@@ -87,9 +109,10 @@ export function AIConfigurator() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Tone + Prompt */}
+        {/* Left Column: Tone + Length + Prompt */}
         <div className="lg:col-span-2 space-y-8">
           <ToneSelection currentTone={narrativeConfig.tone} onToneChange={handleToneChange} />
+          <LengthSelection currentLength={currentLength} onLengthChange={handleLengthChange} />
 
           <PromptEditor
             prompt={currentPrompt}

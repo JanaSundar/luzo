@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createJSONStorage } from "zustand/middleware";
 import { RequestBuilder } from "@/components/playground/RequestBuilder";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { render } from "@/test/utils";
@@ -15,7 +16,44 @@ vi.mock("@/app/actions/api-tests", () => ({
   }),
 }));
 
+const memoryStorage = (() => {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => store.clear(),
+  };
+})();
+
 describe("RequestBuilder", () => {
+  beforeEach(() => {
+    usePlaygroundStore.persist.setOptions({
+      storage: createJSONStorage(() => memoryStorage),
+    });
+    memoryStorage.clear();
+    usePlaygroundStore.setState({
+      request: {
+        method: "GET",
+        url: "",
+        headers: [],
+        params: [],
+        body: null,
+        bodyType: "none",
+        formDataFields: [],
+        auth: { type: "none" },
+        preRequestEditorType: "visual",
+        testEditorType: "visual",
+        preRequestRules: [],
+        testRules: [],
+      },
+    });
+  });
+
   it("renders method selector with all HTTP methods", () => {
     render(<RequestBuilder />);
     expect(screen.getByRole("combobox", { name: /HTTP Method/i })).toBeInTheDocument();
@@ -23,12 +61,12 @@ describe("RequestBuilder", () => {
 
   it("renders URL input", () => {
     render(<RequestBuilder />);
-    expect(screen.getByPlaceholderText(/Enter URL or \{\{variable\}\}\/path/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Enter URL/i)).toBeInTheDocument();
   });
 
   it("updates URL when input changes", () => {
     render(<RequestBuilder />);
-    const input = screen.getByPlaceholderText(/Enter URL or \{\{variable\}\}\/path/i);
+    const input = screen.getByPlaceholderText(/Enter URL/i);
     fireEvent.change(input, { target: { value: "https://api.example.com/users" } });
     expect(input).toHaveValue("https://api.example.com/users");
   });
@@ -36,7 +74,7 @@ describe("RequestBuilder", () => {
   it("disables send button when URL is empty", () => {
     usePlaygroundStore.setState((s) => ({ request: { ...s.request, url: "" } }));
     render(<RequestBuilder />);
-    const sendButton = screen.getByRole("button", { name: /send/i });
+    const sendButton = screen.getByRole("button", { name: /^send$/i });
     expect(sendButton).toBeDisabled();
   });
 
@@ -45,7 +83,7 @@ describe("RequestBuilder", () => {
       request: { ...s.request, url: "https://api.example.com" },
     }));
     render(<RequestBuilder />);
-    const sendButton = screen.getByRole("button", { name: /send/i });
+    const sendButton = screen.getByRole("button", { name: /^send$/i });
     expect(sendButton).not.toBeDisabled();
   });
 
@@ -60,10 +98,11 @@ describe("RequestBuilder", () => {
   it("can add a header", async () => {
     render(<RequestBuilder />);
     fireEvent.click(screen.getByRole("tab", { name: /headers/i }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+
+    // Explicitly use the "Add" button inside the key-value editor
+    const addButton = await screen.findByRole("button", { name: /^add$/i });
+    fireEvent.click(addButton);
+
     await waitFor(() => {
       expect(screen.getAllByPlaceholderText(/header/i).length).toBeGreaterThan(0);
     });

@@ -74,7 +74,7 @@ export interface ApiRequest {
   /** Visual rules for tests */
   testRules?: TestRule[];
 
-  /** Pre-request script (Postman/Requestly style). Runs before request. */
+  /** Pre-request script (Luzo API). Runs before request. */
   preRequestScript?: string;
   /** Test script. Runs after response for assertions. */
   testScript?: string;
@@ -136,6 +136,7 @@ export interface AINarrativeConfig {
   tone: NarrativeTone;
   prompt: string;
   enabled: boolean;
+  length?: "short" | "medium" | "long";
   promptOverrides?: Partial<Record<NarrativeTone, string>>;
 }
 

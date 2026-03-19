@@ -7,9 +7,9 @@ import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { getAutocompleteSuggestions } from "@/lib/pipeline/autocomplete";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
 import type { PipelineStep } from "@/types";
 import { StepCardHeader } from "./StepCardHeader";
@@ -41,8 +41,8 @@ export function StepCard({
   dragHandleProps,
 }: StepCardProps) {
   const { activePipelineId, pipelines } = usePipelineStore();
-  const { getActiveEnvironmentVariables } = usePlaygroundStore();
-  const runtimeVariables = usePipelineRuntimeStore((s) => s.runtimeVariables);
+  const { getActiveEnvironmentVariables } = useEnvironmentStore();
+  const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");

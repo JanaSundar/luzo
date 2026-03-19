@@ -3,18 +3,19 @@
 import { ArrowRight, Clock3, Database, FolderOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface CollectionsOverviewProps {
   collectionsCount: number;
   savedRequestsCount: number;
   historyCount: number;
+  newCollectionTrigger?: React.ReactNode;
 }
 
 export function CollectionsOverview({
   collectionsCount,
   savedRequestsCount,
   historyCount,
+  newCollectionTrigger,
 }: CollectionsOverviewProps) {
   return (
     <section className="w-full overflow-hidden rounded-2xl border border-border/60 bg-background/70 shadow-sm">
@@ -26,28 +27,18 @@ export function CollectionsOverview({
               <Sparkles className="h-3 w-3" />
               DB-backed collections
             </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                A clean request library for reusable API work.
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                Collections stay editable in your database, while history remains a temporary
-                scratchpad for recent Playground runs.
-              </p>
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/settings"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
+            <Link href="/settings" className={buttonVariants({ variant: "outline", size: "sm" })}>
               Open settings
             </Link>
-            <Button type="button" size="sm" className="gap-2">
-              New collection
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
+            {newCollectionTrigger || (
+              <Button type="button" size="sm" className="gap-2">
+                New collection
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

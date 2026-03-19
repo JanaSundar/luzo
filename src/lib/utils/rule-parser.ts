@@ -15,7 +15,7 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
 
     // Optimized regex for quoted strings: (['"])((?:[^\1\\]|\\.)*)\1
     const setEnvMatch = trimmed.match(
-      /pm\.env\.set\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/
+      /(?:pm|lz)\.env\.set\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/
     );
     if (setEnvMatch) {
       rules.push({
@@ -28,7 +28,7 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
     }
 
     const unsetEnvMatch = trimmed.match(
-      /pm\.env\.unset\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/
+      /(?:pm|lz)\.env\.unset\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/
     );
     if (unsetEnvMatch) {
       rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key: unsetEnvMatch[2] });
@@ -36,7 +36,7 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
     }
 
     const setHeaderMatch = trimmed.match(
-      /pm\.request\.headers\.upsert\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/
+      /(?:pm|lz)\.request\.headers\.upsert\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/
     );
     if (setHeaderMatch) {
       rules.push({
@@ -49,7 +49,7 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
     }
 
     const removeHeaderMatch = trimmed.match(
-      /pm\.request\.headers\.remove\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/
+      /(?:pm|lz)\.request\.headers\.remove\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/
     );
     if (removeHeaderMatch) {
       rules.push({ id: crypto.randomUUID(), type: "delete_header", key: removeHeaderMatch[2] });
@@ -68,18 +68,18 @@ export function parseTestScript(script: string | undefined): TestRule[] {
 
   const rules: TestRule[] = [];
 
-  // Regex to find pm.test blocks
+  // Regex to find lz.test blocks
   const testBlockRegex =
-    /pm\.test\s*\(\s*(['"])(.*?)\1\s*,\s*function\s*\(\s*\)\s*\{([\s\S]*?)\}\s*\);?/g;
+    /(?:pm|lz)\.test\s*\(\s*(['"])(.*?)\1\s*,\s*function\s*\(\s*\)\s*\{([\s\S]*?)\}\s*\);?/g;
   let match: RegExpExecArray | null = testBlockRegex.exec(script);
 
   while (match !== null) {
     const testBody = match[3].trim();
 
     // 1. Status Code
-    // pm.expect(pm.response.status).to.equal(Number("200"));
+    // lz.expect(lz.response.status).to.equal(Number("200"));
     const statusMatch = testBody.match(
-      /pm\.expect\s*\(\s*pm\.response\.status\s*\)\.to\.(equal|not\.equal)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/
+      /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.status\s*\)\.to\.(equal|not\.equal)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/
     );
     if (statusMatch) {
       rules.push({
@@ -91,9 +91,9 @@ export function parseTestScript(script: string | undefined): TestRule[] {
     }
 
     // 2. Response Time
-    // pm.expect(pm.response.time).to.be.below(Number("500"));
+    // lz.expect(lz.response.time).to.be.below(Number("500"));
     const timeMatch = testBody.match(
-      /pm\.expect\s*\(\s*pm\.response\.time\s*\)\.to\.be\.(above|below)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/
+      /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.time\s*\)\.to\.be\.(above|below)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/
     );
     if (timeMatch) {
       rules.push({
@@ -105,9 +105,9 @@ export function parseTestScript(script: string | undefined): TestRule[] {
     }
 
     // 3. Headers
-    // Header existence: pm.expect(pm.response.headers.has("Content-Type")).to.be.true;
+    // Header existence: lz.expect(lz.response.headers.has("Content-Type")).to.be.true;
     const headerExistsMatch = testBody.match(
-      /pm\.expect\s*\(\s*pm\.response\.headers\.has\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.be\.(true|false);?/
+      /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.headers\.has\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.be\.(true|false);?/
     );
     if (headerExistsMatch) {
       rules.push({
@@ -118,9 +118,9 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       });
     }
 
-    // Header value: pm.expect(pm.response.headers.get("Content-Type")).to.equal("application/json");
+    // Header value: lz.expect(lz.response.headers.get("Content-Type")).to.equal("application/json");
     const headerValueMatch = testBody.match(
-      /pm\.expect\s*\(\s*pm\.response\.headers\.get\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.(equal|include)\s*\(\s*(['"])(.*?)\4\s*\);?/
+      /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.headers\.get\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.(equal|include)\s*\(\s*(['"])(.*?)\4\s*\);?/
     );
     if (headerValueMatch) {
       rules.push({
@@ -133,9 +133,9 @@ export function parseTestScript(script: string | undefined): TestRule[] {
     }
 
     // 4. Body Contains
-    // pm.expect(pm.response.text()).to.include("search");
+    // lz.expect(lz.response.text()).to.include("search");
     const bodyMatch = testBody.match(
-      /pm\.expect\s*\(\s*pm\.response\.text\(\)\s*\)\.to\.(equal|include|not\.include)\s*\(\s*(['"])(.*?)\2\s*\);?/
+      /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.text\(\)\s*\)\.to\.(equal|include|not\.include)\s*\(\s*(['"])(.*?)\2\s*\);?/
     );
     if (bodyMatch) {
       const opMap: Record<string, TestRule["operator"]> = {
@@ -152,10 +152,9 @@ export function parseTestScript(script: string | undefined): TestRule[] {
     }
 
     // 5. JSON Property
-    // pm.expect(String(_.get(__jsonData, "data.id"))).to.equal(String("123"));
-    // or pm.expect(Number(_.get(__jsonData, "data.id"))).to.be.above(Number("10"));
+    // lz.expect(String(_.get(__jsonData, "data.id"))).to.equal(String("123"));
     const jsonPropMatch = testBody.match(
-      /pm\.expect\s*\(\s*(String|Number)\s*\(\s*_\.get\s*\(\s*__jsonData\s*,\s*(['"])(.*?)\2\s*\)\s*\)\s*\)\.to(\.not)?\.(equal|include|be\.above|be\.below)\s*\(\s*(String|Number)\s*\(\s*(['"])(.*?)\7\s*\)\s*\)\s*\);?/
+      /(?:pm|lz)\.expect\s*\(\s*(String|Number)\s*\(\s*_\.get\s*\(\s*__jsonData\s*,\s*(['"])(.*?)\2\s*\)\s*\)\s*\)\.to(\.not)?\.(equal|include|be\.above|be\.below)\s*\(\s*(String|Number)\s*\(\s*(['"])(.*?)\7\s*\)\s*\)\s*\);?/
     );
     if (jsonPropMatch) {
       const isNot = !!jsonPropMatch[4];

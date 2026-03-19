@@ -4,9 +4,9 @@ import { AlertCircle } from "lucide-react";
 import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { extractVariableRefs, getByPath } from "@/lib/pipeline/variable-resolver";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import type { PipelineStep } from "@/types";
 
 function collectTemplateStrings(step: PipelineStep): string[] {
@@ -49,35 +49,33 @@ function getUnresolvedPaths(
 
 export function UnresolvedVariablesPanel() {
   const { activePipelineId, pipelines } = usePipelineStore();
-  const { runtime, runtimeVariables, variableOverrides, setVariableOverride } =
-    usePipelineRuntimeStore();
-  const getActiveEnvironmentVariables = usePlaygroundStore((s) => s.getActiveEnvironmentVariables);
+  const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
+  const variableOverrides = usePipelineExecutionStore((s) => s.variableOverrides);
+  const currentStepIndex = usePipelineExecutionStore((s) => s.currentStepIndex);
+  const status = usePipelineExecutionStore((s) => s.status);
+  const getActiveEnvironmentVariables = useEnvironmentStore((s) => s.getActiveEnvironmentVariables);
 
   const { nextStep, unresolvedPaths } = useMemo(() => {
     const pipeline = pipelines.find((p) => p.id === activePipelineId);
     const envVars = getActiveEnvironmentVariables();
-    const nextIndex = runtime.currentStepIndex;
+    const nextIndex = currentStepIndex;
     const nextStep = pipeline?.steps[nextIndex] as PipelineStep | undefined;
 
     if (!nextStep) {
-      return { nextStep: undefined, unresolvedPaths: [] };
+      return { nextStep: undefined, unresolvedPaths: [] as string[] };
     }
 
-    const unresolved = getUnresolvedPaths(
-      nextStep,
-      runtimeVariables as Record<string, unknown>,
-      envVars
-    );
+    const unresolved = getUnresolvedPaths(nextStep, runtimeVariables, envVars);
     return { nextStep, unresolvedPaths: unresolved };
   }, [
     activePipelineId,
     pipelines,
-    runtime.currentStepIndex,
+    currentStepIndex,
     runtimeVariables,
     getActiveEnvironmentVariables,
   ]);
 
-  const showPanel = runtime.status === "paused" && nextStep && unresolvedPaths.length > 0;
+  const showPanel = status === "paused" && nextStep && unresolvedPaths.length > 0;
 
   if (!showPanel) return null;
 
@@ -99,7 +97,9 @@ export function UnresolvedVariablesPanel() {
             </code>
             <Input
               value={variableOverrides?.[path] ?? ""}
-              onChange={(e) => setVariableOverride(path, e.target.value)}
+              onChange={(e) =>
+                usePipelineExecutionStore.getState().setVariableOverride(path, e.target.value)
+              }
               placeholder="Enter value..."
               className="h-8 text-sm flex-1"
             />

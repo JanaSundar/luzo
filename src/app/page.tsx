@@ -12,6 +12,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
+import { useExecutionStore } from "@/lib/stores/useExecutionStore";
 import { getPersistedLayout, usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +33,8 @@ function RequestPane() {
 }
 
 function ResponsePane() {
-  const response = usePlaygroundStore((s) => s.response);
-  const isLoading = usePlaygroundStore((s) => s.isLoading);
+  const response = useExecutionStore((s) => s.activeRawResponse);
+  const isLoading = useExecutionStore((s) => s.isLoading);
 
   const status = isLoading ? "LOADING" : response ? `${response.status}` : "READY";
 

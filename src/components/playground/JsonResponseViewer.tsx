@@ -9,7 +9,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { JsonColorized } from "@/components/playground/JsonColorized";
+import { List, type ListImperativeAPI, type RowComponentProps } from "react-window";
+import { JsonLine, useJsonLines } from "@/components/playground/JsonColorized";
 import { cn } from "@/lib/utils";
 
 function tryFormatJson(text: string): string {
@@ -36,55 +37,46 @@ export interface JsonResponseViewerRef {
 }
 
 export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponseViewerProps>(
-  function JsonResponseViewer({ text, searchQuery = "", onMatchChange, className }, ref) {
-    const containerRef = useRef<HTMLDivElement>(null);
+  function JsonResponseViewer(props, ref) {
+    const { text, searchQuery = "", onMatchChange, className } = props;
     const [currentIndex, setCurrentIndex] = useState(0);
-
     const formatted = useMemo(() => tryFormatJson(text), [text]);
 
-    useEffect(() => {
+    // Track previous text/searchQuery to reset index when they change
+    const [prevParams, setPrevParams] = useState({ text, searchQuery });
+    if (prevParams.text !== text || prevParams.searchQuery !== searchQuery) {
+      setPrevParams({ text, searchQuery });
       setCurrentIndex(0);
-    }, []);
+    }
 
-    useEffect(() => {
-      if (!searchQuery.trim()) {
-        onMatchChange?.(0, 0);
-        return;
-      }
-      const el = containerRef.current;
-      if (!el) return;
-      const marks = el.querySelectorAll("mark");
-      const count = marks.length;
-      onMatchChange?.(count, currentIndex);
-    }, [searchQuery, currentIndex, onMatchChange]);
+    const lines = useJsonLines(formatted);
+    const listRef = useRef<ListImperativeAPI>(null);
 
-    const scrollToMatch = useCallback(
-      (index: number) => {
-        const el = containerRef.current;
-        if (!el) return;
-        const marks = el.querySelectorAll("mark");
-        if (marks.length === 0) return;
-        const safeIndex = Math.max(0, Math.min(index, marks.length - 1));
-        setCurrentIndex(safeIndex);
-        marks[safeIndex].scrollIntoView({ block: "center", behavior: "smooth" });
-        onMatchChange?.(marks.length, safeIndex);
+    const matchCount = useMemo(() => {
+      if (!searchQuery.trim()) return 0;
+      const regex = new RegExp(escapeRegex(searchQuery), "gi");
+      const matches = formatted.match(regex);
+      return matches?.length || 0;
+    }, [formatted, searchQuery]);
+
+    const Row = useCallback(
+      ({ index, style }: RowComponentProps) => {
+        return <JsonLine line={lines[index]} highlight={searchQuery} style={style} />;
       },
-      [onMatchChange]
+      [lines, searchQuery]
     );
 
+    useEffect(() => {
+      onMatchChange?.(matchCount, currentIndex);
+    }, [matchCount, currentIndex, onMatchChange]);
+
     const goNext = useCallback(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      const marks = el.querySelectorAll("mark");
-      if (marks.length === 0) return;
-      const next = Math.min(currentIndex + 1, marks.length - 1);
-      scrollToMatch(next);
-    }, [currentIndex, scrollToMatch]);
+      setCurrentIndex((prev) => (matchCount > 0 ? (prev + 1) % matchCount : 0));
+    }, [matchCount]);
 
     const goPrev = useCallback(() => {
-      const prev = Math.max(currentIndex - 1, 0);
-      scrollToMatch(prev);
-    }, [currentIndex, scrollToMatch]);
+      setCurrentIndex((prev) => (matchCount > 0 ? (prev - 1 + matchCount) % matchCount : 0));
+    }, [matchCount]);
 
     useImperativeHandle(
       ref,
@@ -97,16 +89,25 @@ export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponse
 
     return (
       <div
-        ref={containerRef}
         className={cn(
-          "h-full w-full min-h-0 min-w-0 overflow-auto rounded-md border border-border/40 bg-background p-4",
+          "h-full w-full min-h-0 min-w-0 overflow-hidden rounded-md border border-border/40 bg-background",
           className
         )}
       >
-        <pre className="m-0 text-xs leading-relaxed">
-          <JsonColorized text={formatted} highlight={searchQuery || undefined} />
-        </pre>
+        <List
+          listRef={listRef}
+          style={{ height: 500, width: "100%" }}
+          rowCount={lines.length}
+          rowHeight={20}
+          rowComponent={Row}
+          rowProps={{}}
+          className="custom-scrollbar"
+        />
       </div>
     );
   }
 );
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

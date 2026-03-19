@@ -1,71 +1,82 @@
 "use client";
 
-import { Play, SkipForward, Square } from "lucide-react";
+import { Play, RotateCcw, SkipForward, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DebugRuntimeState } from "@/types/pipeline-debug";
 
 interface DebugControlsBarProps {
-  runtime: DebugRuntimeState;
+  status: string;
+  currentStepIndex: number;
+  totalSteps: number;
   totalTime: number;
   isActive: boolean;
   isDone: boolean;
-  onStep: () => void;
-  onContinue: () => void;
-  onStop: () => void;
+  onStep?: () => void;
+  onResume?: () => void;
+  onRetry?: () => void;
+  onSkip?: () => void;
+  onStop?: () => void;
+  onRunAuto?: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  idle: "bg-muted-foreground",
+  running: "bg-primary animate-pulse",
+  paused: "bg-amber-500",
+  completed: "bg-emerald-500",
+  error: "bg-destructive",
+  aborted: "bg-amber-500",
+  interrupted: "bg-amber-500",
+};
+
 export function DebugControlsBar({
-  runtime,
+  status,
+  currentStepIndex,
+  totalSteps,
   totalTime,
   isActive,
   isDone,
   onStep,
-  onContinue,
+  onResume,
+  onRetry,
+  onSkip,
   onStop,
+  onRunAuto,
 }: DebugControlsBarProps) {
   return (
     <div className="rounded-xl border bg-background px-4 py-2.5 shadow-sm">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div
-            className={cn(
-              "h-2 w-2 rounded-full",
-              runtime.status === "running"
-                ? "bg-primary animate-pulse"
-                : runtime.status === "paused"
-                  ? "bg-amber-500"
-                  : runtime.status === "completed"
-                    ? "bg-emerald-500"
-                    : runtime.status === "failed"
-                      ? "bg-destructive"
-                      : "bg-muted-foreground"
-            )}
+            className={cn("h-2 w-2 rounded-full", STATUS_COLORS[status] ?? "bg-muted-foreground")}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {runtime.status}
+            {status}
           </span>
         </div>
 
         <div className="h-4 w-px bg-border" />
 
         <span className="text-xs font-mono text-muted-foreground">
-          Step {Math.min(runtime.currentStepIndex + 1, runtime.totalSteps)}/{runtime.totalSteps}
+          Step {Math.min(currentStepIndex + 1, totalSteps)}/{totalSteps}
         </span>
 
-        {runtime.mode !== "full" && (
-          <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
-            Partial Run
-          </span>
-        )}
-
-        {runtime.reusedAliases.length > 0 && (
-          <span className="rounded bg-muted/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-            Reused: {runtime.reusedAliases.join(", ")}
-          </span>
-        )}
-
         <div className="flex-1" />
+
+        {status === "idle" && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onRunAuto}
+            >
+              <Zap className="h-3 w-3" />
+              Run
+            </Button>
+          </div>
+        )}
 
         {isActive && (
           <div className="flex items-center gap-1.5">
@@ -75,7 +86,6 @@ export function DebugControlsBar({
               size="sm"
               className="gap-1.5 h-7 text-[10px] font-bold"
               onClick={onStep}
-              disabled={runtime.status === "running"}
             >
               <SkipForward className="h-3 w-3" />
               Step
@@ -85,11 +95,55 @@ export function DebugControlsBar({
               variant="outline"
               size="sm"
               className="gap-1.5 h-7 text-[10px] font-bold"
-              onClick={onContinue}
-              disabled={runtime.status === "running"}
+              onClick={onResume}
             >
               <Play className="h-3 w-3 fill-current" />
               Continue
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onRetry}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Retry
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onSkip}
+            >
+              <SkipForward className="h-3 w-3" />
+              Skip
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onStop}
+            >
+              <Square className="h-3 w-3 fill-current" />
+              Stop
+            </Button>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onRetry}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Retry
             </Button>
             <Button
               type="button"
@@ -110,10 +164,6 @@ export function DebugControlsBar({
           </span>
         )}
       </div>
-
-      {runtime.staleContextWarning && (
-        <p className="mt-2 text-xs text-amber-600">{runtime.staleContextWarning}</p>
-      )}
     </div>
   );
 }

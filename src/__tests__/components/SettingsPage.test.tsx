@@ -3,14 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import SettingsPage from "@/app/settings/page";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { render } from "@/test/utils";
 
 describe("SettingsPage", () => {
   it("renders the settings workspace without the old shell card", async () => {
-    useProvidersConfigStore.setState({
-      providers: useProvidersConfigStore.getState().providers,
-      activeProvider: "openrouter",
+    useSettingsStore.setState({
+      providers: useSettingsStore.getState().providers,
+      activeAiProvider: "openrouter",
     });
     usePipelineDebugStore.setState(usePipelineDebugStore.getState());
 

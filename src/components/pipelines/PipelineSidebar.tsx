@@ -4,7 +4,7 @@ import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES_NO_HOVER, cn } from "@/lib/utils";
 import type { Pipeline } from "@/types";
 
 interface PipelineSidebarProps {
@@ -92,12 +92,13 @@ export function PipelineSidebar({
             </span>
             <Button
               type="button"
-              variant="destructive"
-              size="xs"
+              variant="outline"
+              size="sm"
               disabled={selectedIds.length === 0}
               onClick={onBatchDeleteClick}
-              className="h-6 text-[9px] uppercase font-bold"
+              className={ACTION_BUTTON_CLASSES_NO_HOVER}
             >
+              <Trash2 className="h-3.5 w-3.5" />
               Delete Selected
             </Button>
           </motion.div>
@@ -195,7 +196,7 @@ export function PipelineSidebar({
                     </button>
                     <button
                       type="button"
-                      className="p-0.5 hover:bg-background/20 rounded"
+                      className="p-0.5 rounded"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteClick(p.id);

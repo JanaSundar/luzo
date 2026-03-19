@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function CollectionEditorDialog({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const isEditing = Boolean(collection);
 
   useEffect(() => {
@@ -39,12 +41,17 @@ export function CollectionEditorDialog({
   const handleSave = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    await onSave({
-      id: collection?.id ?? crypto.randomUUID(),
-      name: trimmedName,
-      description: description.trim() || undefined,
-    });
-    setOpen(false);
+    setIsSaving(true);
+    try {
+      await onSave({
+        id: collection?.id ?? crypto.randomUUID(),
+        name: trimmedName,
+        description: description.trim() || undefined,
+      });
+      setOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -76,8 +83,20 @@ export function CollectionEditorDialog({
             />
           </div>
           <div className="flex justify-end">
-            <Button type="button" onClick={handleSave} disabled={!name.trim()}>
-              {isEditing ? "Save changes" : "Create collection"}
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={!name.trim() || isSaving}
+              className=""
+            >
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditing
+                ? isSaving
+                  ? "Saving..."
+                  : "Save changes"
+                : isSaving
+                  ? "Creating..."
+                  : "Create collection"}
             </Button>
           </div>
         </div>

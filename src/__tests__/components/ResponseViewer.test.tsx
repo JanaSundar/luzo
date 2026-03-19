@@ -1,35 +1,59 @@
 import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createJSONStorage } from "zustand/middleware";
 import { ResponseViewer } from "@/components/playground/ResponseViewer";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { useExecutionStore } from "@/lib/stores/useExecutionStore";
 import { render } from "@/test/utils";
 
-function setMockResponse(overrides = {}) {
-  usePlaygroundStore.setState({
-    response: {
-      status: 200,
-      statusText: "OK",
-      headers: { "content-type": "application/json" },
-      body: '{"name":"John","age":30}',
-      time: 120,
-      size: 23,
-      ...overrides,
+const memoryStorage = (() => {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
     },
-    isLoading: false,
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => store.clear(),
+  };
+})();
+
+function setMockResponse(overrides = {}) {
+  useExecutionStore.getState().setPlaygroundResponse({
+    status: 200,
+    statusText: "OK",
+    headers: { "content-type": "application/json" },
+    body: '{"name":"John","age":30}',
+    time: 120,
+    size: 23,
+    ...overrides,
   });
+  useExecutionStore.getState().setLoading(false);
 }
 
 describe("ResponseViewer", () => {
+  beforeEach(() => {
+    useExecutionStore.persist.setOptions({
+      storage: createJSONStorage(() => memoryStorage),
+    });
+    memoryStorage.clear();
+    useExecutionStore.getState().setPlaygroundResponse(null);
+    useExecutionStore.getState().setLoading(false);
+  });
+
   it("shows empty state when no response", () => {
-    usePlaygroundStore.setState({ response: null, isLoading: false });
+    useExecutionStore.getState().setPlaygroundResponse(null);
+    useExecutionStore.getState().setLoading(false);
     render(<ResponseViewer />);
     expect(screen.getByText(/No response yet/i)).toBeInTheDocument();
   });
 
   it("shows loading spinner when loading", () => {
-    usePlaygroundStore.setState({ response: null, isLoading: true });
+    useExecutionStore.getState().setPlaygroundResponse(null);
+    useExecutionStore.getState().setLoading(true);
     render(<ResponseViewer />);
-    expect(document.querySelector(".animate-spin")).toBeInTheDocument();
+    expect(screen.getByText(/loading response/i)).toBeInTheDocument();
   });
 
   it("shows 200 status badge for successful response", () => {

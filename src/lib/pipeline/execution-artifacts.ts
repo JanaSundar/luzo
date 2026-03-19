@@ -48,7 +48,10 @@ export function buildExecutionResultFromArtifact(
   return {
     pipelineId: artifact.pipelineId,
     startTime: artifact.generatedAt,
-    endTime: artifact.runtime.completedAt ?? artifact.generatedAt,
+    endTime:
+      artifact.runtime.completedAt !== null
+        ? new Date(artifact.runtime.completedAt).toISOString()
+        : artifact.generatedAt,
     status: artifact.steps.some((step) => step.status === "error") ? "failed" : "completed",
     results: artifact.steps.map((step) => ({
       stepId: step.stepId,
@@ -81,10 +84,11 @@ export function buildRuntimeVariablesFromArtifact(
 export function buildSnapshotsFromArtifact(artifact: PersistedExecutionArtifact): StepSnapshot[] {
   const runtimeVariables = buildRuntimeVariablesFromArtifact(artifact);
 
-  return artifact.steps.map((step, index) => ({
+  return artifact.steps.map((step, i) => ({
     stepId: step.stepId,
+    stepIndex: i,
     stepName: step.stepName,
-    entryType: "request",
+    entryType: "request" as const,
     method: step.method,
     url: step.url,
     resolvedRequest: {
@@ -95,15 +99,21 @@ export function buildSnapshotsFromArtifact(artifact: PersistedExecutionArtifact)
     status: step.status,
     reducedResponse: step.reducedResponse,
     fullHeaders: step.reducedResponse?.headers,
-    variables: index === artifact.steps.length - 1 ? runtimeVariables : runtimeVariables,
+    variables: runtimeVariables,
     error: step.error,
-    startedAt: step.completedAt,
-    completedAt: step.completedAt,
+    startedAt: null,
+    completedAt: null,
+    streamStatus: "done" as const,
+    streamChunks: [],
   }));
 }
 
 export function isArtifactStale(artifact: PersistedExecutionArtifact, pipeline: Pipeline) {
-  const tooOld = Date.now() - new Date(artifact.generatedAt).getTime() > STALE_WINDOW_MS;
+  const generatedAt =
+    typeof artifact.generatedAt === "number"
+      ? artifact.generatedAt
+      : new Date(artifact.generatedAt).getTime();
+  const tooOld = Date.now() - generatedAt > STALE_WINDOW_MS;
   const structureChanged = artifact.pipelineStructureHash !== buildPipelineStructureHash(pipeline);
   return tooOld || structureChanged;
 }
@@ -163,7 +173,8 @@ function toStepArtifact(snapshot: StepSnapshot, alias: string): PersistedStepArt
       bodyPreview: snapshot.resolvedRequest.body?.slice(0, MAX_BODY_PREVIEW) ?? null,
     },
     error: snapshot.error,
-    completedAt: snapshot.completedAt,
+    completedAt:
+      snapshot.completedAt !== null ? new Date(snapshot.completedAt).toISOString() : null,
   };
 }
 

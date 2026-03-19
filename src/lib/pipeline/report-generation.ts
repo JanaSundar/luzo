@@ -6,4 +6,6 @@ export {
   createNarrativeReport,
   createReportCache,
   createReportCacheKey,
+  toEndpointMetrics,
+  toReportMetrics,
 } from "./reporting/shared";

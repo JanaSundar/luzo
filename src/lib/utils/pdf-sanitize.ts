@@ -1,5 +1,6 @@
 /** Replace Unicode chars that cause WinAnsi encoding errors in PDF */
-export function sanitizeForPdf(text: string): string {
+export function sanitizeForPdf(text: string | undefined | null): string {
+  if (text == null) return "";
   return text
     .replace(/\u2011/g, "-") // non-breaking hyphen
     .replace(/\u2013/g, "-") // en dash

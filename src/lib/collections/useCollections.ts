@@ -8,25 +8,25 @@ import {
   saveCollection,
   saveCollectionRequest,
 } from "@/lib/collections/api";
-import { useDbStore } from "@/lib/stores/useDbStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import type { ApiRequest } from "@/types";
 
 const COLLECTIONS_QUERY_KEY = ["collections"] as const;
 
 export function useCollectionsQuery() {
-  const dbUrl = useDbStore((state) => state.dbUrl);
-  const status = useDbStore((state) => state.status);
-  const schemaReady = useDbStore((state) => state.schemaReady);
+  const dbUrl = useSettingsStore((state) => state.dbUrl);
+  const dbStatus = useSettingsStore((state) => state.dbStatus);
+  const dbSchemaReady = useSettingsStore((state) => state.dbSchemaReady);
 
   return useQuery({
     queryKey: [...COLLECTIONS_QUERY_KEY, dbUrl],
     queryFn: () => fetchCollections(dbUrl),
-    enabled: status === "connected" && schemaReady && Boolean(dbUrl.trim()),
+    enabled: dbStatus === "connected" && dbSchemaReady && Boolean(dbUrl.trim()),
   });
 }
 
 export function useCollectionMutations() {
-  const dbUrl = useDbStore((state) => state.dbUrl);
+  const dbUrl = useSettingsStore((state) => state.dbUrl);
   const queryClient = useQueryClient();
 
   const invalidateCollections = () =>

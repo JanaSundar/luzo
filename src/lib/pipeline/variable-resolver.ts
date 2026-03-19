@@ -27,9 +27,13 @@ export function getByPath(obj: unknown, path: string): unknown {
   return current;
 }
 
+const RESOLVE_CACHE_SIZE = 500;
+const resolveCache = new Map<string, string>();
+
 /**
  * Resolve all {{path}} variables in a template string.
  * Resolution order: variableOverrides → runtimeVariables → envVariables → unresolved (kept as-is).
+ * Now includes a memoization layer for performance.
  */
 export function resolveTemplate(
   template: string,
@@ -39,7 +43,18 @@ export function resolveTemplate(
 ): string {
   if (!template) return template;
 
-  return template.replace(VARIABLE_REGEX, (match, rawPath: string) => {
+  // Simple cache key: template + stringified overrides (stable) + basic identifying info
+  // For runtimeVariables, we'll avoid stringifying the whole thing if it's too large,
+  // but for small objects it's okay. A better approach would be checking reference changes
+  // if this were a hook, but here it's a utility.
+  const cacheKey = `${template}|${JSON.stringify(variableOverrides)}|${Object.keys(runtimeVariables).length}|${Object.keys(envVariables).length}`;
+
+  const cachedValue = resolveCache.get(cacheKey);
+  if (cachedValue !== undefined) {
+    return cachedValue;
+  }
+
+  const result = template.replace(VARIABLE_REGEX, (match, rawPath: string) => {
     const path = rawPath.trim();
 
     const overrideValue = variableOverrides[path];
@@ -55,6 +70,13 @@ export function resolveTemplate(
 
     return match;
   });
+
+  if (resolveCache.size >= RESOLVE_CACHE_SIZE) {
+    resolveCache.clear();
+  }
+  resolveCache.set(cacheKey, result);
+
+  return result;
 }
 
 /**
@@ -83,35 +105,43 @@ export function getStepAliasFromPath(path: string): string | null {
 
 /**
  * Flatten a nested object into dot-separated paths with their values.
- * Supports array access. Limits depth for safety.
+ * Now iterative to avoid stack depth issues and improved performance.
  */
 export function flattenObject(
   obj: unknown,
   prefix = "",
-  maxDepth = 5,
-  depth = 0
+  maxDepth = 5
 ): Array<{ path: string; value: unknown }> {
   const results: Array<{ path: string; value: unknown }> = [];
+  if (obj == null) return results;
 
-  if (depth >= maxDepth || obj == null) return results;
+  const stack: Array<{ val: unknown; pref: string; d: number }> = [
+    { val: obj, pref: prefix, d: 0 },
+  ];
 
-  if (Array.isArray(obj)) {
-    results.push({ path: prefix, value: `Array(${obj.length})` });
-    if (obj.length > 0 && typeof obj[0] === "object" && obj[0] !== null) {
-      const nested = flattenObject(obj[0], `${prefix}[0]`, maxDepth, depth + 1);
-      results.push(...nested);
-    }
-    return results;
-  }
+  while (stack.length > 0) {
+    const entry = stack.pop();
+    if (!entry) continue;
+    const { val, pref, d } = entry;
 
-  if (typeof obj === "object") {
-    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      const fullPath = prefix ? `${prefix}.${key}` : key;
-      results.push({ path: fullPath, value });
+    if (d >= maxDepth || val == null) continue;
 
-      if (typeof value === "object" && value !== null) {
-        const nested = flattenObject(value, fullPath, maxDepth, depth + 1);
-        results.push(...nested);
+    if (Array.isArray(val)) {
+      results.push({ path: pref, value: `Array(${val.length})` });
+      if (val.length > 0 && typeof val[0] === "object" && val[0] !== null) {
+        stack.push({ val: val[0], pref: `${pref}[0]`, d: d + 1 });
+      }
+    } else if (typeof val === "object") {
+      const entries = Object.entries(val as Record<string, unknown>);
+      // Push in reverse to maintain original object key order in results
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const [key, v] = entries[i];
+        const fullPath = pref ? `${pref}.${key}` : key;
+        results.push({ path: fullPath, value: v });
+
+        if (typeof v === "object" && v !== null) {
+          stack.push({ val: v, pref: fullPath, d: d + 1 });
+        }
       }
     }
   }

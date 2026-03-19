@@ -131,6 +131,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button, [role="button"] {
+    @apply cursor-pointer;
+  }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -162,5 +165,13 @@
     border-radius: inherit;
     z-index: -1;
     opacity: 0.5;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }

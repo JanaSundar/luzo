@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
 import { cn } from "@/lib/utils";
 
 function isSensitiveKey(key: string): boolean {
@@ -35,7 +35,7 @@ export function EnvironmentSelector() {
     deleteEnvironment,
     updateEnvironmentVariable,
     deleteEnvironmentVariable,
-  } = usePlaygroundStore();
+  } = useEnvironmentStore();
 
   const [newEnvName, setNewEnvName] = useState("");
   const [newKey, setNewKey] = useState("");

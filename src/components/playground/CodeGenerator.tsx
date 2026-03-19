@@ -3,6 +3,7 @@
 import { Check, Copy, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { generateCodeAction } from "@/app/actions/code-generator";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { toast } from "sonner";
 import { generateCurl } from "@/lib/utils/code-generator/curl";
 import type { CodeGenerationOptions } from "@/types";
 

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { extractSignals, getDefaultSelectedSignals } from "@/lib/pipeline/context-signals";
 import { usePipelineArtifactsStore } from "@/lib/stores/usePipelineArtifactsStore";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import type { PipelineStep } from "@/types";
 import type {
   AIProviderConfig,
@@ -43,6 +43,7 @@ const INITIAL_REPORT_CONFIG: AIReportConfig = {
   prompt: "Analyze the API pipeline execution and provide insights based on the selected signals.",
   selectedSignals: [],
   mode: "preview",
+  length: "medium",
 };
 
 const INITIAL_AI_PROVIDER: AIProviderConfig = {
@@ -65,7 +66,7 @@ export const usePipelineDebugStore = create<DebugStore>()(
     aiProvider: { ...INITIAL_AI_PROVIDER },
 
     refreshSignals: (steps) => {
-      const snapshots = usePipelineRuntimeStore.getState().snapshots;
+      const snapshots = usePipelineExecutionStore.getState().snapshots;
       const signalGroups = extractSignals(snapshots, steps);
       const selectedSignals = getDefaultSelectedSignals(signalGroups);
 
