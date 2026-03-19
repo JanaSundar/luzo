@@ -3,12 +3,11 @@
  * Matches website highlighting: headers, bold, italic, code, lists, tables, blockquotes.
  */
 
-import { unified } from "unified";
-import remarkParse from "remark-parse";
+import { StyleSheet, Text, View } from "@react-pdf/renderer";
+import type { BlockContent, PhrasingContent, Root } from "mdast";
 import remarkGfm from "remark-gfm";
-import type { Root, PhrasingContent, BlockContent } from "mdast";
-import { Text, View } from "@react-pdf/renderer";
-import { StyleSheet } from "@react-pdf/renderer";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import { sanitizeForPdf } from "@/lib/utils/pdf-sanitize";
 
 const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };

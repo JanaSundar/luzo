@@ -60,6 +60,10 @@ export function buildReducedContext(
   options: { maskSensitive?: boolean } = {}
 ): ReducedContext {
   const selectedSet = new Set(selectedSignals);
+  const snapshotMap = new Map<string, StepSnapshot>();
+  for (const s of snapshots) {
+    snapshotMap.set(s.stepId, s);
+  }
   const signals: ReducedSignal[] = [];
   const signalsByStepId = new Map<string, ReducedSignal[]>();
 
@@ -76,10 +80,9 @@ export function buildReducedContext(
         displayValue = String(variable.value ?? "null");
       }
 
-      const isFailedStep = snapshots.find((s) => s.stepId === variable.stepId)?.status === "error";
-      const isSlowStep =
-        (snapshots.find((s) => s.stepId === variable.stepId)?.reducedResponse?.latencyMs ?? 0) >
-        1000;
+      const snapshot = snapshotMap.get(variable.stepId);
+      const isFailedStep = snapshot?.status === "error";
+      const isSlowStep = (snapshot?.reducedResponse?.latencyMs ?? 0) > 1000;
 
       let priority: ReducedSignal["priority"] = "normal";
       if (isFailedStep) priority = "critical";
@@ -105,20 +108,23 @@ export function buildReducedContext(
     return order[a.priority] - order[b.priority];
   });
 
-  const latencies = snapshots.map((s) => s.reducedResponse?.latencyMs ?? 0).filter((l) => l > 0);
+  const latencies: number[] = [];
+  let failedSteps = 0;
+  for (const s of snapshots) {
+    if (s.status === "error") failedSteps++;
+    const l = s.reducedResponse?.latencyMs ?? 0;
+    if (l > 0) latencies.push(l);
+  }
+
   const sortedLatencies = [...latencies].sort((a, b) => a - b);
   const p95Index = Math.ceil(sortedLatencies.length * 0.95) - 1;
 
   const metadata: ReducedContext["metadata"] = {
     totalSteps: snapshots.length,
-    failedSteps: snapshots.filter((s) => s.status === "error").length,
+    failedSteps,
     successRate:
       snapshots.length > 0
-        ? Math.round(
-            ((snapshots.length - snapshots.filter((s) => s.status === "error").length) /
-              snapshots.length) *
-              100
-          )
+        ? Math.round(((snapshots.length - failedSteps) / snapshots.length) * 100)
         : 0,
     avgLatencyMs:
       latencies.length > 0
@@ -194,8 +200,27 @@ export function formatContextForAI(context: ReducedContext): string {
   return lines.join("\n");
 }
 
-function trimObject(obj: unknown, maxKeys: number): Record<string, unknown> {
-  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+function calculateTotalDuration(snapshots: StepSnapshot[]): number {
+  let minStart = Infinity;
+  let maxEnd = -Infinity;
+
+  for (const s of snapshots) {
+    if (s.startedAt) {
+      const t = new Date(s.startedAt).getTime();
+      if (t > 0 && t < minStart) minStart = t;
+    }
+    if (s.completedAt) {
+      const t = new Date(s.completedAt).getTime();
+      if (t > 0 && t > maxEnd) maxEnd = t;
+    }
+  }
+
+  return minStart === Infinity || maxEnd === -Infinity ? 0 : maxEnd - minStart;
+}
+
+function trimObject(obj: unknown, maxKeys: number, depth = 0): Record<string, unknown> {
+  const MAX_DEPTH = 5;
+  if (depth >= MAX_DEPTH || typeof obj !== "object" || obj === null || Array.isArray(obj)) {
     return { value: obj };
   }
 
@@ -211,7 +236,7 @@ function trimObject(obj: unknown, maxKeys: number): Record<string, unknown> {
     } else if (Array.isArray(value)) {
       trimmed[key] = `Array(${value.length})`;
     } else if (typeof value === "object" && value !== null) {
-      trimmed[key] = trimObject(value, Math.max(5, maxKeys - count));
+      trimmed[key] = trimObject(value, Math.max(5, maxKeys - count), depth + 1);
     } else {
       trimmed[key] = value;
     }
@@ -223,16 +248,4 @@ function trimObject(obj: unknown, maxKeys: number): Record<string, unknown> {
   }
 
   return trimmed;
-}
-
-function calculateTotalDuration(snapshots: StepSnapshot[]): number {
-  const starts = snapshots
-    .map((s) => (s.startedAt ? new Date(s.startedAt).getTime() : 0))
-    .filter((t) => t > 0);
-  const ends = snapshots
-    .map((s) => (s.completedAt ? new Date(s.completedAt).getTime() : 0))
-    .filter((t) => t > 0);
-
-  if (starts.length === 0 || ends.length === 0) return 0;
-  return Math.max(...ends) - Math.min(...starts);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FormDataBodyEditor } from "@/components/playground/FormDataBodyEditor";
 import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
@@ -99,9 +99,9 @@ export function RequestForm({
   const activeTab = externalActiveTab ?? internalActiveTab;
   const handleTabChange = onTabChange ?? setInternalActiveTab;
 
-  const paramCount = params.filter((p) => p.enabled && p.key).length;
-  const headerCount = headers.filter((h) => h.enabled && h.key).length;
-  const hasTestResults = !!(testResults && testResults.length > 0);
+  const paramCount = useMemo(() => params.filter((p) => p.enabled && p.key).length, [params]);
+  const headerCount = useMemo(() => headers.filter((h) => h.enabled && h.key).length, [headers]);
+  const hasTestResults = useMemo(() => !!(testResults && testResults.length > 0), [testResults]);
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>

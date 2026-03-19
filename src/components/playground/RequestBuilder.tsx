@@ -21,26 +21,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useCollectionStore } from "@/lib/stores/useCollectionStore";
+import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
+import { useExecutionStore } from "@/lib/stores/useExecutionStore";
+import { useHistoryStore } from "@/lib/stores/useHistoryStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function RequestBuilder() {
+  const { request, setMethod, setUrl, setRequest } = usePlaygroundStore();
   const {
-    request,
-    response,
+    activeRawResponse: response,
     isLoading,
-    setMethod,
-    setUrl,
-    setRequest,
-    setResponse,
+    setPlaygroundResponse: setResponse,
     setLoading,
-    getActiveEnvironmentVariables,
-  } = usePlaygroundStore();
-
-  const { addToHistory } = useCollectionStore();
+  } = useExecutionStore();
+  const { getActiveEnvironmentVariables } = useEnvironmentStore();
+  const { addToHistory } = useHistoryStore();
   const { pipelines, addStep, addPipeline, setActivePipeline, setView } = usePipelineStore();
   const router = useRouter();
 
@@ -127,25 +125,28 @@ export function RequestBuilder() {
     }
   }, [request, setLoading, setResponse, getActiveEnvironmentVariables, addToHistory]);
 
-  const handleAddToPipeline = (pipelineId: string, pipelineName: string) => {
-    addStep(pipelineId, {
-      ...request,
-      name: "", // Fallback to Request N in UI
-    });
-    setIsAddDialogOpen(false);
-    toast.success(`Request added to ${pipelineName}`, {
-      action: {
-        label: "Open Pipeline",
-        onClick: () => {
-          setActivePipeline(pipelineId);
-          setView("builder");
-          router.push("/pipelines");
+  const handleAddToPipeline = useCallback(
+    (pipelineId: string, pipelineName: string) => {
+      addStep(pipelineId, {
+        ...request,
+        name: "", // Fallback to Request N in UI
+      });
+      setIsAddDialogOpen(false);
+      toast.success(`Request added to ${pipelineName}`, {
+        action: {
+          label: "Open Pipeline",
+          onClick: () => {
+            setActivePipeline(pipelineId);
+            setView("builder");
+            router.push("/pipelines");
+          },
         },
-      },
-    });
-  };
+      });
+    },
+    [addStep, request, setActivePipeline, setView, router]
+  );
 
-  const handleCreateAndAdd = () => {
+  const handleCreateAndAdd = useCallback(() => {
     const name = newPipelineName.trim() || `New Pipeline ${pipelines.length + 1}`;
     addPipeline(name);
     setTimeout(() => {
@@ -155,7 +156,7 @@ export function RequestBuilder() {
         setNewPipelineName("");
       }
     }, 0);
-  };
+  }, [newPipelineName, pipelines.length, addPipeline, handleAddToPipeline]);
 
   return (
     <div className="flex flex-col gap-6 w-full min-h-0 pb-10">
@@ -169,6 +170,7 @@ export function RequestBuilder() {
             onMethodChange={setMethod}
             onUrlChange={setUrl}
             onSend={send}
+            placeholder="Enter URL or {{variable}}/path"
             className="flex-1 bg-transparent p-0"
           />
 

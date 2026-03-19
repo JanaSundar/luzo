@@ -1,8 +1,7 @@
 "use client";
 
 import { Database } from "lucide-react";
-import { useDbStore } from "@/lib/stores/useDbStore";
-import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
 import type { AiProvider } from "@/types";
 import { AddProviderCard, ProviderConfigCard } from "./ProviderConfigCard";
@@ -35,8 +34,7 @@ export function IntegrationsOverview({
   onDatabaseClick,
   onConnectDatabaseClick,
 }: IntegrationsOverviewProps) {
-  const { providers } = useProvidersConfigStore();
-  const { status, latencyMs, dbUrl } = useDbStore();
+  const { providers, dbStatus: status, dbLatencyMs: latencyMs, dbUrl } = useSettingsStore();
 
   const configuredCount = AI_PROVIDERS.filter((p) => providers[p]?.apiKey?.length).length;
   const dbActiveCount = status === "connected" ? 1 : 0;

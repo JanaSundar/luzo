@@ -6,5 +6,5 @@
  */
 
 export type { DbClient } from "./runtime";
-export type { RuntimeSchemaStatus, RuntimeTableStatus } from "./schema-init";
 export { clearClient, createDbClient, getClient, initSchema, testConnection } from "./runtime";
+export type { RuntimeSchemaStatus, RuntimeTableStatus } from "./schema-init";

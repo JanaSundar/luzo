@@ -4,7 +4,7 @@ import { Loader2, Pencil, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
@@ -38,10 +38,10 @@ export function PipelineLayout({
     updatePipeline,
     currentView,
     setView,
-    isExecuting,
-    preferences,
-    setPreferences,
+    executing: isExecuting,
   } = usePipelineStore();
+
+  const [skipDeleteConfirmation, setSkipDeleteConfirmation] = useState(false);
 
   const {
     isGeneratingReport,
@@ -49,10 +49,11 @@ export function PipelineLayout({
     isReportDirty,
     reportsByPipelineId,
     selectedSignals,
+    aiProvider,
   } = usePipelineDebugStore();
-  const runtime = usePipelineRuntimeStore((state) => state.runtime);
-  const snapshots = usePipelineRuntimeStore((state) => state.snapshots);
-  const resetSession = usePipelineRuntimeStore((state) => state.resetSession);
+  const status = usePipelineExecutionStore((state) => state.status);
+  const snapshots = usePipelineExecutionStore((state) => state.snapshots);
+  const resetSession = usePipelineExecutionStore((state) => state.reset);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -68,7 +69,7 @@ export function PipelineLayout({
   const hasGeneratedReport = activePipelineId
     ? Boolean(reportsByPipelineId[activePipelineId])
     : false;
-  const isDebugActive = runtime.status === "running" || runtime.status === "paused";
+  const isDebugActive = status === "running" || status === "paused";
   const isAnyExecuting = isExecuting || isDebugActive;
 
   useEffect(() => {
@@ -91,7 +92,7 @@ export function PipelineLayout({
   };
 
   const handleDeleteClick = (id: string) => {
-    if (preferences.skipDeleteConfirmation) {
+    if (skipDeleteConfirmation) {
       resetSession();
       deletePipeline(id);
     } else {
@@ -102,7 +103,7 @@ export function PipelineLayout({
 
   const handleBatchDeleteClick = () => {
     if (selectedIds.length === 0) return;
-    if (preferences.skipDeleteConfirmation) {
+    if (skipDeleteConfirmation) {
       resetSession();
       deletePipelines(selectedIds);
       setSelectedIds([]);
@@ -114,7 +115,6 @@ export function PipelineLayout({
   };
 
   const confirmDelete = () => {
-    resetSession();
     if (pendingDeleteIds.length === 1) {
       deletePipeline(pendingDeleteIds[0]);
     } else {
@@ -122,7 +122,7 @@ export function PipelineLayout({
       setSelectedIds([]);
       setSelectionMode(false);
     }
-    if (skipConfirmTemp) setPreferences({ skipDeleteConfirmation: true });
+    if (skipConfirmTemp) setSkipDeleteConfirmation(true);
     setShowConfirmDialog(false);
     setPendingDeleteIds([]);
   };
@@ -193,6 +193,7 @@ export function PipelineLayout({
           isReportDirty={isReportDirty}
           hasGeneratedReport={hasGeneratedReport}
           selectedSignalsCount={selectedSignals.length}
+          hasAIProvider={Boolean(aiProvider.apiKey)}
         />
 
         <main className="flex-1 overflow-auto bg-muted/5 p-3 sm:p-6 custom-scrollbar">

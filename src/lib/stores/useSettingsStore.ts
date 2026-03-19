@@ -1,14 +1,8 @@
-/**
- * Multi-provider AI config store — Zustand.
- *
- * Manages API keys and models per provider.
- * Persisted to sessionStorage (clears on browser close).
- */
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AiProvider } from "@/types";
 import { MODEL_REGISTRY } from "@/config/model-registry";
+import type { RuntimeTableStatus } from "@/lib/db";
+import type { AiProvider } from "@/types";
 
 export type ValidationStatus = "idle" | "valid" | "invalid";
 
@@ -19,13 +13,34 @@ export interface ProviderConfig {
   validationStatus: ValidationStatus;
 }
 
-interface ProvidersConfigState {
-  providers: Record<AiProvider, ProviderConfig>;
-  activeProvider: AiProvider;
+type DbStatus = "disconnected" | "connecting" | "connected" | "error";
 
+interface SettingsState {
+  // AI Config
+  providers: Record<AiProvider, ProviderConfig>;
+  activeAiProvider: AiProvider;
+
+  // DB Config
+  dbUrl: string;
+  dbStatus: DbStatus;
+  dbError: string | null;
+  dbLatencyMs: number | null;
+  dbSchemaReady: boolean;
+  dbWarnings: string[];
+  dbTables: RuntimeTableStatus[];
+
+  // Actions
   setProviderConfig: (provider: AiProvider, config: Partial<ProviderConfig>) => void;
-  setActiveProvider: (provider: AiProvider) => void;
-  getProviderConfig: (provider: AiProvider) => ProviderConfig;
+  setActiveAiProvider: (provider: AiProvider) => void;
+  setDbUrl: (url: string) => void;
+  setDbStatus: (
+    status: Partial<
+      Pick<
+        SettingsState,
+        "dbStatus" | "dbError" | "dbLatencyMs" | "dbSchemaReady" | "dbWarnings" | "dbTables"
+      >
+    >
+  ) => void;
 }
 
 const AI_PROVIDERS: AiProvider[] = ["openai", "openrouter", "groq"];
@@ -45,11 +60,18 @@ function createInitialProviders(): Record<AiProvider, ProviderConfig> {
   );
 }
 
-export const useProvidersConfigStore = create<ProvidersConfigState>()(
+export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       providers: createInitialProviders(),
-      activeProvider: "openrouter",
+      activeAiProvider: "openrouter",
+      dbUrl: "",
+      dbStatus: "disconnected",
+      dbError: null,
+      dbLatencyMs: null,
+      dbSchemaReady: false,
+      dbWarnings: [],
+      dbTables: [],
 
       setProviderConfig: (provider, config) =>
         set((state) => ({
@@ -59,15 +81,14 @@ export const useProvidersConfigStore = create<ProvidersConfigState>()(
           },
         })),
 
-      setActiveProvider: (provider) => set({ activeProvider: provider }),
+      setActiveAiProvider: (provider) => set({ activeAiProvider: provider }),
 
-      getProviderConfig: (provider) => {
-        const state = get();
-        return state.providers[provider] ?? createInitialProviders()[provider];
-      },
+      setDbUrl: (dbUrl) => set({ dbUrl }),
+
+      setDbStatus: (status) => set((state) => ({ ...state, ...status })),
     }),
     {
-      name: "luzo-providers-config",
+      name: "luzo-settings-store",
       storage: {
         getItem: (name) => {
           if (typeof window === "undefined") return null;
@@ -83,11 +104,6 @@ export const useProvidersConfigStore = create<ProvidersConfigState>()(
           sessionStorage.removeItem(name);
         },
       },
-      partialize: (s) =>
-        ({
-          providers: s.providers,
-          activeProvider: s.activeProvider,
-        }) as unknown as ProvidersConfigState,
     }
   )
 );

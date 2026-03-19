@@ -7,11 +7,11 @@ const PRE_REQUEST_TEMPLATES: Record<
   PreRequestRule["type"],
   (key: string, value?: string) => string
 > = {
-  set_env_var: (k, v) => `pm.env.set(${JSON.stringify(k)}, ${JSON.stringify(v || "")});`,
-  clear_env_var: (k) => `pm.env.unset(${JSON.stringify(k)});`,
+  set_env_var: (k, v) => `lz.env.set(${JSON.stringify(k)}, ${JSON.stringify(v || "")});`,
+  clear_env_var: (k) => `lz.env.unset(${JSON.stringify(k)});`,
   set_header: (k, v) =>
-    `pm.request.headers.upsert(${JSON.stringify(k)}, ${JSON.stringify(v || "")});`,
-  delete_header: (k) => `pm.request.headers.remove(${JSON.stringify(k)});`,
+    `lz.request.headers.upsert(${JSON.stringify(k)}, ${JSON.stringify(v || "")});`,
+  delete_header: (k) => `lz.request.headers.remove(${JSON.stringify(k)});`,
 };
 
 /**
@@ -20,13 +20,13 @@ const PRE_REQUEST_TEMPLATES: Record<
 const GET_TARGET_EXPR = (rule: TestRule): string => {
   switch (rule.target) {
     case "status_code":
-      return "pm.response.status";
+      return "lz.response.status";
     case "response_time":
-      return "pm.response.time";
+      return "lz.response.time";
     case "body_contains":
-      return "pm.response.text()";
+      return "lz.response.text()";
     case "header":
-      return `pm.response.headers.get(${JSON.stringify(rule.property)})`;
+      return `lz.response.headers.get(${JSON.stringify(rule.property)})`;
     case "json_property":
       return `_.get(__jsonData, ${JSON.stringify(rule.property)})`;
     default:
@@ -38,14 +38,14 @@ const GET_TARGET_EXPR = (rule: TestRule): string => {
  * Operator to Chai assertion mapping
  */
 const OPERATOR_CHAI_MAP: Record<TestRule["operator"], (val: string, target: string) => string> = {
-  equals: (v, t) => `pm.expect(${t}).to.equal(${v});`,
-  not_equals: (v, t) => `pm.expect(${t}).to.not.equal(${v});`,
-  contains: (v, t) => `pm.expect(${t}).to.include(${v});`,
-  not_contains: (v, t) => `pm.expect(${t}).to.not.include(${v});`,
-  greater_than: (v, t) => `pm.expect(Number(${t})).to.be.above(Number(${v}));`,
-  less_than: (v, t) => `pm.expect(Number(${t})).to.be.below(Number(${v}));`,
-  exists: (_, t) => `pm.expect(${t}).to.not.be.undefined;`,
-  not_exists: (_, t) => `pm.expect(${t}).to.be.undefined;`,
+  equals: (v, t) => `lz.expect(${t}).to.equal(${v});`,
+  not_equals: (v, t) => `lz.expect(${t}).to.not.equal(${v});`,
+  contains: (v, t) => `lz.expect(${t}).to.include(${v});`,
+  not_contains: (v, t) => `lz.expect(${t}).to.not.include(${v});`,
+  greater_than: (v, t) => `lz.expect(Number(${t})).to.be.above(Number(${v}));`,
+  less_than: (v, t) => `lz.expect(Number(${t})).to.be.below(Number(${v}));`,
+  exists: (_, t) => `lz.expect(${t}).to.not.be.undefined;`,
+  not_exists: (_, t) => `lz.expect(${t}).to.be.undefined;`,
 };
 
 export function compilePreRequestRules(rules: PreRequestRule[] | undefined): string {
@@ -59,7 +59,7 @@ export function compileTestRules(rules: TestRule[] | undefined): string {
   const lines: string[] = [];
 
   if (rules.some((r) => r.target === "json_property")) {
-    lines.push(`var __jsonData = {};\ntry {\n  __jsonData = pm.response.json();\n} catch(e) {}\n`);
+    lines.push(`var __jsonData = {};\ntry {\n  __jsonData = lz.response.json();\n} catch(e) {}\n`);
   }
 
   for (const rule of rules) {
@@ -83,7 +83,7 @@ export function compileTestRules(rules: TestRule[] | undefined): string {
     const testBody = OPERATOR_CHAI_MAP[rule.operator](valueExpr, finalTargetExpr);
 
     if (testName && testBody) {
-      lines.push(`pm.test(${JSON.stringify(testName)}, function () {\n  ${testBody}\n});\n`);
+      lines.push(`lz.test(${JSON.stringify(testName)}, function () {\n  ${testBody}\n});\n`);
     }
   }
 

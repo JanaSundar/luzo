@@ -24,6 +24,7 @@ interface PipelineHeaderProps {
   isReportDirty?: boolean;
   hasGeneratedReport?: boolean;
   selectedSignalsCount?: number;
+  hasAIProvider?: boolean;
 }
 
 const VIEWS: { id: PipelineView; label: string }[] = [
@@ -50,6 +51,7 @@ export function PipelineHeader({
   isReportDirty,
   hasGeneratedReport = false,
   selectedSignalsCount = 0,
+  hasAIProvider = false,
 }: PipelineHeaderProps) {
   const showExecutionControls = currentView === "builder" || currentView === "stream";
   const showReportControls = currentView === "ai-config" || currentView === "report";
@@ -154,7 +156,13 @@ export function PipelineHeader({
                   : "bg-foreground text-background hover:bg-foreground/90"
               )}
               onClick={onGenerateReport}
-              disabled={isGeneratingReport || selectedSignalsCount === 0 || !activePipelineId}
+              disabled={
+                isGeneratingReport ||
+                selectedSignalsCount === 0 ||
+                !activePipelineId ||
+                !hasAIProvider
+              }
+              title={!hasAIProvider ? "Configure AI provider in settings" : undefined}
             >
               {isGeneratingReport ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />

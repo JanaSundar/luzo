@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, KeyRound, Loader2, Zap } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,15 +15,20 @@ import { MODEL_REGISTRY } from "@/config/model-registry";
 import { validateApiKey } from "@/lib/settings/api-key-validation";
 import { fetchProviderModels, type ProviderModel } from "@/lib/settings/fetch-provider-models";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
 import type { AiProvider } from "@/types";
 import { PROVIDER_META } from "./ProviderConfigCard";
+import { PROVIDER_ICONS } from "./ProviderIcons";
 
 export function ProviderConfigView() {
   const { setAIProvider } = usePipelineDebugStore();
-  const { providers, activeProvider, setProviderConfig, setActiveProvider } =
-    useProvidersConfigStore();
+  const {
+    providers,
+    activeAiProvider: activeProvider,
+    setProviderConfig,
+    setActiveAiProvider: setActiveProvider,
+  } = useSettingsStore();
 
   const [showKey, setShowKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -35,11 +40,20 @@ export function ProviderConfigView() {
   const meta = PROVIDER_META[activeProvider];
   const registry = MODEL_REGISTRY[activeProvider];
 
-  const models: ProviderModel[] =
-    fetchedModels ?? registry?.models?.map((m) => ({ id: m.id, label: m.label })) ?? [];
+  const models = useMemo<ProviderModel[]>(() => {
+    return (
+      fetchedModels ??
+      registry?.models?.map((m: { id: string; label: string }) => ({
+        id: m.id,
+        label: m.label,
+      })) ??
+      []
+    );
+  }, [fetchedModels, registry]);
 
   useEffect(() => {
-    if (!config?.apiKey || config.apiKey.length < 10) {
+    // Only fetch if we have a realistic API key length to avoid premature triggers
+    if (!config?.apiKey || config.apiKey.length < 20) {
       setFetchedModels(null);
       return;
     }
@@ -152,8 +166,11 @@ export function ProviderConfigView() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-lg border border-border/60 flex items-center justify-center shrink-0 bg-background text-lg font-bold">
-          {meta.initial}
+        <div className="h-12 w-12 rounded-lg border border-border/60 flex items-center justify-center shrink-0 bg-background p-2.5 [&>svg]:size-full [&>svg]:text-foreground">
+          {(() => {
+            const Icon = PROVIDER_ICONS[activeProvider];
+            return <Icon />;
+          })()}
         </div>
         <div>
           <h2 className="text-lg font-bold tracking-tight">Configure {meta.name}</h2>
@@ -224,7 +241,7 @@ export function ProviderConfigView() {
           type="button"
           onClick={handleTestConnection}
           disabled={!config?.apiKey || isValidating}
-          className="h-9 px-4 rounded-lg font-bold uppercase tracking-wider text-[10px] border border-input bg-background hover:bg-muted/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-9 px-4 rounded-lg font-bold uppercase tracking-wider text-[10px] border border-input bg-background hover:bg-muted/30 transition-colors flex items-center gap-2 disabled:opacity-65 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground"
         >
           {isValidating ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

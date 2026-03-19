@@ -29,7 +29,7 @@ export function ResponseStats({ status, statusText, time, size }: ResponseStatsP
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <Badge className={cn("font-mono font-semibold text-sm", getStatusColor(status))}>
-        {status} {statusText}
+        {`${status} ${statusText}`}
       </Badge>
       <span className="text-sm text-muted-foreground">{time}ms</span>
       <span className="text-sm text-muted-foreground">{formatSize(size)}</span>

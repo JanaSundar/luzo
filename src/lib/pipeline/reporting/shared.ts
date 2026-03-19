@@ -1,13 +1,13 @@
 import type { NarrativeTone } from "@/types";
 import type {
-  AIReportConfig,
   AIReportCache,
+  AIReportConfig,
   NarrativeAiOutput,
   NarrativeReport,
+  ReducedContext,
   ReportEndpointMetric,
   ReportMetrics,
 } from "@/types/pipeline-debug";
-import type { ReducedContext } from "@/types/pipeline-debug";
 
 export function toReportMetrics(context: ReducedContext): ReportMetrics {
   return {
@@ -73,6 +73,9 @@ export function createNarrativeReport(
 
 export function buildHealthSummary(report: NarrativeReport) {
   const { metrics } = report;
+  if (!metrics) {
+    return "Health summary unavailable.";
+  }
   if (metrics.failedSteps > 0) {
     return `The run finished with ${metrics.failedSteps} failed step(s). Investigate the affected requests before treating this pipeline as healthy.`;
   }
@@ -85,6 +88,7 @@ export function buildHealthSummary(report: NarrativeReport) {
 export function createReportCacheKey(context: ReducedContext, config: AIReportConfig): string {
   const base = JSON.stringify({
     tone: config.tone,
+    length: config.length,
     prompt: config.prompt.trim(),
     selectedSignals: [...config.selectedSignals].sort(),
     metadata: context.metadata,

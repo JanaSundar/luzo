@@ -138,30 +138,76 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export function JsonColorized({ text, highlight }: { text: string; highlight?: string }) {
-  const tokens = useMemo(() => {
+export interface JsonLineData {
+  tokens: Token[];
+  id: number;
+}
+
+export function useJsonLines(text: string): JsonLineData[] {
+  return useMemo(() => {
     try {
       JSON.parse(text);
-      return tokenize(text);
+      const allTokens = tokenize(text);
+      const lines: JsonLineData[] = [];
+      let currentLineTokens: Token[] = [];
+      let lineId = 0;
+
+      for (const token of allTokens) {
+        if (token.type === "whitespace" && token.value.includes("\n")) {
+          const parts = token.value.split("\n");
+          for (let i = 0; i < parts.length; i++) {
+            if (i > 0) {
+              lines.push({ tokens: currentLineTokens, id: lineId++ });
+              currentLineTokens = [];
+            }
+            if (parts[i]) {
+              currentLineTokens.push({ ...token, id: lineId * 1000 + i, value: parts[i] });
+            }
+          }
+        } else {
+          currentLineTokens.push(token);
+        }
+      }
+      if (currentLineTokens.length > 0) {
+        lines.push({ tokens: currentLineTokens, id: lineId++ });
+      }
+      return lines;
     } catch {
-      return null;
+      return text.split("\n").map((line, i) => ({
+        id: i,
+        tokens: [{ id: i, type: "whitespace", value: line }],
+      }));
     }
   }, [text]);
+}
 
-  if (!tokens) {
-    return (
-      <code className="block whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed">
-        {highlight ? highlightText(text, highlight) : text}
-      </code>
-    );
-  }
-
+export function JsonLine({
+  line,
+  highlight,
+  style,
+}: {
+  line: JsonLineData;
+  highlight?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <code className="block whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed">
-      {tokens.map((t) => (
-        <span key={t.id} className={TOKEN_CLASSES[t.type]}>
+    <div style={style} className="whitespace-pre font-mono text-xs leading-relaxed flex">
+      {line.tokens.map((t) => (
+        <span key={t.id} className={TOKEN_CLASSES[t.type] || ""}>
           {highlight ? highlightText(t.value, highlight) : t.value}
         </span>
+      ))}
+    </div>
+  );
+}
+
+export function JsonColorized({ text, highlight }: { text: string; highlight?: string }) {
+  const lines = useJsonLines(text);
+
+  return (
+    <code className="block whitespace-pre wrap-break-word font-mono text-xs leading-relaxed">
+      {lines.map((line) => (
+        <JsonLine key={line.id} line={line} highlight={highlight} />
       ))}
     </code>
   );

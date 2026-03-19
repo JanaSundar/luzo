@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { CheckpointArtifact } from "@/lib/pipeline/pipeline-persistence";
 import { createIndexedDbStorage } from "@/lib/storage/zustand-indexeddb";
 import type {
   AIReportCache,
@@ -8,14 +9,22 @@ import type {
   PersistedPipelineArtifacts,
 } from "@/types/pipeline-debug";
 
-interface PipelineArtifactsState extends PersistedPipelineArtifacts {
-  saveExecutionArtifact: (pipelineId: string, artifact: PersistedExecutionArtifact) => void;
+interface PipelineArtifactsState {
+  executionByPipelineId: Record<string, PersistedExecutionArtifact>;
+  reportsByPipelineId: Record<string, AIReportCache>;
+  debuggerByPipelineId: Record<string, PersistedDebuggerArtifact>;
+  saveExecutionArtifact: (
+    pipelineId: string,
+    artifact: PersistedExecutionArtifact | CheckpointArtifact
+  ) => void;
   saveReportArtifact: (pipelineId: string, report: AIReportCache) => void;
   saveDebuggerArtifact: (pipelineId: string, debuggerArtifact: PersistedDebuggerArtifact) => void;
   deleteReportArtifact: (pipelineId: string) => void;
   deleteArtifacts: (pipelineId: string) => void;
   deleteArtifactsBatch: (pipelineIds: string[]) => void;
-  getExecutionArtifact: (pipelineId: string | null) => PersistedExecutionArtifact | null;
+  getExecutionArtifact: (
+    pipelineId: string | null
+  ) => (PersistedExecutionArtifact | CheckpointArtifact) | null;
   getReportArtifact: (pipelineId: string | null) => AIReportCache | null;
 }
 
@@ -32,7 +41,10 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
 
       saveExecutionArtifact: (pipelineId, artifact) =>
         set((state) => ({
-          executionByPipelineId: { ...state.executionByPipelineId, [pipelineId]: artifact },
+          executionByPipelineId: {
+            ...state.executionByPipelineId,
+            [pipelineId]: artifact as PersistedExecutionArtifact,
+          },
         })),
 
       saveReportArtifact: (pipelineId, report) =>

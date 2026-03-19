@@ -130,6 +130,7 @@ export function TemplateInput({
   }, [isOpen, updateDropdownPos]);
 
   const inputProps = getInputProps({
+    ...props,
     ref: inputRef,
     value,
     onChange: (e) => {

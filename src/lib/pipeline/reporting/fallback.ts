@@ -1,60 +1,166 @@
-import type { AIReportConfig, NarrativeAiOutput, NarrativeReport } from "@/types/pipeline-debug";
-import type { ReducedContext } from "@/types/pipeline-debug";
-import { createNarrativeReport, toEndpointMetrics } from "./shared";
+import type {
+  AIReportConfig,
+  NarrativeAiOutput,
+  NarrativeReport,
+  ReducedContext,
+} from "@/types/pipeline-debug";
+import { toEndpointMetrics } from "./shared";
 
 export function buildFallbackStructuredReport(
   context: ReducedContext,
   config: AIReportConfig,
   derivedTitle?: string
 ): NarrativeReport {
-  return createNarrativeReport(context, config, buildFallbackOutput(context), derivedTitle);
-}
-
-function buildFallbackOutput(context: ReducedContext): NarrativeAiOutput {
   const endpointMetrics = toEndpointMetrics(context);
-  const failedEndpoints = endpointMetrics.filter((endpoint) => endpoint.outcome === "error");
-  const slowEndpoints = endpointMetrics.filter((endpoint) => (endpoint.latencyMs ?? 0) > 1000);
+  const failedEndpoints = endpointMetrics.filter((e) => e.outcome === "error");
+  const warningEndpoints = endpointMetrics.filter((e) => e.outcome === "warning");
+  const slowEndpoints = endpointMetrics.filter((e) => (e.latencyMs ?? 0) > 1000);
+  const verySlowEndpoints = endpointMetrics.filter((e) => (e.latencyMs ?? 0) > 3000);
 
-  return {
+  const title =
+    derivedTitle || `${config.tone.charAt(0).toUpperCase()}${config.tone.slice(1)} Pipeline Report`;
+
+  const baseInsights: string[] = [
+    `${context.metadata.totalSteps} request(s) executed in ${context.metadata.totalDurationMs}ms total duration.`,
+    `Success rate: ${context.metadata.successRate}% (${context.metadata.totalSteps - context.metadata.failedSteps}/${context.metadata.totalSteps} succeeded).`,
+    `Average latency: ${context.metadata.avgLatencyMs}ms. P95 latency: ${context.metadata.p95LatencyMs}ms.`,
+  ];
+
+  if (slowEndpoints.length > 0) {
+    const slowest = [...slowEndpoints].sort((a, b) => (b.latencyMs ?? 0) - (a.latencyMs ?? 0))[0];
+    baseInsights.push(
+      `${slowEndpoints.length} request(s) exceeded 1000ms. Slowest: ${slowest.stepName} at ${slowest.latencyMs}ms.`
+    );
+  }
+
+  if (failedEndpoints.length > 0) {
+    baseInsights.push(
+      `Failed endpoints: ${failedEndpoints.map((e) => `${e.stepName} (${e.statusCode ?? "N/A"})`).join(", ")}.`
+    );
+  }
+
+  const baseRisks: string[] = [];
+  if (failedEndpoints.length > 0) {
+    baseRisks.push(
+      ...failedEndpoints.map(
+        (e) =>
+          `${e.stepName} returned HTTP ${e.statusCode ?? "error"} — pipeline health is compromised.`
+      )
+    );
+  }
+  if (verySlowEndpoints.length > 0) {
+    baseRisks.push(
+      `${verySlowEndpoints.length} request(s) exceeded 3000ms — potential backend bottleneck or network issue.`
+    );
+  }
+  if (failedEndpoints.length === 0 && verySlowEndpoints.length === 0) {
+    baseRisks.push("No critical transport risks detected in this execution.");
+  }
+
+  const baseRecommendations: string[] = [];
+  if (failedEndpoints.length > 0) {
+    baseRecommendations.push(
+      `Investigate and resolve failures in: ${failedEndpoints.map((e) => e.stepName).join(", ")} before treating this pipeline as healthy.`
+    );
+    baseRecommendations.push(
+      "Check server logs for each failed endpoint to identify root cause (4xx client errors, 5xx server errors, timeouts)."
+    );
+  }
+  if (slowEndpoints.length > 0) {
+    baseRecommendations.push(
+      "Review high-latency requests for optimization opportunities: query parameter tuning, pagination, caching, or async processing."
+    );
+  }
+  if (failedEndpoints.length === 0 && slowEndpoints.length > 0) {
+    baseRecommendations.push(
+      "Establish latency baselines and set up alerts for p95 > 1000ms to catch regressions early."
+    );
+  }
+  if (failedEndpoints.length === 0 && slowEndpoints.length === 0) {
+    baseRecommendations.push(
+      "Use this execution as a performance baseline for future regression comparisons."
+    );
+    baseRecommendations.push(
+      "Monitor latency trends over time to detect gradual performance degradation."
+    );
+  }
+  baseRecommendations.push(
+    "Enable request-level logging to correlate errors with specific request traces."
+  );
+  baseRecommendations.push(
+    "Consider adding retry logic with exponential backoff for transient failures."
+  );
+  baseRecommendations.push(
+    "Document timeout configurations and ensure they align with backend SLA expectations."
+  );
+
+  const output: NarrativeAiOutput = {
     summary:
       failedEndpoints.length > 0
-        ? `The pipeline finished with ${failedEndpoints.length} request failure(s) and requires follow-up before the flow can be considered healthy.`
-        : `The pipeline completed successfully with ${context.metadata.successRate}% request success and no transport failures.`,
-    insights: [
-      `${context.metadata.totalSteps} request(s) were executed in ${context.metadata.totalDurationMs}ms total.`,
-      `Average latency was ${context.metadata.avgLatencyMs}ms with a p95 of ${context.metadata.p95LatencyMs}ms.`,
-      slowEndpoints.length > 0
-        ? `${slowEndpoints.length} request(s) exceeded the 1000ms latency threshold.`
-        : "No request crossed the 1000ms latency threshold.",
-    ],
+        ? `Pipeline execution completed with ${failedEndpoints.length} failure(s). ${warningEndpoints.length} request(s) showed elevated latency. Success rate: ${context.metadata.successRate}%. Average latency: ${context.metadata.avgLatencyMs}ms, P95: ${context.metadata.p95LatencyMs}ms.`
+        : warningEndpoints.length > 0
+          ? `Pipeline executed successfully with ${context.metadata.successRate}% success rate. ${warningEndpoints.length} request(s) showed elevated latency (>1000ms). Average: ${context.metadata.avgLatencyMs}ms, P95: ${context.metadata.p95LatencyMs}ms.`
+          : `Pipeline completed successfully. ${context.metadata.successRate}% success rate across ${context.metadata.totalSteps} steps. Average latency: ${context.metadata.avgLatencyMs}ms, P95: ${context.metadata.p95LatencyMs}ms.`,
+    insights: baseInsights,
     requests: endpointMetrics.map((endpoint) => ({
       name: endpoint.stepName,
       analysis:
         endpoint.outcome === "error"
-          ? `${endpoint.stepName} returned ${endpoint.statusCode ?? "an error"} and should be inspected.`
+          ? `${endpoint.stepName} (${endpoint.method} ${endpoint.url}) returned ${endpoint.statusCode ?? "an error"} in ${endpoint.latencyMs ?? 0}ms. ${endpoint.error ? `Error: ${endpoint.error}` : "Status code indicates failure."}`
           : endpoint.outcome === "warning"
-            ? `${endpoint.stepName} succeeded but showed elevated latency (${endpoint.latencyMs ?? 0}ms).`
-            : `${endpoint.stepName} completed successfully with stable transport metrics.`,
+            ? `${endpoint.stepName} succeeded (${endpoint.statusCode}) but latency was elevated at ${endpoint.latencyMs ?? 0}ms — exceeds 1000ms threshold.`
+            : `${endpoint.stepName} completed successfully (${endpoint.statusCode}) in ${endpoint.latencyMs ?? 0}ms with ${endpoint.sizeBytes ?? 0} bytes.`,
     })),
-    risks:
-      failedEndpoints.length > 0
-        ? failedEndpoints.map(
-            (endpoint) => `${endpoint.stepName} failed with status ${endpoint.statusCode ?? "N/A"}.`
-          )
-        : [
-            "No immediate transport or stability risks were detected in the reduced execution data.",
-          ],
-    recommendations: [
-      failedEndpoints.length > 0
-        ? "Investigate the failing request path before relying on this pipeline in production."
-        : "Use this run as a baseline and compare future executions against it.",
-      slowEndpoints.length > 0
-        ? "Review the slower requests for backend bottlenecks, dependency drift, or retries."
-        : "Continue monitoring latency over time to catch regressions early.",
-    ],
+    risks: baseRisks,
+    recommendations: baseRecommendations,
     conclusion:
       failedEndpoints.length > 0
-        ? "This execution should be treated as degraded until the failing requests are resolved."
-        : "This execution appears healthy based on the selected signals and reduced transport data.",
+        ? "This execution is degraded. Resolve all failed endpoints before deploying this pipeline to production. Latency should also be reviewed for the affected steps."
+        : warningEndpoints.length > 0
+          ? "Execution succeeded but performance warrants attention. High-latency endpoints should be profiled and optimized to maintain SLA compliance."
+          : "This execution completed successfully with acceptable performance characteristics. No immediate action required beyond baseline monitoring.",
   };
+
+  return createFallbackNarrativeReport(context, config, output, title);
+}
+
+function createFallbackNarrativeReport(
+  context: ReducedContext,
+  config: AIReportConfig,
+  output: NarrativeAiOutput,
+  title: string
+): NarrativeReport {
+  const endpointMetrics = toEndpointMetrics(context);
+
+  return {
+    tone: config.tone,
+    title,
+    metrics: {
+      totalSteps: context.metadata.totalSteps,
+      failedSteps: context.metadata.failedSteps,
+      successRate: context.metadata.successRate,
+      avgLatencyMs: context.metadata.avgLatencyMs,
+      p95LatencyMs: context.metadata.p95LatencyMs,
+      totalDurationMs: context.metadata.totalDurationMs,
+    },
+    endpointMetrics,
+    summary: output.summary,
+    insights: uniqueItems(output.insights),
+    risks: uniqueItems(output.risks),
+    recommendations: uniqueItems(output.recommendations),
+    conclusion: output.conclusion,
+    requests: endpointMetrics.map((endpoint, index) => ({
+      stepId: endpoint.stepId,
+      name: endpoint.stepName,
+      method: endpoint.method,
+      url: endpoint.url,
+      statusCode: endpoint.statusCode,
+      latencyMs: endpoint.latencyMs,
+      analysis: output.requests[index]?.analysis ?? `${endpoint.stepName} processed.`,
+    })),
+  };
+}
+
+function uniqueItems(items: string[]): string[] {
+  return [...new Set(items.filter(Boolean))];
 }

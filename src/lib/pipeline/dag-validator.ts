@@ -3,9 +3,6 @@ import type { StepAlias, ValidationError, ValidationResult } from "@/types/pipel
 import { collectStepDependencies } from "./template-dependencies";
 import { extractVariableRefs, getStepAliasFromPath } from "./variable-resolver";
 
-/**
- * Build a map of stepId → alias (req1, req2, ...) based on step order.
- */
 export function buildStepAliases(steps: PipelineStep[]): StepAlias[] {
   return steps.map((step, index) => ({
     stepId: step.id,
@@ -14,53 +11,137 @@ export function buildStepAliases(steps: PipelineStep[]): StepAlias[] {
   }));
 }
 
-/**
- * Validate that all pipeline steps have correct backward-only references.
- */
-export function validatePipelineDag(steps: PipelineStep[]): ValidationResult {
+export function validatePipelineDag(steps: PipelineStep[]): ValidationResult & {
+  sortedStepIds?: string[];
+  adjacency?: Map<string, string[]>;
+} {
   const errors: ValidationError[] = [];
+
   const aliases = buildStepAliases(steps);
-  const aliasSet = new Set(aliases.map((a) => a.alias));
-  const aliasToIndex = new Map(aliases.map((a) => [a.alias, a.index]));
+  const aliasToStepId = new Map(aliases.map((a) => [a.alias, a.stepId]));
 
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
-    const currentAlias = aliases[i].alias;
-    const dependencies = collectStepDependencies(step);
+  const adjacency = new Map<string, string[]>();
 
-    for (const dependency of dependencies) {
-      if (!aliasSet.has(dependency.alias)) {
+  /* Build adjacency */
+  for (const step of steps) {
+    const deps = collectStepDependencies(step);
+    const uniqueDeps = new Set<string>();
+
+    for (const dep of deps) {
+      const depStepId = aliasToStepId.get(dep.alias);
+
+      if (!depStepId) {
         errors.push({
           stepId: step.id,
-          field: dependency.field,
-          message: `Reference "{{${dependency.rawRef}}}" points to "${dependency.alias}" which does not exist. Available: ${[...aliasSet].join(", ")}`,
+          field: dep.field,
+          message: `Reference "{{${dep.rawRef}}}" points to missing step "${dep.alias}"`,
           severity: "error",
         });
         continue;
       }
 
-      const refIndex = aliasToIndex.get(dependency.alias) ?? -1;
-      if (refIndex >= i) {
+      if (depStepId === step.id) {
         errors.push({
           stepId: step.id,
-          field: dependency.field,
-          message: `Step "${currentAlias}" references "${dependency.alias}" which hasn't executed yet. Only backward references are allowed.`,
+          field: dep.field,
+          message: `Step cannot reference itself ("${dep.alias}")`,
           severity: "error",
         });
+        continue;
       }
+
+      uniqueDeps.add(depStepId);
+    }
+
+    adjacency.set(step.id, Array.from(uniqueDeps));
+  }
+
+  /* DFS for cycle detection + topo sort */
+  const visited = new Set<string>();
+  const inPath = new Set<string>();
+  const sorted: string[] = [];
+
+  function dfs(node: string, path: string[]): boolean {
+    if (inPath.has(node)) {
+      errors.push({
+        stepId: node,
+        field: "dag",
+        message: `Cycle detected: ${[...path, node].join(" → ")}`,
+        severity: "error",
+      });
+      return true;
+    }
+
+    if (visited.has(node)) return false;
+
+    visited.add(node);
+    inPath.add(node);
+    path.push(node);
+
+    const deps = (adjacency.get(node) || []).sort();
+
+    for (const dep of deps) {
+      if (dfs(dep, path)) return true;
+    }
+
+    path.pop();
+    inPath.delete(node);
+    sorted.push(node);
+
+    return false;
+  }
+
+  for (const step of steps) {
+    if (!visited.has(step.id)) {
+      if (dfs(step.id, [])) break;
     }
   }
 
+  const finalErrors = dedupeErrors(errors);
+  const hasErrors = finalErrors.some((e) => e.severity === "error");
+
   return {
-    valid: errors.filter((e) => e.severity === "error").length === 0,
-    errors,
+    valid: !hasErrors,
+    errors: finalErrors,
+    sortedStepIds: hasErrors ? undefined : sorted,
+    adjacency,
   };
 }
 
-/**
- * Quick check for a single template string — returns warnings for unknown fields.
- * Used for progressive validation during typing.
- */
+export function getExecutionPath(targetStepId: string, adjacency: Map<string, string[]>): string[] {
+  const visited = new Set<string>();
+  const inPath = new Set<string>();
+  const executionOrder: string[] = [];
+
+  function dfs(node: string) {
+    if (inPath.has(node)) {
+      throw new Error(`Cycle detected while computing execution path at "${node}"`);
+    }
+
+    if (visited.has(node)) return;
+
+    if (!adjacency.has(node)) {
+      throw new Error(`Step "${node}" not found in DAG`);
+    }
+
+    visited.add(node);
+    inPath.add(node);
+
+    const deps = (adjacency.get(node) || []).sort();
+
+    for (const dep of deps) {
+      dfs(dep);
+    }
+
+    inPath.delete(node);
+    executionOrder.push(node);
+  }
+
+  dfs(targetStepId);
+
+  return executionOrder;
+}
+
 export function validateVariableRefsInTemplate(
   template: string,
   aliases: StepAlias[],
@@ -68,38 +149,41 @@ export function validateVariableRefsInTemplate(
   availableFields: Map<string, Set<string>>
 ): ValidationError[] {
   const errors: ValidationError[] = [];
+
   const refs = extractVariableRefs(template);
   const aliasToIndex = new Map(aliases.map((a) => [a.alias, a.index]));
 
   for (const ref of refs) {
     const refAlias = getStepAliasFromPath(ref);
-    if (refAlias === null) continue;
+    if (!refAlias) continue;
 
-    if (!aliasToIndex.has(refAlias)) {
+    const refIndex = aliasToIndex.get(refAlias);
+
+    if (refIndex === undefined) {
       errors.push({
         stepId: "",
         field: "",
-        message: `"${refAlias}" does not refer to any step`,
+        message: `"${refAlias}" does not refer to any existing step`,
         severity: "error",
       });
       continue;
     }
 
-    const refIndex = aliasToIndex.get(refAlias) ?? -1;
     if (refIndex >= currentStepIndex) {
       errors.push({
         stepId: "",
         field: "",
-        message: `"${refAlias}" hasn't executed yet (forward reference)`,
-        severity: "error",
+        message: `"${refAlias}" appears after this step (forward reference)`,
+        severity: "warning",
       });
-      continue;
     }
 
     const stepFields = availableFields.get(refAlias);
+
     if (stepFields) {
-      const fieldPath = ref.substring(refAlias.length + 1);
-      if (!stepFields.has(fieldPath)) {
+      const fieldPath = ref.includes(".") ? ref.substring(refAlias.length + 1) : null;
+
+      if (fieldPath && !stepFields.has(fieldPath)) {
         errors.push({
           stepId: "",
           field: "",
@@ -110,5 +194,16 @@ export function validateVariableRefsInTemplate(
     }
   }
 
-  return errors;
+  return dedupeErrors(errors);
+}
+
+function dedupeErrors(errors: ValidationError[]): ValidationError[] {
+  const seen = new Set<string>();
+
+  return errors.filter((e) => {
+    const key = `${e.stepId}-${e.field}-${e.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

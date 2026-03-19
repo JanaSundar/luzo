@@ -7,7 +7,7 @@ import { DatabaseConfigView } from "@/components/settings/DatabaseConfigView";
 import { IntegrationsOverview } from "@/components/settings/IntegrationsOverview";
 import { ProviderConfigView } from "@/components/settings/ProviderConfigView";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
 import type { AiProvider } from "@/types";
 
@@ -60,7 +60,11 @@ function TabButton({
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
-  const { providers, activeProvider, setActiveProvider } = useProvidersConfigStore();
+  const {
+    providers,
+    activeAiProvider: activeProvider,
+    setActiveAiProvider: setActiveProvider,
+  } = useSettingsStore();
   const { setAIProvider } = usePipelineDebugStore();
 
   useEffect(() => {

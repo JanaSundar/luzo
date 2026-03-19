@@ -8,30 +8,15 @@ import { cn } from "@/lib/utils";
 import { METHOD_BG_COLORS } from "@/lib/utils/http";
 import type { SavedRequest } from "@/types";
 
-interface CollectionsHistorySectionProps {
-  history: SavedRequest[];
-  onClearHistory: () => void;
-  onOpenRequest: (request: SavedRequest["request"]) => void;
-}
-
 export function CollectionsHistorySection({
   history,
-  onClearHistory,
   onOpenRequest,
-}: CollectionsHistorySectionProps) {
+}: {
+  history: SavedRequest[];
+  onOpenRequest: (request: SavedRequest["request"]) => void;
+}) {
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold">History</h2>
-          <p className="text-xs text-muted-foreground">
-            Ephemeral, read-only, and not tied to Collections
-          </p>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={onClearHistory}>
-          Clear history
-        </Button>
-      </div>
       <div className="space-y-3">
         {history.map((entry) => (
           <div

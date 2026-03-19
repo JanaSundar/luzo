@@ -12,11 +12,32 @@ import {
 } from "./execution-artifacts";
 import { collectStepDependencies } from "./template-dependencies";
 
+export type AnyArtifact =
+  | PersistedExecutionArtifact
+  | {
+      runtime: { mode: string };
+      steps: Array<{ stepId: string }>;
+      stepContextByAlias: Record<string, unknown>;
+      generatedAt: string;
+      pipelineStructureHash: string;
+    };
+
+export type ArtifactInput =
+  | PersistedExecutionArtifact
+  | {
+      runtime: { mode: PartialExecutionMode | string };
+      steps: Array<{ stepId: string }>;
+      stepContextByAlias: Record<string, unknown>;
+      generatedAt: string;
+      pipelineStructureHash: string;
+    }
+  | null;
+
 interface PartialRunPlanInput {
   pipeline: Pipeline;
   startStepId: string;
   mode: Extract<PartialExecutionMode, "partial-previous" | "partial-fresh">;
-  artifact: PersistedExecutionArtifact | null;
+  artifact: ArtifactInput;
 }
 
 type PartialRunPlan =
@@ -49,7 +70,7 @@ export function planPartialPipelineRun({
       valid: true,
       options: {
         startStepId,
-        executionMode: "partial-fresh",
+        partialMode: "partial-fresh",
         reusedAliases: [],
       },
     };
@@ -72,10 +93,13 @@ export function planPartialPipelineRun({
     valid: true,
     options: {
       startStepId,
-      executionMode: "partial-previous",
-      initialRuntimeVariables: buildRuntimeVariablesFromArtifact(artifact, requiredAliases),
+      partialMode: "partial-previous",
+      initialRuntimeVariables: buildRuntimeVariablesFromArtifact(
+        artifact as PersistedExecutionArtifact,
+        requiredAliases
+      ),
       reusedAliases: requiredAliases,
-      staleContextWarning: isArtifactStale(artifact, pipeline)
+      staleContextWarning: isArtifactStale(artifact as PersistedExecutionArtifact, pipeline)
         ? `Using previous execution context from ${new Date(artifact.generatedAt).toLocaleString()}.`
         : null,
     },

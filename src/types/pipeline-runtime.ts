@@ -1,10 +1,32 @@
 import type { HttpMethod } from ".";
 
-export type StepStatus = "pending" | "running" | "success" | "error" | "aborted" | "skipped";
+export type StepStatus =
+  | "idle"
+  | "step_ready"
+  | "running"
+  | "success"
+  | "error"
+  | "skipped"
+  | "done";
+
+export type StreamStatus = "idle" | "streaming" | "done" | "error";
+
 export type EntryType = "pre_request" | "request" | "test";
-export type DebugStatus = "idle" | "running" | "paused" | "completed" | "failed" | "aborted";
+
+export type DebugStatus =
+  | "idle"
+  | "running"
+  | "paused"
+  | "error"
+  | "completed"
+  | "aborted"
+  | "interrupted";
+
 export type PartialExecutionMode = "full" | "partial-previous" | "partial-fresh";
+
 export type SensitivityLevel = "high" | "medium" | "low";
+
+export type ExecutionMode = "auto" | "debug";
 
 export interface ScriptResult {
   status: StepStatus;
@@ -25,11 +47,13 @@ export interface ReducedResponse {
 
 export interface StepSnapshot {
   stepId: string;
+  stepIndex: number;
   stepName: string;
   entryType: EntryType;
   method: HttpMethod;
   url: string;
   resolvedRequest: {
+    method: HttpMethod;
     url: string;
     headers: Record<string, string>;
     body: string | null;
@@ -42,16 +66,19 @@ export interface StepSnapshot {
   testResult?: ScriptResult;
   variables: Record<string, unknown>;
   error: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
+  startedAt: number | null;
+  completedAt: number | null;
+  streamStatus: StreamStatus;
+  streamChunks: string[];
+  highlightPath?: string;
 }
 
 export interface DebugRuntimeState {
   status: DebugStatus;
   currentStepIndex: number;
   totalSteps: number;
-  startedAt: string | null;
-  completedAt: string | null;
+  startedAt: number | null;
+  completedAt: number | null;
   mode: PartialExecutionMode;
   startStepId: string | null;
   reusedAliases: string[];
@@ -132,19 +159,17 @@ export interface VariableSuggestion {
   type: "body" | "header" | "status" | "meta" | "env";
 }
 
-export interface GeneratorYield {
-  type: "step_ready" | "step_complete" | "pipeline_complete" | "error";
-  snapshot: StepSnapshot;
-  allSnapshots: StepSnapshot[];
-}
+export type GeneratorYield =
+  | { type: "step_ready"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
+  | { type: "stream_chunk"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
+  | { type: "step_complete"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
+  | { type: "error"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] };
 
-export type PipelineGenerator = AsyncGenerator<GeneratorYield, void, void>;
-
-export interface DebugControls {
-  step: () => void;
-  continue: () => void;
-  stop: () => void;
-}
+export type PipelineGenerator = AsyncGenerator<
+  GeneratorYield,
+  void,
+  Record<string, string> | undefined
+>;
 
 export interface StepAbortControl {
   controller: AbortController;
@@ -159,8 +184,32 @@ export interface StepAlias {
 
 export interface DebugSessionOptions {
   startStepId?: string;
-  executionMode?: PartialExecutionMode;
+  partialMode?: PartialExecutionMode;
+  executionMode?: ExecutionMode;
   initialRuntimeVariables?: Record<string, unknown>;
   reusedAliases?: string[];
   staleContextWarning?: string | null;
+}
+
+export interface ControllerSnapshot {
+  executionId: string | null;
+  state: DebugStatus;
+  currentStepIndex: number;
+  totalSteps: number;
+  snapshots: StepSnapshot[];
+  runtimeVariables: Record<string, unknown>;
+  variableOverrides: Record<string, string>;
+  errorMessage: string | null;
+  startedAt: number | null;
+  completedAt: number | null;
+}
+
+export interface ControllerOptions {
+  stepTimeoutMs?: number;
+  executionMode?: ExecutionMode;
+  startStepId?: string;
+  initialRuntimeVariables?: Record<string, unknown>;
+  reusedAliases?: string[];
+  staleContextWarning?: string | null;
+  abortSignal?: AbortSignal;
 }

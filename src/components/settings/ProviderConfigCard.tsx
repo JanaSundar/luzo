@@ -1,23 +1,21 @@
 "use client";
 
-import { Cpu, Layers, Plus, Zap } from "lucide-react";
-import type { AiProvider } from "@/types";
-import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
+import { Plus } from "lucide-react";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
+import type { AiProvider } from "@/types";
+import { PROVIDER_ICONS } from "./ProviderIcons";
 
-export const PROVIDER_META: Record<
-  AiProvider,
-  { name: string; initial: string; icon: typeof Cpu; iconBg: string }
-> = {
-  openai: { name: "OpenAI", initial: "O", icon: Cpu, iconBg: "bg-teal-500/15 text-teal-600" },
-  openrouter: {
-    name: "OpenRouter",
-    initial: "O",
-    icon: Layers,
-    iconBg: "bg-blue-500/15 text-blue-600",
-  },
-  groq: { name: "Groq", initial: "G", icon: Zap, iconBg: "bg-amber-500/15 text-amber-600" },
-};
+export const PROVIDER_META: Record<AiProvider, { name: string; initial: string; iconBg: string }> =
+  {
+    openai: { name: "OpenAI", initial: "O", iconBg: "bg-teal-500/15 text-teal-600" },
+    openrouter: {
+      name: "OpenRouter",
+      initial: "O",
+      iconBg: "bg-blue-500/15 text-blue-600",
+    },
+    groq: { name: "Groq", initial: "G", iconBg: "bg-amber-500/15 text-amber-600" },
+  };
 
 interface ProviderConfigCardProps {
   provider: AiProvider;
@@ -25,10 +23,10 @@ interface ProviderConfigCardProps {
 }
 
 export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProps) {
-  const { providers } = useProvidersConfigStore();
+  const { providers } = useSettingsStore();
   const config = providers[provider];
   const meta = PROVIDER_META[provider];
-  const Icon = meta.icon;
+  const Icon = PROVIDER_ICONS[provider];
 
   const isConfigured = Boolean(config?.apiKey?.length);
   const isError = config?.validationStatus === "invalid";
@@ -47,12 +45,12 @@ export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProp
       <div className="flex items-start justify-between">
         <div
           className={cn(
-            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0 p-2 [&>svg]:size-full",
             meta.iconBg,
             isError && "bg-destructive/15 text-destructive"
           )}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="size-full" />
         </div>
         <div
           className={cn(

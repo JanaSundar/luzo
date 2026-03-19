@@ -4,38 +4,76 @@ import { Database, Eye, EyeOff, Loader2, Server, Unplug, XCircle, Zap } from "lu
 import { useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { useDbStore } from "@/lib/stores/useDbStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
 
 export function DatabaseConfigView() {
-  const { dbUrl, setDbUrl, status, error, latencyMs, schemaReady, warnings, connect, disconnect } =
-    useDbStore();
+  const {
+    dbUrl,
+    setDbUrl,
+    dbStatus: status,
+    dbError: error,
+    dbLatencyMs: latencyMs,
+    dbSchemaReady: schemaReady,
+    dbWarnings: warnings,
+    setDbStatus,
+  } = useSettingsStore();
   const [showUrl, setShowUrl] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
+    if (!dbUrl.trim()) return;
     setIsConnecting(true);
+    setDbStatus({ dbStatus: "connecting", dbError: null });
     try {
-      const ready = await connect();
-      if (ready) {
-        toast.success("Database connected successfully");
+      const res = await fetch("/api/db/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dbUrl: dbUrl.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.connected) {
+        setDbStatus({
+          dbStatus: "connected",
+          dbError: null,
+          dbSchemaReady: data.schemaReady ?? true,
+          dbLatencyMs: data.latencyMs ?? null,
+          dbWarnings: data.warnings ?? [],
+          dbTables: data.tables ?? [],
+        });
+        toast.success(
+          data.schemaReady
+            ? "Database connected successfully"
+            : "Database connected with schema warnings"
+        );
       } else {
-        toast.warning("Database connected with schema warnings");
+        setDbStatus({
+          dbStatus: "error",
+          dbError: data.error ?? "Failed to connect",
+          dbLatencyMs: data.latencyMs ?? null,
+        });
+        toast.error(data.error || "Failed to connect to database");
       }
     } catch {
-      toast.error(error || "Failed to connect to database");
+      setDbStatus({ dbStatus: "error", dbError: "Failed to connect" });
+      toast.error("Failed to connect to database");
     } finally {
       setIsConnecting(false);
     }
   };
 
-  const handleDisconnect = async () => {
-    try {
-      await disconnect();
-      toast.success("Database disconnected");
-    } catch {
-      toast.error("Failed to disconnect from database");
-    }
+  const handleDisconnect = () => {
+    setDbUrl("");
+    setDbStatus({
+      dbStatus: "disconnected",
+      dbError: null,
+      dbLatencyMs: null,
+      dbSchemaReady: false,
+      dbWarnings: [],
+      dbTables: [],
+    });
+    toast.success("Database disconnected");
   };
 
   return (
@@ -108,7 +146,7 @@ export function DatabaseConfigView() {
           type="button"
           onClick={handleConnect}
           disabled={(!dbUrl && status !== "connected") || status === "connecting"}
-          className="h-9 px-4 rounded-lg font-bold uppercase tracking-wider text-[10px] border border-input bg-background hover:bg-muted/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-9 px-4 rounded-lg font-bold uppercase tracking-wider text-[10px] border border-input bg-background hover:bg-muted/30 transition-colors flex items-center gap-2 disabled:opacity-65 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground"
         >
           {status === "connecting" || isConnecting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -125,7 +163,7 @@ export function DatabaseConfigView() {
             "h-9 px-6 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all outline-none flex items-center gap-2",
             status === "connected"
               ? "border border-input bg-background hover:bg-muted/30"
-              : "bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              : "bg-foreground text-background hover:bg-foreground/90 disabled:opacity-65 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground"
           )}
         >
           {status === "connecting" || isConnecting ? (

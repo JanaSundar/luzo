@@ -50,6 +50,7 @@ export function RequestUrlBar({
       >
         <SelectTrigger
           type="button"
+          aria-label="HTTP Method"
           className="w-[110px] h-9 border-none bg-transparent font-bold shrink-0 focus-visible:ring-0"
         >
           <SelectValue>

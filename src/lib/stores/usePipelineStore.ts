@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { createIndexedDbStorage } from "@/lib/storage/zustand-indexeddb";
-import { usePipelineArtifactsStore } from "@/lib/stores/usePipelineArtifactsStore";
 import type {
   NarrativeTone,
   Pipeline,
@@ -11,25 +10,16 @@ import type {
   PipelineView,
 } from "@/types";
 
-interface PipelinePreferences {
-  skipDeleteConfirmation: boolean;
-}
-
 interface PipelineState {
   pipelines: Pipeline[];
   activePipelineId: string | null;
   currentView: PipelineView;
-  executionResult: PipelineExecutionResult | null;
-  isExecuting: boolean;
   expandedStepIds: Record<string, string | null>;
-  preferences: PipelinePreferences;
+
   setActivePipeline: (id: string | null) => void;
   setView: (view: PipelineView) => void;
-  setExecutionResult: (result: PipelineExecutionResult | null) => void;
-  setExecuting: (isExecuting: boolean) => void;
   setExpandedStepId: (pipelineId: string, stepId: string | null) => void;
   getExpandedStepId: (pipelineId: string) => string | null;
-  setPreferences: (partial: Partial<PipelinePreferences>) => void;
   addPipeline: (name: string) => void;
   updatePipeline: (id: string, partial: Partial<Pipeline>) => void;
   deletePipeline: (id: string) => void;
@@ -40,25 +30,20 @@ interface PipelineState {
   removeStep: (pipelineId: string, stepId: string) => void;
   reorderSteps: (pipelineId: string, stepIds: string[]) => void;
   duplicateStep: (pipelineId: string, stepId: string) => void;
+  // Execution State
+  executing: boolean;
+  executionResult: PipelineExecutionResult | null;
+  setExecuting: (executing: boolean) => void;
+  setExecutionResult: (result: PipelineExecutionResult | null) => void;
 }
-
-const DEFAULT_NARRATIVE_CONFIG = {
-  tone: "technical" as NarrativeTone,
-  prompt: "Analyze the following API response...",
-  enabled: true,
-  promptOverrides: {
-    technical: "Analyze the following API response...",
-  },
-};
 
 const INITIAL_STATE = {
   pipelines: [],
   activePipelineId: null,
   currentView: "builder" as PipelineView,
-  executionResult: null as PipelineExecutionResult | null,
-  isExecuting: false,
   expandedStepIds: {} as Record<string, string | null>,
-  preferences: { skipDeleteConfirmation: false },
+  executing: false,
+  executionResult: null as PipelineExecutionResult | null,
 };
 
 export const usePipelineStore = create<PipelineState>()(
@@ -68,17 +53,11 @@ export const usePipelineStore = create<PipelineState>()(
 
       setActivePipeline: (activePipelineId) => set({ activePipelineId }),
       setView: (currentView) => set({ currentView }),
-      setExecutionResult: (executionResult) => set({ executionResult }),
-      setExecuting: (isExecuting) => set({ isExecuting }),
       setExpandedStepId: (pipelineId, stepId) =>
         set((state) => {
           state.expandedStepIds[pipelineId] = stepId;
         }),
       getExpandedStepId: (pipelineId) => get().expandedStepIds[pipelineId] ?? null,
-      setPreferences: (partial) =>
-        set((state) => {
-          Object.assign(state.preferences, partial);
-        }),
 
       addPipeline: (name) =>
         set((state) => {
@@ -96,7 +75,6 @@ export const usePipelineStore = create<PipelineState>()(
         }),
 
       deletePipeline: (id) => {
-        usePipelineArtifactsStore.getState().deleteArtifacts(id);
         set((state) => {
           state.pipelines = state.pipelines.filter((entry) => entry.id !== id);
           if (state.activePipelineId === id) {
@@ -106,7 +84,6 @@ export const usePipelineStore = create<PipelineState>()(
       },
 
       deletePipelines: (ids) => {
-        usePipelineArtifactsStore.getState().deleteArtifactsBatch(ids);
         set((state) => {
           state.pipelines = state.pipelines.filter((entry) => !ids.includes(entry.id));
           if (state.activePipelineId && ids.includes(state.activePipelineId)) {
@@ -177,14 +154,16 @@ export const usePipelineStore = create<PipelineState>()(
           step.pipeline.steps.splice(step.index + 1, 0, stepCopy);
           step.pipeline.updatedAt = new Date().toISOString();
         }),
+
+      setExecuting: (executing) => set({ executing }),
+      setExecutionResult: (executionResult) => set({ executionResult }),
     })),
     {
-      name: "pipeline-store",
-      storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-state" })),
+      name: "luzo-collections-store",
+      storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-collections" })),
       partialize: (state) => ({
         pipelines: state.pipelines,
         activePipelineId: state.activePipelineId,
-        preferences: state.preferences,
       }),
     }
   )
@@ -195,7 +174,17 @@ function createPipeline(name: string): Pipeline {
     id: crypto.randomUUID(),
     name,
     steps: [],
-    narrativeConfig: { ...DEFAULT_NARRATIVE_CONFIG },
+    narrativeConfig: {
+      tone: "technical" as NarrativeTone,
+      prompt:
+        "Analyze the provided API pipeline execution data and generate a structured technical report. Use all supplied metrics, latency values, status codes, and error messages. Be precise and avoid generic statements.",
+      enabled: true,
+      length: "medium" as const,
+      promptOverrides: {
+        technical:
+          "Analyze the provided API pipeline execution data and generate a structured technical report. Use all supplied metrics, latency values, status codes, and error messages. Be precise and avoid generic statements.",
+      },
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

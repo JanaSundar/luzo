@@ -1,6 +1,6 @@
-# AI API Playground
+# Luzo – API Playground
 
-An AI-powered API testing and development playground with Postman/Requestly-style interceptors, form-data support, and code generation.
+An API testing and development playground with pre-request and test scripts, form-data support, code generation, and multi-step pipelines. AI (OpenAI, OpenRouter, Groq) is used only for pipeline report generation—turning execution results into structured documents. Connect your own PostgreSQL for collections.
 
 ## Getting Started
 
@@ -39,7 +39,9 @@ To make sure you don’t run into CORS problems:
 | `pnpm start` | Start production server |
 | `pnpm test` | Run tests |
 | `pnpm lint` | Lint with Biome |
-| `pnpm db:push` | Push Prisma schema to database |
+| `pnpm lint:fix` | Fix lint issues (Biome lint --write) |
+| `pnpm format` | Format code (Biome format --write) |
+| `pnpm biome check --write .` | Lint, format, and organize imports |
 
 ---
 
@@ -49,7 +51,7 @@ To make sure you don’t run into CORS problems:
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           App Shell (Layout)                              │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │ Header (nav: Playground, Collections, QA, Settings)                 │  │
+│  │ Header (nav: Playground, Collections, Pipelines, Settings)          │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │ Main Content (page.tsx)                                            │  │
@@ -84,7 +86,7 @@ User clicks Send
        ▼
 RequestBuilder.send()
        │
-       ├── getActiveEnvironmentVariables()  ◀── usePlaygroundStore
+       ├── getActiveEnvironmentVariables()  ◀── useEnvironmentStore
        │
        ▼
 executeRequest(request, envVars)  ◀── Server Action (api-tests.ts)
@@ -92,7 +94,7 @@ executeRequest(request, envVars)  ◀── Server Action (api-tests.ts)
        ├── interpolateVariables() on url, headers, params
        ├── applyAuth() → Bearer/Basic/API-Key
        ├── runPreRequestScript() if preRequestScript set
-       │      └── pm.request, pm.env, pm.variables (Postman-style)
+       │      └── lz.request, lz.env (Luzo API)
        │
        ▼
 executeWithAxios()  ◀── lib/http/client.ts
@@ -100,13 +102,13 @@ executeWithAxios()  ◀── lib/http/client.ts
        ├── buildAxiosConfig() → method, url, headers, body
        ├── axios(config) → HTTP request
        ├── runTestScript() if testScript set
-       │      └── pm.response, pm.test(), pm.expect()
+       │      └── lz.response, lz.test(), lz.expect()
        │
        ▼
 ApiResponse { status, headers, body, time, size, testResults? }
        │
        ▼
-setResponse() → usePlaygroundStore
+setPlaygroundResponse() → useExecutionStore
        │
        ▼
 ResponseViewer renders (status, headers, body, tests)
@@ -141,7 +143,7 @@ POST /api/execute  ◀── app/api/execute/route.ts
 Response.json({ status, headers, body, time, size, testResults? })
        │
        ▼
-setResponse() → ResponseViewer
+setPlaygroundResponse() → useExecutionStore → ResponseViewer
 ```
 
 ### 2. State Management Flow
@@ -152,22 +154,44 @@ setResponse() → ResponseViewer
 ├─────────────────────────────────────────────────────────────────────────┤
 │  request: ApiRequest                                                    │
 │    - method, url, headers, params, body, bodyType, formDataFields       │
-│    - auth, preRequestScript, testScript                                │
-│  response: ApiResponse | null                                           │
+│  responseLayout: ResponseLayout                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     useExecutionStore (Zustand + persist)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  activeRawResponse: ApiResponse | null                                  │
 │  isLoading: boolean                                                     │
+│  results: Record<stepId, ExecutionResult> (pipeline execution)           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     useEnvironmentStore (Zustand + persist)              │
+├─────────────────────────────────────────────────────────────────────────┤
 │  environments: Environment[]                                            │
 │  activeEnvironmentId: string                                            │
-│  responseLayout: "horizontal" | "vertical"                               │
+│  getActiveEnvironmentVariables(): Record<string, string>                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     useHistoryStore (Zustand + persist)                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  history: SavedRequest[] (Last 100 executions, local IndexedDB)         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     useSettingsStore (Zustand + persist)                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  providers: Record<AiProvider, ProviderConfig> (OpenAI, OpenRouter, Groq)  │
+│  dbUrl, dbStatus, dbSchemaReady (BYODB PostgreSQL)                       │
 └─────────────────────────────────────────────────────────────────────────┘
          │
-         │  Persisted to localStorage (formDataFields.file stripped)
-         │
+         │  Collections & SavedRequests via /api/db/collections
          ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                     useCollectionStore                                  │
+│                     Database (BYODB – Bring Your Own DB)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  collections: Collection[]                                              │
-│  history: SavedRequest[] (max 100)                                      │
+│  User-provided PostgreSQL URL. Schema: collections, saved_requests     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -231,28 +255,28 @@ lib/utils/code-generator.ts
 Copy to clipboard
 ```
 
-### 6. Pre-Request & Test Scripts (Interceptors)
+### 6. Pre-Request & Test Scripts (Luzo Interceptors)
 
-```
+```javascript
 Pre-Request Script (runs before request)
 ─────────────────────────────────────────
-  pm.request.url = "https://..."
-  pm.request.headers.upsert("X-Custom", "value")
-  pm.env.set("token", "abc123")
-  pm.variables.set("ts", Date.now())
+  lz.request.url = "https://..."
+  lz.request.headers.upsert("X-Custom", "value")
+  lz.env.set("token", "abc123")
+  lz.variables.set("ts", Date.now())
 
 Test Script (runs after response)
 ─────────────────────────────────
-  pm.test("Status is 200", function() {
-    pm.expect(pm.response.status).to.equal(200);
+  lz.test("Status is 200", function() {
+    lz.expect(lz.response.status).to.equal(200);
   });
-  pm.test("Has success", function() {
-    const json = pm.response.json();
-    pm.expect(json).to.have.property("success");
+  lz.test("Has success", function() {
+    const json = lz.response.json();
+    lz.expect(json).to.have.property("success");
   });
 ```
 
-Executed in Node `vm` sandbox. `pm` object exposed per script type.
+Executed in Node `vm` sandbox. `lz` object exposed per script type.
 
 ---
 
@@ -263,33 +287,45 @@ src/
 ├── app/
 │   ├── actions/
 │   │   ├── api-tests.ts      # executeRequest server action
-│   │   ├── chat.ts
-│   │   └── conversations.ts
+│   │   ├── code-generator.ts
+│   │   └── ai-report.ts
 │   ├── api/
 │   │   ├── execute/route.ts  # Form-data proxy (server-side fetch via undici)
 │   │   ├── health/route.ts
-│   │   └── models/route.ts
+│   │   ├── db/
+│   │   │   ├── connect/route.ts   # Test DB connection, init schema
+│   │   │   ├── collections/route.ts
+│   │   │   ├── query/route.ts
+│   │   │   └── schema/route.ts
+│   │   └── providers/
+│   │       ├── [provider]/validate/route.ts
+│   │       ├── [provider]/models/route.ts
+│   │       └── custom/
 │   ├── page.tsx              # Playground (Request + Response panels)
 │   ├── collections/page.tsx
-│   ├── qa/page.tsx
-│   ├── settings/page.tsx
+│   ├── pipelines/page.tsx    # API pipeline builder & execution
+│   ├── settings/page.tsx     # AI providers (OpenAI, OpenRouter, Groq), DB config
 │   └── layout.tsx
 ├── components/
-│   ├── layout/               # AppShell, Header, Sidebar
+│   ├── layout/               # Header
 │   ├── playground/           # RequestBuilder, ResponseViewer, FormDataBodyEditor,
 │   │                         # JsonColorized, CodeGenerator, EnvironmentSelector
+│   ├── collections/          # CollectionsWorkspace, SaveToCollectionDialog
+│   ├── pipelines/            # PipelineBuilder, StepCard, PipelineLayout
+│   ├── settings/             # ProviderConfigView, DatabaseConfigView, ProviderIcons
 │   ├── ui/                   # shadcn components
 │   └── common/               # LoadingSpinner, EmptyState, ErrorBoundary
 ├── lib/
 │   ├── http/
 │   │   ├── client.ts         # Server-side HTTP client (undici fetch), executeWithAxios
 │   │   └── scripts.ts        # Pre-request & test script runners
-│   ├── stores/               # usePlaygroundStore, useCollectionStore, useSettingsStore
+│   ├── stores/               # usePlaygroundStore, useExecutionStore, useEnvironmentStore,
+│   │                         # useHistoryStore, useSettingsStore, usePipelineStore
 │   ├── utils/                # variables, code-generator
-│   ├── db/                   # Prisma, conversations, messages
-│   └── ai/                   # LangChain, agents, chains
+│   ├── db/                   # Drizzle runtime, BYODB PostgreSQL
+│   └── pipeline/             # DAG execution, variable resolution
 ├── types/index.ts
-└── config/ai-providers.ts
+└── config/                   # model-registry, ai-providers
 ```
 
 ---
@@ -300,13 +336,16 @@ src/
 |---------|----------------|
 | **HTTP methods** | GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS |
 | **Body types** | None, JSON, Raw, Form Data, x-www-form-urlencoded |
-| **Form Data** | Text + file fields via react-dropzone |
+| **Collections** | BYODB PostgreSQL; connect your DB in Settings. Minimalist divider-based UI |
+| **Duplicate Prevention** | Automatic validation prevents redundant requests in collections |
+| **AI (report generation)** | OpenAI, OpenRouter, Groq for pipeline execution reports only |
 | **Auth** | None, Bearer, Basic, API Key |
 | **Environments** | Multiple envs with `{{variable}}` interpolation |
-| **Pre-request scripts** | Postman-style `pm` API, runs before request |
-| **Test scripts** | `pm.test()`, `pm.expect()`, assertions after response |
+| **Pre-request scripts** | Luzo-style `lz` API, runs before request |
+| **Test scripts** | `lz.test()`, `lz.expect()`, assertions after response |
 | **Code generation** | cURL, JS, TS, Python, Go, Java, C# |
-| **Response** | Status, headers, body, timing, size |
+| **Pipelines** | Multi-step API workflows with variable chaining, debug mode |
+| **UI Aesthetics** | Premium minimalist design, hidden scrollbars, global pointer cursors |
 | **JSON display** | Syntax highlighting (Sorcerer/light theme), auto-prettified JSON |
 | **Search** | Highlight matches, show match count |
 

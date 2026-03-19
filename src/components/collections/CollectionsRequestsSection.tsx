@@ -1,11 +1,13 @@
 "use client";
 
-import { Play, Trash2 } from "lucide-react";
+import { Loader2, Play, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { useCollectionMutations } from "@/lib/collections/useCollections";
-import { cn } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES, cn } from "@/lib/utils";
 import { METHOD_BG_COLORS } from "@/lib/utils/http";
 import type { Collection } from "@/types";
 
@@ -21,20 +23,15 @@ export function CollectionsRequestsSection({
   onOpenRequest,
 }: CollectionsRequestsSectionProps) {
   const { deleteRequest } = useCollectionMutations();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [skipDeleteConfirm, setSkipDeleteConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold">Collection Requests</h2>
-          <p className="text-xs text-muted-foreground">
-            Editable requests stored in your connected database
-          </p>
-        </div>
-        <span className="rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          {requests.length} saved
-        </span>
-      </div>
       {activeCollection ? (
         <div className="space-y-3">
           {requests.map((savedRequest) => (
@@ -77,14 +74,19 @@ export function CollectionsRequestsSection({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="gap-2 text-destructive"
-                    onClick={async () => {
-                      await deleteRequest.mutateAsync(savedRequest.id);
-                      toast.success("Request removed");
+                    className={ACTION_BUTTON_CLASSES}
+                    disabled={deleteRequest.isPending}
+                    onClick={() => {
+                      setPendingDelete({ id: savedRequest.id, name: savedRequest.name });
+                      setShowDeleteDialog(true);
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
+                    {deleteRequest.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    {deleteRequest.isPending ? "..." : "Delete"}
                   </Button>
                 </div>
               </div>
@@ -97,6 +99,23 @@ export function CollectionsRequestsSection({
       ) : (
         <EmptyNotice text="Select a collection to view its saved requests." />
       )}
+
+      <ConfirmDeleteDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Request"
+        itemName={pendingDelete?.name}
+        skipConfirmTemp={skipDeleteConfirm}
+        onSkipConfirmChange={setSkipDeleteConfirm}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          await deleteRequest.mutateAsync(pendingDelete.id);
+          toast.success("Request removed");
+          if (skipDeleteConfirm) setSkipDeleteConfirm(true);
+          setShowDeleteDialog(false);
+          setPendingDelete(null);
+        }}
+      />
     </section>
   );
 }

@@ -6,7 +6,7 @@ import { generateAIReport } from "@/app/actions/ai-report";
 import { buildReducedContext } from "@/lib/pipeline/context-reducer";
 import { createReportCache, createReportCacheKey } from "@/lib/pipeline/report-generation";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { exportReport } from "@/lib/utils/export-report-pdf";
 import { deriveReportTitle } from "@/lib/utils/report-title";
@@ -32,12 +32,18 @@ export function usePipelineReportActions({
   const setView = usePipelineStore((state) => state.setView);
 
   const handleGenerateReport = useCallback(async () => {
-    const { signalGroups, selectedSignals, reportConfig } = usePipelineDebugStore.getState();
+    const { signalGroups, selectedSignals, reportConfig, isReportDirty, aiProvider } =
+      usePipelineDebugStore.getState();
     const { executionResult } = usePipelineStore.getState();
-    const currentSnapshots = usePipelineRuntimeStore.getState().snapshots;
+    const currentSnapshots = usePipelineExecutionStore.getState().snapshots;
 
     if (!activePipeline || currentSnapshots.length === 0 || signalGroups.length === 0) {
       toast.error("Run the pipeline first to generate a report");
+      return;
+    }
+
+    if (!aiProvider.apiKey) {
+      toast.error("AI provider not configured. Please add your API key in settings.");
       return;
     }
 
@@ -46,7 +52,8 @@ export function usePipelineReportActions({
       const context = buildReducedContext(signalGroups, selectedSignals, currentSnapshots);
       const cacheKey = createReportCacheKey(context, reportConfig);
       const cachedReport = getReport(activePipeline.id);
-      if (cachedReport?.cacheKey === cacheKey) {
+
+      if (cachedReport?.cacheKey === cacheKey && !isReportDirty) {
         setView("report");
         toast.success("Loaded saved report");
         return;

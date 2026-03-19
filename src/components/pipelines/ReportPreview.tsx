@@ -150,8 +150,11 @@ function RequestBreakdownSection({
         Per Request Breakdown
       </h3>
       <div className="space-y-4">
-        {requests.map((request) => (
-          <div key={request.stepId} className="rounded-2xl border p-5 shadow-sm">
+        {requests.map((request, index) => (
+          <div
+            key={request.stepId ?? `request-${index}`}
+            className="rounded-2xl border p-5 shadow-sm"
+          >
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 {request.method}

@@ -2,6 +2,7 @@ import type { AiProvider, HttpMethod, NarrativeTone } from ".";
 
 export type ReportMode = "preview" | "ai";
 export type ExportFormat = "pdf" | "json" | "markdown";
+export type ReportLength = "short" | "medium" | "long";
 
 export interface AIProviderConfig {
   provider: AiProvider;
@@ -34,6 +35,7 @@ export interface AIReportConfig {
   prompt: string;
   selectedSignals: string[];
   mode: ReportMode;
+  length: ReportLength;
 }
 
 export interface ReportMetrics {
@@ -77,6 +79,7 @@ export interface NarrativeAiOutput {
 }
 
 export interface NarrativeReport extends NarrativeAiOutput {
+  id?: string;
   tone: NarrativeTone;
   title: string;
   metrics: ReportMetrics;

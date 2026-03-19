@@ -3,13 +3,12 @@ import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
 
 describe("DEFAULT_PROMPTS", () => {
   it("keeps technical prompt section-specific", () => {
-    expect(DEFAULT_PROMPTS.technical).toContain("Execution Overview:");
-    expect(DEFAULT_PROMPTS.technical).toContain("Health Summary:");
-    expect(DEFAULT_PROMPTS.technical).toContain("Per Request Breakdown:");
-    expect(DEFAULT_PROMPTS.technical).toContain("Insights:");
-    expect(DEFAULT_PROMPTS.technical).toContain("Risks:");
+    expect(DEFAULT_PROMPTS.technical).toContain("senior backend engineer");
+    expect(DEFAULT_PROMPTS.technical).toContain("Summary:");
+    expect(DEFAULT_PROMPTS.technical).toContain("Metrics:");
+    expect(DEFAULT_PROMPTS.technical).toContain("Step Analysis:");
     expect(DEFAULT_PROMPTS.technical).toContain("Recommendations:");
-    expect(DEFAULT_PROMPTS.technical).toContain("Conclusion:");
+    expect(DEFAULT_PROMPTS.technical).toContain("actual data");
   });
 
   it("keeps executive prompt business-focused", () => {
