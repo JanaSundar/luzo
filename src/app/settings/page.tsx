@@ -1,12 +1,11 @@
 "use client";
 
-import { Database, LayoutGrid, Cpu } from "lucide-react";
+import { Cpu, Database, LayoutGrid } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { DatabaseConfigView } from "@/components/settings/DatabaseConfigView";
 import { IntegrationsOverview } from "@/components/settings/IntegrationsOverview";
 import { ProviderConfigView } from "@/components/settings/ProviderConfigView";
-import { WorkspacePane } from "@/components/ui/workspace-pane";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
 import { cn } from "@/lib/utils";
@@ -94,9 +93,9 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
-      <div className="flex-1 flex flex-col p-4 md:p-6 space-y-6 h-full overflow-hidden min-h-0">
-        <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 flex-1 min-h-0">
-          <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-full w-fit border border-border/50 shrink-0">
+      <div className="flex-1 flex flex-col items-center gap-8 p-5 md:p-8 h-full overflow-hidden min-h-0">
+        <div className="w-full max-w-5xl flex flex-col gap-8 flex-1 min-h-0 min-w-0">
+          <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-full w-fit border border-border/50 shrink-0 self-center">
             {TABS.map((tab) => (
               <TabButton
                 key={tab.id}
@@ -107,32 +106,28 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <WorkspacePane className="flex-1 min-h-0 overflow-hidden w-full shrink min-w-0">
-            <div className="flex-1 h-full overflow-y-auto custom-scrollbar p-6">
-              {activeTab === "overview" && (
+          <div className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar pr-1">
+            {activeTab === "overview" && (
+              <div className="flex justify-center">
                 <IntegrationsOverview
                   onProviderClick={handleProviderClick}
                   onAddProviderClick={handleAddProviderClick}
                   onDatabaseClick={handleDatabaseClick}
                   onConnectDatabaseClick={handleConnectDatabaseClick}
                 />
-              )}
-              {activeTab === "providers" && (
-                <div className="flex justify-center">
-                  <div className="w-full max-w-2xl">
-                    <ProviderConfigView />
-                  </div>
-                </div>
-              )}
-              {activeTab === "database" && (
-                <div className="flex justify-center">
-                  <div className="w-full max-w-2xl">
-                    <DatabaseConfigView />
-                  </div>
-                </div>
-              )}
-            </div>
-          </WorkspacePane>
+              </div>
+            )}
+            {activeTab === "providers" && (
+              <div className="flex justify-center w-full py-2 md:py-4">
+                <ProviderConfigView />
+              </div>
+            )}
+            {activeTab === "database" && (
+              <div className="flex justify-center w-full py-2 md:py-4">
+                <DatabaseConfigView />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

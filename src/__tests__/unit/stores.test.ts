@@ -1,9 +1,31 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createJSONStorage } from "zustand/middleware";
 import { useCollectionStore } from "@/lib/stores/useCollectionStore";
+import { useDbStore } from "@/lib/stores/useDbStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+
+const memoryStorage = (() => {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+})();
 
 describe("usePlaygroundStore", () => {
   beforeEach(() => {
+    usePlaygroundStore.persist.setOptions({
+      storage: createJSONStorage(() => memoryStorage),
+    });
+    memoryStorage.clear();
     usePlaygroundStore.setState({
       request: {
         method: "GET",
@@ -58,13 +80,7 @@ describe("usePlaygroundStore", () => {
 
 describe("useCollectionStore", () => {
   beforeEach(() => {
-    useCollectionStore.setState({ collections: [], history: [] });
-  });
-
-  it("creates a collection", () => {
-    useCollectionStore.getState().createCollection("My API");
-    expect(useCollectionStore.getState().collections).toHaveLength(1);
-    expect(useCollectionStore.getState().collections[0].name).toBe("My API");
+    useCollectionStore.setState({ history: [] });
   });
 
   it("adds to history on request sent", () => {
@@ -77,7 +93,11 @@ describe("useCollectionStore", () => {
       bodyType: "none",
       auth: { type: "none" },
     });
+    const [entry] = useCollectionStore.getState().history;
     expect(useCollectionStore.getState().history).toHaveLength(1);
+    expect(entry.name).toBe("GET users");
+    expect(entry.createdAt).toBeTruthy();
+    expect(entry.updatedAt).toBe(entry.createdAt);
   });
 
   it("limits history to 100 items", () => {
@@ -93,6 +113,7 @@ describe("useCollectionStore", () => {
       });
     }
     expect(useCollectionStore.getState().history.length).toBeLessThanOrEqual(100);
+    expect(useCollectionStore.getState().history[0]?.name).toBe("Request 104");
   });
 
   it("clears history", () => {
@@ -107,5 +128,31 @@ describe("useCollectionStore", () => {
     });
     useCollectionStore.getState().clearHistory();
     expect(useCollectionStore.getState().history).toHaveLength(0);
+  });
+});
+
+describe("useDbStore", () => {
+  beforeEach(() => {
+    useDbStore.setState({
+      dbUrl: "",
+      status: "disconnected",
+      error: null,
+      latencyMs: null,
+      schemaReady: false,
+      warnings: [],
+      tables: [],
+    });
+  });
+
+  it("clears the stored db url on disconnect", () => {
+    useDbStore.setState({
+      dbUrl: "postgres://example",
+      status: "connected",
+    });
+
+    useDbStore.getState().disconnect();
+
+    expect(useDbStore.getState().dbUrl).toBe("");
+    expect(useDbStore.getState().status).toBe("disconnected");
   });
 });

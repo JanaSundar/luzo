@@ -1,7 +1,14 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import {
+  deleteCollection,
+  deleteRequest,
+  listCollections,
+  upsertCollection,
+  upsertRequest,
+} from "@/lib/db/collections-repository";
 import { createDbClient } from "@/lib/db/runtime";
-import { collections, pipelines, requests } from "@/lib/db/schema";
+import { pipelines } from "@/lib/db/schema";
 
 /**
  * POST /api/db/collections
@@ -21,44 +28,35 @@ export async function POST(request: Request) {
 
     switch (action) {
       case "list-collections": {
-        const cols = await db.select().from(collections);
-        const reqs = await db.select().from(requests);
-        return NextResponse.json({ collections: cols, requests: reqs });
+        return NextResponse.json({ collections: await listCollections(createDbClient(dbUrl)) });
       }
 
       case "save-collection": {
-        const { id, name } = payload;
-        await db
-          .insert(collections)
-          .values({ id, name, updatedAt: new Date() })
-          .onConflictDoUpdate({
-            target: collections.id,
-            set: { name, updatedAt: new Date() },
-          });
+        const { id, name, description } = payload;
+        await upsertCollection(createDbClient(dbUrl), { id, name, description });
         return NextResponse.json({ ok: true });
       }
 
       case "save-request": {
-        const { id, name, collectionId, data } = payload;
-        await db
-          .insert(requests)
-          .values({ id, name, collectionId, data, updatedAt: new Date() })
-          .onConflictDoUpdate({
-            target: requests.id,
-            set: { name, collectionId, data, updatedAt: new Date() },
-          });
+        const { id, name, collectionId, request: requestPayload } = payload;
+        await upsertRequest(createDbClient(dbUrl), {
+          id,
+          name,
+          collectionId,
+          request: requestPayload,
+        });
         return NextResponse.json({ ok: true });
       }
 
       case "delete-request": {
         const { id } = payload;
-        await db.delete(requests).where(eq(requests.id, id));
+        await deleteRequest(createDbClient(dbUrl), id);
         return NextResponse.json({ ok: true });
       }
 
       case "delete-collection": {
         const { id } = payload;
-        await db.delete(collections).where(eq(collections.id, id));
+        await deleteCollection(createDbClient(dbUrl), id);
         return NextResponse.json({ ok: true });
       }
 

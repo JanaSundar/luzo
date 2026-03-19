@@ -8,15 +8,20 @@ import { useDbStore } from "@/lib/stores/useDbStore";
 import { cn } from "@/lib/utils";
 
 export function DatabaseConfigView() {
-  const { dbUrl, setDbUrl, status, error, latencyMs, connect, disconnect } = useDbStore();
+  const { dbUrl, setDbUrl, status, error, latencyMs, schemaReady, warnings, connect, disconnect } =
+    useDbStore();
   const [showUrl, setShowUrl] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      await connect();
-      toast.success("Database connected successfully");
+      const ready = await connect();
+      if (ready) {
+        toast.success("Database connected successfully");
+      } else {
+        toast.warning("Database connected with schema warnings");
+      }
     } catch {
       toast.error(error || "Failed to connect to database");
     } finally {
@@ -34,8 +39,8 @@ export function DatabaseConfigView() {
   };
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <div className="flex items-center gap-3">
+    <div className="w-full max-w-3xl space-y-10">
+      <div className="flex items-center gap-4">
         <div className="h-12 w-12 rounded-lg border border-border/60 flex items-center justify-center shrink-0 bg-background">
           <Database className="h-6 w-6 text-muted-foreground" />
         </div>
@@ -47,7 +52,7 @@ export function DatabaseConfigView() {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-1">
             CONNECTION URL
@@ -82,9 +87,23 @@ export function DatabaseConfigView() {
             {error}
           </div>
         )}
+        {warnings.length > 0 && (
+          <div className="space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+              Schema warnings
+            </p>
+            <div className="space-y-1">
+              {warnings.map((warning) => (
+                <p key={warning} className="text-[11px] text-amber-800">
+                  {warning}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-border/50 pt-6 flex items-center justify-between gap-4">
+      <div className="border-t border-border/50 pt-7 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={handleConnect}
@@ -124,6 +143,14 @@ export function DatabaseConfigView() {
           )}
         </button>
       </div>
+
+      {status === "connected" && (
+        <p className="text-[11px] text-muted-foreground">
+          {schemaReady
+            ? "Collections schema is ready."
+            : "Connected, but schema needs attention before Collections can be used safely."}
+        </p>
+      )}
     </div>
   );
 }

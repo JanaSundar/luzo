@@ -44,6 +44,7 @@
     "downshift": "^9.3.2",
     "drizzle-orm": "^0.45.1",
     "fuse.js": "^7.1.0",
+    "idb-keyval": "^6.2.2",
     "immer": "^11.1.4",
     "ipaddr.js": "^2.3.0",
     "json-colorizer": "^3.0.1",

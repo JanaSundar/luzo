@@ -2,11 +2,12 @@
 
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { getAutocompleteSuggestions } from "@/lib/pipeline/autocomplete";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,8 @@ interface StepCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onUpdate: (updates: Partial<PipelineStep>) => void;
+  onRunFromHere: () => void;
+  onRunFromHereFresh: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   dragHandleProps?: Record<string, unknown>;
@@ -31,13 +34,15 @@ export function StepCard({
   isExpanded,
   onToggleExpand,
   onUpdate,
+  onRunFromHere,
+  onRunFromHereFresh,
   onDuplicate,
   onDelete,
   dragHandleProps,
 }: StepCardProps) {
   const { activePipelineId, pipelines } = usePipelineStore();
   const { getActiveEnvironmentVariables } = usePlaygroundStore();
-  const runtimeVariables = usePipelineDebugStore((s) => s.runtimeVariables);
+  const runtimeVariables = usePipelineRuntimeStore((s) => s.runtimeVariables);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -106,7 +111,16 @@ export function StepCard({
           onUrlChange={(url) => onUpdate({ url })}
           className="flex-1 bg-muted/30"
         />
-        <StepCardMenu onDuplicate={onDuplicate} onDelete={onDelete} />
+        <SaveToCollectionDialog
+          request={step}
+          defaultName={step.name || `${step.method} ${step.url || `Request ${index + 1}`}`}
+        />
+        <StepCardMenu
+          onRunFromHere={onRunFromHere}
+          onRunFromHereFresh={onRunFromHereFresh}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+        />
       </div>
 
       {isExpanded && (

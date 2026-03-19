@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { executeRequest } from "@/app/actions/api-tests";
+import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
@@ -255,6 +256,11 @@ export function RequestBuilder() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <SaveToCollectionDialog
+              request={request}
+              defaultName={`${request.method} ${request.url || "Request"}`}
+            />
 
             <Button
               type="button"

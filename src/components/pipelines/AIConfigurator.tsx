@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
 import { buildReducedContext } from "@/lib/pipeline/context-reducer";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { NarrativeTone } from "@/types";
 import { PromptEditor } from "./ai-configurator/PromptEditor";
@@ -12,14 +13,9 @@ import { ToneSelection } from "./ai-configurator/ToneSelection";
 
 export function AIConfigurator() {
   const { pipelines, activePipelineId, updatePipeline } = usePipelineStore();
-  const {
-    signalGroups,
-    selectedSignals,
-    snapshots,
-    setReportConfig,
-    estimatedTokens,
-    setEstimatedTokens,
-  } = usePipelineDebugStore();
+  const { signalGroups, selectedSignals, setReportConfig, estimatedTokens, setEstimatedTokens } =
+    usePipelineDebugStore();
+  const snapshots = usePipelineRuntimeStore((state) => state.snapshots);
 
   const pipeline = pipelines.find((p) => p.id === activePipelineId);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,8 +23,13 @@ export function AIConfigurator() {
   const narrativeConfig = pipeline?.narrativeConfig ?? {
     tone: "technical" as NarrativeTone,
     prompt: DEFAULT_PROMPTS.technical,
+    promptOverrides: { technical: DEFAULT_PROMPTS.technical },
     enabled: true,
   };
+  const currentPrompt =
+    narrativeConfig.promptOverrides?.[narrativeConfig.tone] ??
+    narrativeConfig.prompt ??
+    DEFAULT_PROMPTS[narrativeConfig.tone];
 
   const handleUpdate = useCallback(
     (partial: Partial<typeof narrativeConfig>) => {
@@ -42,24 +43,25 @@ export function AIConfigurator() {
 
   const handleToneChange = useCallback(
     (tone: NarrativeTone) => {
-      const currentPrompt = narrativeConfig.prompt.trim();
-      const isDefaultOrEmpty =
-        !currentPrompt || Object.values(DEFAULT_PROMPTS).some((d) => d === currentPrompt);
-
-      const newPrompt = isDefaultOrEmpty ? DEFAULT_PROMPTS[tone] : narrativeConfig.prompt;
+      const newPrompt =
+        narrativeConfig.promptOverrides?.[tone] ??
+        (tone === narrativeConfig.tone ? currentPrompt : DEFAULT_PROMPTS[tone]);
 
       handleUpdate({ tone, prompt: newPrompt });
       setReportConfig({ tone, prompt: newPrompt });
     },
-    [narrativeConfig, handleUpdate, setReportConfig]
+    [currentPrompt, handleUpdate, narrativeConfig, setReportConfig]
   );
 
   const handlePromptChange = useCallback(
     (value: string) => {
-      handleUpdate({ prompt: value });
+      handleUpdate({
+        prompt: value,
+        promptOverrides: { ...narrativeConfig.promptOverrides, [narrativeConfig.tone]: value },
+      });
       setReportConfig({ prompt: value });
     },
-    [handleUpdate, setReportConfig]
+    [handleUpdate, narrativeConfig.promptOverrides, narrativeConfig.tone, setReportConfig]
   );
 
   // Estimate tokens when signals change (use maskSensitive so estimate matches AI payload)
@@ -90,10 +92,26 @@ export function AIConfigurator() {
           <ToneSelection currentTone={narrativeConfig.tone} onToneChange={handleToneChange} />
 
           <PromptEditor
-            prompt={narrativeConfig.prompt}
+            prompt={currentPrompt}
             onChange={handlePromptChange}
-            onRevert={() => handleUpdate({ prompt: DEFAULT_PROMPTS[narrativeConfig.tone] })}
-            onClear={() => handleUpdate({ prompt: "" })}
+            onRevert={() => {
+              const prompt = DEFAULT_PROMPTS[narrativeConfig.tone];
+              handleUpdate({
+                prompt,
+                promptOverrides: {
+                  ...narrativeConfig.promptOverrides,
+                  [narrativeConfig.tone]: prompt,
+                },
+              });
+              setReportConfig({ prompt });
+            }}
+            onClear={() => {
+              handleUpdate({
+                prompt: "",
+                promptOverrides: { ...narrativeConfig.promptOverrides, [narrativeConfig.tone]: "" },
+              });
+              setReportConfig({ prompt: "" });
+            }}
             selectedCount={selectedCount}
             estimatedTokens={estimatedTokens}
           />

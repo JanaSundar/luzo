@@ -12,6 +12,7 @@ import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const collections = pgTable("luzo_collections", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -41,6 +42,7 @@ export const SCHEMA_INIT_SQL = `
 CREATE TABLE IF NOT EXISTS luzo_collections (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  description TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -31,7 +31,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       connected: true,
-      schemaReady: true,
+      schemaReady: schemaResult.schemaReady,
+      warnings: schemaResult.warnings,
+      tables: schemaResult.tables,
       latencyMs: connectionResult.latencyMs,
     });
   } catch {

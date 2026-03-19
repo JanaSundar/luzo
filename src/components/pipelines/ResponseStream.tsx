@@ -1,100 +1,80 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import { useMemo, useState } from "react";
-import {
-  Test,
-  TestError,
-  TestErrorMessage,
-  TestName,
-  TestResults,
-  TestResultsContent,
-  TestResultsDuration,
-  TestResultsHeader,
-  TestResultsProgress,
-  TestResultsSummaryDisplay,
-  TestStatusDisplay,
-  TestSuite,
-  TestSuiteContent,
-  TestSuiteName,
-  TestSuiteStats,
-} from "@/components/common/TestResults";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { useEffect, useMemo, useState } from "react";
+import { usePipelineArtifactsStore } from "@/lib/stores/usePipelineArtifactsStore";
+import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
+import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { StepSnapshot } from "@/types/pipeline-debug";
-import { cn } from "@/lib/utils";
 import { DebugControlsBar } from "./DebugControlsBar";
 import { MiddlePanel } from "./MiddlePanel";
 import { ResponseBodyPanel } from "./ResponseBodyPanel";
+import {
+  PreRequestOutputPanel,
+  type ResponsePanelTab,
+  ResponseTabBar,
+  TestOutputPanel,
+} from "./ResponseDetailPanels";
 import { TimelinePanel } from "./TimelinePanel";
 import { UnresolvedVariablesPanel } from "./UnresolvedVariablesPanel";
 
-type ResponsePanelTab = "response" | "pre-request" | "tests";
-
 export function ResponseStream() {
-  const { runtime, snapshots, stepNext, continueAll, stopExecution } = usePipelineDebugStore();
+  const runtime = usePipelineRuntimeStore((state) => state.runtime);
+  const snapshots = usePipelineRuntimeStore((state) => state.snapshots);
+  const stepNext = usePipelineRuntimeStore((state) => state.stepNext);
+  const continueAll = usePipelineRuntimeStore((state) => state.continueAll);
+  const stopExecution = usePipelineRuntimeStore((state) => state.stopExecution);
+  const activePipelineId = usePipelineStore((state) => state.activePipelineId);
+  const savedDebugger = usePipelineArtifactsStore((state) =>
+    activePipelineId ? (state.debuggerByPipelineId[activePipelineId] ?? null) : null
+  );
+  const saveDebuggerArtifact = usePipelineArtifactsStore((state) => state.saveDebuggerArtifact);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [panelTab, setPanelTab] = useState<ResponsePanelTab>("response");
 
-  const selectedSnapshot = snapshots[selectedIndex] as StepSnapshot | undefined;
+  useEffect(() => {
+    if (!savedDebugger) return;
+    setSelectedIndex(savedDebugger.selectedStepIndex);
+    setPanelTab(savedDebugger.panelTab);
+  }, [savedDebugger]);
 
+  useEffect(() => {
+    if (!activePipelineId) return;
+    saveDebuggerArtifact(activePipelineId, {
+      pipelineId: activePipelineId,
+      selectedStepIndex: selectedIndex,
+      panelTab,
+    });
+  }, [activePipelineId, panelTab, saveDebuggerArtifact, selectedIndex]);
+
+  useEffect(() => {
+    if (selectedIndex < snapshots.length) return;
+    setSelectedIndex(Math.max(0, snapshots.length - 1));
+  }, [selectedIndex, snapshots.length]);
+
+  const selectedSnapshot = snapshots[selectedIndex] as StepSnapshot | undefined;
   const totalTime = useMemo(
     () =>
       snapshots
-        .map((s) => s.reducedResponse?.latencyMs ?? 0)
-        .filter((l) => l > 0)
-        .reduce((a, b) => a + b, 0),
+        .map((snapshot) => snapshot.reducedResponse?.latencyMs ?? 0)
+        .filter((latency) => latency > 0)
+        .reduce((sum, latency) => sum + latency, 0),
     [snapshots]
   );
-
-  const parsedBody = useMemo(() => {
-    if (selectedSnapshot?.fullBody) {
-      try {
-        const parsed = JSON.parse(selectedSnapshot.fullBody);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        return selectedSnapshot.fullBody;
-      }
-    }
-    if (!selectedSnapshot?.reducedResponse?.summary) return null;
-    try {
-      return JSON.stringify(selectedSnapshot.reducedResponse.summary, null, 2);
-    } catch {
-      return null;
-    }
-  }, [selectedSnapshot]);
-
-  const cookies = useMemo(() => {
-    const headers = selectedSnapshot?.fullHeaders ?? selectedSnapshot?.reducedResponse?.headers;
-    if (!headers) return [];
-    const entry = Object.entries(headers).find(([k]) => k.toLowerCase() === "set-cookie");
-    return (
-      entry?.[1]
-        ?.split(",")
-        .map((c) => c.trim())
-        .filter(Boolean) ?? []
-    );
-  }, [selectedSnapshot]);
-
-  const isFullResponse = Boolean(selectedSnapshot?.fullBody);
+  const parsedBody = useMemo(() => toDisplayBody(selectedSnapshot), [selectedSnapshot]);
+  const cookies = useMemo(() => getCookies(selectedSnapshot), [selectedSnapshot]);
 
   const isActive = runtime.status === "running" || runtime.status === "paused";
   const isDone =
     runtime.status === "completed" || runtime.status === "failed" || runtime.status === "aborted";
 
   if (runtime.status === "idle" && snapshots.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-        <div className="p-4 rounded-full bg-muted/30">
-          <Clock className="h-8 w-8 opacity-20" />
-        </div>
-        <p className="text-sm">Run a pipeline to see real-time results</p>
-        <p className="text-xs text-muted-foreground">Use Debug mode for step-by-step execution</p>
-      </div>
-    );
+    return <EmptyStreamState />;
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col min-h-0 gap-3 overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden">
       {(isActive || isDone) && (
         <DebugControlsBar
           runtime={runtime}
@@ -109,7 +89,7 @@ export function ResponseStream() {
 
       {runtime.status === "paused" && <UnresolvedVariablesPanel />}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden rounded-xl border bg-background shadow-sm lg:grid-cols-12">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xl border bg-background shadow-sm lg:grid-cols-12">
         <TimelinePanel
           snapshots={snapshots}
           selectedIndex={selectedIndex}
@@ -121,148 +101,70 @@ export function ResponseStream() {
           onSelect={setSelectedIndex}
         />
         <div className="flex min-h-0 flex-1 flex-col border-t lg:col-span-9 lg:border-t-0 lg:border-l">
-          <nav className="flex items-center gap-0 shrink-0 border-b bg-muted/10">
-            {(
-              [
-                { id: "response" as const, label: "Response" },
-                { id: "pre-request" as const, label: "Pre-request" },
-                { id: "tests" as const, label: "Tests" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setPanelTab(tab.id)}
-                className={cn(
-                  "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all border-b-2 -mb-px",
-                  panelTab === tab.id
-                    ? "border-foreground text-foreground bg-background"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <ResponseTabBar panelTab={panelTab} onTabChange={setPanelTab} />
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
-            {panelTab === "response" && (
+            {panelTab === "response" ? (
               <>
                 <MiddlePanel snapshot={selectedSnapshot} cookies={cookies} />
                 <ResponseBodyPanel
                   parsedBody={parsedBody}
                   hasSnapshots={snapshots.length > 0}
                   snapshot={selectedSnapshot}
-                  isFullResponse={isFullResponse}
+                  isFullResponse={Boolean(selectedSnapshot?.fullBody)}
                 />
               </>
-            )}
-            {panelTab === "pre-request" && (
-              <div className="lg:col-span-12 flex-1 min-h-0 overflow-auto custom-scrollbar p-4">
-                {selectedSnapshot?.preRequestResult ? (
-                  <div className="space-y-3">
-                    {selectedSnapshot.preRequestResult.error && (
-                      <div className="text-xs text-destructive bg-destructive/5 px-3 py-2 rounded-md font-mono">
-                        {selectedSnapshot.preRequestResult.error}
-                      </div>
-                    )}
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                      Duration: {selectedSnapshot.preRequestResult.durationMs}ms
-                    </div>
-                    {selectedSnapshot.preRequestResult.logs.length > 0 ? (
-                      <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-muted/30 p-3 rounded-md">
-                        {selectedSnapshot.preRequestResult.logs.join("\n")}
-                      </pre>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        No console output from pre-request script
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
-                    {selectedSnapshot
-                      ? "No pre-request script or result for this step"
-                      : "Select a step to view pre-request output"}
-                  </div>
-                )}
-              </div>
-            )}
-            {panelTab === "tests" && (
-              <div className="lg:col-span-12 flex-1 min-h-0 overflow-auto custom-scrollbar p-4">
-                {selectedSnapshot?.testResult?.testResults &&
-                selectedSnapshot.testResult.testResults.length > 0 ? (
-                  <TestResults
-                    summary={{
-                      passed: selectedSnapshot.testResult.testResults.filter((t) => t.passed)
-                        .length,
-                      failed: selectedSnapshot.testResult.testResults.filter((t) => !t.passed)
-                        .length,
-                      skipped: 0,
-                      total: selectedSnapshot.testResult.testResults.length,
-                      duration: selectedSnapshot.testResult.durationMs,
-                    }}
-                  >
-                    <TestResultsHeader>
-                      <TestResultsSummaryDisplay />
-                      <TestResultsDuration />
-                    </TestResultsHeader>
-                    <TestResultsContent>
-                      <TestResultsProgress />
-                      <TestSuite
-                        name="Response tests"
-                        status={
-                          selectedSnapshot.testResult.error ||
-                          selectedSnapshot.testResult.testResults.some((t) => !t.passed)
-                            ? "failed"
-                            : "passed"
-                        }
-                        defaultOpen
-                      >
-                        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                          <TestSuiteName />
-                          <TestSuiteStats
-                            passed={
-                              selectedSnapshot.testResult.testResults.filter((t) => t.passed).length
-                            }
-                            failed={
-                              selectedSnapshot.testResult.testResults.filter((t) => !t.passed)
-                                .length
-                            }
-                            skipped={0}
-                          />
-                        </div>
-                        <TestSuiteContent>
-                          {selectedSnapshot.testResult.testResults.map((t) => (
-                            <Test
-                              key={t.name}
-                              name={t.name}
-                              status={t.passed ? "passed" : "failed"}
-                            >
-                              <TestStatusDisplay />
-                              <TestName />
-                              {t.error && (
-                                <TestError>
-                                  <TestErrorMessage>{t.error}</TestErrorMessage>
-                                </TestError>
-                              )}
-                            </Test>
-                          ))}
-                        </TestSuiteContent>
-                      </TestSuite>
-                    </TestResultsContent>
-                  </TestResults>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
-                    {selectedSnapshot
-                      ? "No test script or results for this step"
-                      : "Select a step to view test results"}
-                  </div>
-                )}
-              </div>
-            )}
+            ) : null}
+            {panelTab === "pre-request" ? (
+              <PreRequestOutputPanel snapshot={selectedSnapshot} />
+            ) : null}
+            {panelTab === "tests" ? <TestOutputPanel snapshot={selectedSnapshot} /> : null}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function EmptyStreamState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+      <div className="rounded-full bg-muted/30 p-4">
+        <Clock className="h-8 w-8 opacity-20" />
+      </div>
+      <p className="text-sm">Run a pipeline to see real-time results</p>
+      <p className="text-xs text-muted-foreground">Use Debug mode for step-by-step execution</p>
+    </div>
+  );
+}
+
+function toDisplayBody(snapshot?: StepSnapshot) {
+  if (snapshot?.fullBody) {
+    try {
+      return JSON.stringify(JSON.parse(snapshot.fullBody), null, 2);
+    } catch {
+      return snapshot.fullBody;
+    }
+  }
+
+  if (!snapshot?.reducedResponse?.summary) {
+    return null;
+  }
+
+  try {
+    return JSON.stringify(snapshot.reducedResponse.summary, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+function getCookies(snapshot?: StepSnapshot) {
+  const headers = snapshot?.fullHeaders ?? snapshot?.reducedResponse?.headers;
+  if (!headers) return [];
+  const cookieHeader = Object.entries(headers).find(([key]) => key.toLowerCase() === "set-cookie");
+  return (
+    cookieHeader?.[1]
+      ?.split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean) ?? []
   );
 }

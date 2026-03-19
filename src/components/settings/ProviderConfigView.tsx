@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MODEL_REGISTRY } from "@/config/model-registry";
-import { fetchProviderModels, type ProviderModel } from "@/lib/settings/fetch-provider-models";
 import { validateApiKey } from "@/lib/settings/api-key-validation";
+import { fetchProviderModels, type ProviderModel } from "@/lib/settings/fetch-provider-models";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { useProvidersConfigStore } from "@/lib/stores/useProvidersConfigStore";
 import { cn } from "@/lib/utils";
@@ -123,8 +123,8 @@ export function ProviderConfigView() {
   const AI_PROVIDERS: AiProvider[] = ["openai", "openrouter", "groq"];
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <div className="space-y-3">
+    <div className="w-full max-w-3xl space-y-10">
+      <div className="space-y-4">
         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-1">
           Select Provider
         </label>
@@ -151,7 +151,7 @@ export function ProviderConfigView() {
         </nav>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <div className="h-12 w-12 rounded-lg border border-border/60 flex items-center justify-center shrink-0 bg-background text-lg font-bold">
           {meta.initial}
         </div>
@@ -163,7 +163,7 @@ export function ProviderConfigView() {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-1">
           API KEY
         </label>
@@ -191,7 +191,7 @@ export function ProviderConfigView() {
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-1">
           DEFAULT MODEL
         </label>
@@ -219,7 +219,7 @@ export function ProviderConfigView() {
         </Select>
       </div>
 
-      <div className="border-t border-border/50 pt-6 flex items-center justify-between gap-4">
+      <div className="border-t border-border/50 pt-7 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={handleTestConnection}

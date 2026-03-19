@@ -117,13 +117,16 @@ export interface SavedRequest {
   request: ApiRequest;
   collectionId?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Collection {
   id: string;
   name: string;
+  description?: string;
   requests: SavedRequest[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export type PipelineView = "builder" | "stream" | "ai-config" | "report";
@@ -133,6 +136,7 @@ export interface AINarrativeConfig {
   tone: NarrativeTone;
   prompt: string;
   enabled: boolean;
+  promptOverrides?: Partial<Record<NarrativeTone, string>>;
 }
 
 export interface PipelineStep extends ApiRequest {

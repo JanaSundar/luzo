@@ -11,6 +11,7 @@ import { Logo } from "./Logo";
 
 const NAV_ITEMS = [
   { label: "Playground", href: "/" },
+  { label: "Collections", href: "/collections" },
   { label: "Pipelines", href: "/pipelines" },
   { label: "Settings", href: "/settings" },
 ];

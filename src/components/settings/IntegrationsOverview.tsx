@@ -48,11 +48,11 @@ export function IntegrationsOverview({
   const allSystemsOk = allProvidersOk && dbOk;
 
   return (
-    <div className="space-y-8 w-full max-w-4xl">
+    <div className="space-y-10 w-full max-w-5xl">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Integrations Overview</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your AI providers and database connections.
           </p>
         </div>
@@ -75,7 +75,7 @@ export function IntegrationsOverview({
       </div>
 
       <div className="w-full">
-        <div className="flex items-center justify-between mb-3 w-full">
+        <div className="flex items-center justify-between mb-4 w-full">
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
             AI PROVIDERS
           </span>
@@ -83,7 +83,7 @@ export function IntegrationsOverview({
             {configuredCount} Configured
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
           {AI_PROVIDERS.map((provider) => (
             <ProviderConfigCard
               key={provider}
@@ -96,7 +96,7 @@ export function IntegrationsOverview({
       </div>
 
       <div className="w-full">
-        <div className="flex items-center justify-between mb-3 w-full">
+        <div className="flex items-center justify-between mb-4 w-full">
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
             DATABASES
           </span>
@@ -104,12 +104,12 @@ export function IntegrationsOverview({
             {dbActiveCount} Active
           </span>
         </div>
-        <div className="space-y-3 w-full">
+        <div className="space-y-4 w-full">
           {status === "connected" && dbUrl ? (
             <button
               type="button"
               onClick={onDatabaseClick}
-              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-all text-left"
+              className="w-full flex items-center gap-5 p-5 rounded-lg border border-border bg-card hover:bg-muted/30 transition-all text-left"
             >
               <div className="h-10 w-10 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0">
                 <Database className="h-5 w-5" />
@@ -140,7 +140,7 @@ export function IntegrationsOverview({
           <button
             type="button"
             onClick={onConnectDatabaseClick}
-            className="w-full flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-all"
+            className="w-full flex items-center justify-center gap-2 p-5 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-all"
           >
             <Database className="h-5 w-5" />
             <span className="text-sm font-medium">Connect Database</span>

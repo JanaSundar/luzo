@@ -1,77 +1,52 @@
 import { executeRequest } from "@/app/actions/api-tests";
-import type { ApiResponse, Pipeline, PipelineStep } from "@/types";
-import type {
-  EntryType,
-  GeneratorYield,
-  ReducedResponse,
-  ScriptResult,
-  StepAbortControl,
-  StepSnapshot,
-  StepStatus,
-} from "@/types/pipeline-debug";
+import type { Pipeline, PipelineStep } from "@/types";
+import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-debug";
 import { reduceResponse } from "./context-reducer";
 import { buildStepAliases } from "./dag-validator";
+import {
+  toErrorMessage,
+  toPreRequestResult,
+  toRuntimeValue,
+  toStepStatus,
+  toTestResult,
+} from "./pipeline-execution-mappers";
+import {
+  cloneSnapshot,
+  cloneSnapshots,
+  createCompletedSnapshot,
+  createInitialSnapshot,
+  resultToSnapshots,
+} from "./pipeline-snapshot-utils";
 import { resolveTemplate } from "./variable-resolver";
 
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
 
-function cloneSnapshots(snapshots: StepSnapshot[]): StepSnapshot[] {
-  return snapshots.map((s) => ({
-    ...s,
-    variables: { ...s.variables },
-    resolvedRequest: {
-      ...s.resolvedRequest,
-      headers: { ...s.resolvedRequest.headers },
-    },
-  }));
-}
-
-function cloneSnapshot(snapshot: StepSnapshot): StepSnapshot {
-  return {
-    ...snapshot,
-    variables: { ...snapshot.variables },
-    resolvedRequest: {
-      ...snapshot.resolvedRequest,
-      headers: { ...snapshot.resolvedRequest.headers },
-    },
-  };
+interface GeneratorOptions {
+  stepTimeoutMs?: number;
+  abortControls: Map<string, StepAbortControl>;
+  masterAbort: AbortController;
+  startStepId?: string;
+  initialRuntimeVariables?: Record<string, unknown>;
 }
 
 export async function* createPipelineGenerator(
   pipeline: Pipeline,
   envVariables: Record<string, string>,
-  options: {
-    stepTimeoutMs?: number;
-    abortControls: Map<string, StepAbortControl>;
-    masterAbort: AbortController;
-  }
+  options: GeneratorOptions
 ): AsyncGenerator<GeneratorYield, void, Record<string, string> | undefined> {
   const { stepTimeoutMs = DEFAULT_STEP_TIMEOUT_MS, abortControls, masterAbort } = options;
   const aliases = buildStepAliases(pipeline.steps);
-  const aliasMap = new Map(aliases.map((a) => [a.stepId, a.alias]));
-
-  // Local mutable runtime state — never shared with Zustand store.
-  // Snapshots array and runtimeVariables are plain objects, not frozen.
+  const aliasMap = new Map(aliases.map((alias) => [alias.stepId, alias.alias]));
+  const startIndex = getStartIndex(pipeline, options.startStepId);
   const snapshots: StepSnapshot[] = [];
-  const runtimeVariables: Record<string, unknown> = {};
+  const runtimeVariables = cloneRuntimeVariables(options.initialRuntimeVariables);
 
-  for (let i = 0; i < pipeline.steps.length; i++) {
-    const step = pipeline.steps[i];
-    const alias = aliasMap.get(step.id) ?? `req${i + 1}`;
+  for (let index = startIndex; index < pipeline.steps.length; index++) {
+    const step = pipeline.steps[index];
+    const alias = aliasMap.get(step.id) ?? `req${index + 1}`;
 
     if (masterAbort.signal.aborted) {
-      const abortedSnapshot = createInitialSnapshot(
-        step,
-        "aborted",
-        runtimeVariables,
-        "Pipeline aborted"
-      );
-      snapshots.push(abortedSnapshot);
-      yield {
-        type: "error",
-        snapshot: cloneSnapshot(abortedSnapshot),
-        allSnapshots: cloneSnapshots(snapshots),
-      };
+      yield buildAbortResult(step, runtimeVariables, snapshots);
       return;
     }
 
@@ -85,11 +60,8 @@ export async function* createPipelineGenerator(
       allSnapshots: cloneSnapshots(snapshots),
     }) as Record<string, string> | undefined;
 
-    const stepAbort = new AbortController();
-    const timeoutId = setTimeout(() => stepAbort.abort(), stepTimeoutMs);
-    abortControls.set(step.id, { controller: stepAbort, timeoutId });
-
-    const onMasterAbort = () => stepAbort.abort();
+    const stepAbort = createStepAbort(step.id, stepTimeoutMs, abortControls);
+    const onMasterAbort = () => stepAbort.controller.abort();
     masterAbort.signal.addEventListener("abort", onMasterAbort, { once: true });
 
     try {
@@ -99,22 +71,21 @@ export async function* createPipelineGenerator(
         envVariables,
         variableOverrides ?? {}
       );
-      const resolvedRequest: StepSnapshot["resolvedRequest"] = {
+      const resolvedRequest = {
         url: resolvedStep.url,
         headers: Object.fromEntries(
-          resolvedStep.headers.filter((h) => h.enabled).map((h) => [h.key, h.value])
+          resolvedStep.headers
+            .filter((header) => header.enabled)
+            .map((header) => [header.key, header.value])
         ),
         body: resolvedStep.body,
       };
-
       const response = await executeRequest(resolvedStep, envVariables);
 
-      clearTimeout(timeoutId);
-      masterAbort.signal.removeEventListener("abort", onMasterAbort);
-      abortControls.delete(step.id);
+      clearStepAbort(step.id, stepAbort.timeoutId, abortControls, masterAbort, onMasterAbort);
 
-      if (stepAbort.signal.aborted || masterAbort.signal.aborted) {
-        const aborted = createCompletedSnapshot(
+      if (stepAbort.controller.signal.aborted || masterAbort.signal.aborted) {
+        const abortedSnapshot = createCompletedSnapshot(
           pendingSnapshot,
           "aborted",
           null,
@@ -122,117 +93,45 @@ export async function* createPipelineGenerator(
           "Request aborted",
           resolvedRequest
         );
-        snapshots[i] = aborted;
-        yield {
-          type: "step_complete",
-          snapshot: cloneSnapshot(aborted),
-          allSnapshots: cloneSnapshots(snapshots),
-        };
+        snapshots[snapshots.length - 1] = abortedSnapshot;
+        yield buildYield("step_complete", abortedSnapshot, snapshots);
         return;
       }
 
-      let bodyData: unknown = response.body;
-      try {
-        bodyData = JSON.parse(response.body);
-      } catch {
-        // Not JSON — keep as string
-      }
-
-      runtimeVariables[alias] = {
-        response: {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          body: bodyData,
-          time: response.time,
-          size: response.size,
-        },
-      };
-
-      const reduced = reduceResponse(response);
-      const stepStatus: StepStatus =
-        response.status >= 200 && response.status < 400 ? "success" : "error";
-      const stepError =
-        stepStatus === "error" ? `HTTP ${response.status} ${response.statusText}` : null;
-
-      // Convert script results to ScriptResult format
-      const preRequestResult: ScriptResult | undefined = response.preRequestResult
-        ? {
-            status: response.preRequestResult.error ? "error" : "success",
-            logs: response.preRequestResult.logs,
-            error: response.preRequestResult.error,
-            durationMs: response.preRequestResult.durationMs,
-          }
-        : undefined;
-
-      const testResult: ScriptResult | undefined = response.testResult
-        ? {
-            status:
-              response.testResult.error || response.testResult.testResults?.some((t) => !t.passed)
-                ? "error"
-                : "success",
-            logs: response.testResult.logs,
-            error: response.testResult.error,
-            durationMs: response.testResult.durationMs,
-            testResults: response.testResult.testResults,
-          }
-        : undefined;
-
+      runtimeVariables[alias] = toRuntimeValue(response);
+      const stepStatus = toStepStatus(response.status);
       const completedSnapshot = createCompletedSnapshot(
         pendingSnapshot,
         stepStatus,
-        reduced,
+        reduceResponse(response),
         runtimeVariables,
-        stepError,
+        stepStatus === "error" ? `HTTP ${response.status} ${response.statusText}` : null,
         resolvedRequest,
-        preRequestResult,
-        testResult,
+        toPreRequestResult(response),
+        toTestResult(response),
         { body: response.body, headers: response.headers }
       );
-      snapshots[i] = completedSnapshot;
 
-      yield {
-        type: "step_complete",
-        snapshot: cloneSnapshot(completedSnapshot),
-        allSnapshots: cloneSnapshots(snapshots),
-      };
-    } catch (err) {
-      clearTimeout(timeoutId);
-      masterAbort.signal.removeEventListener("abort", onMasterAbort);
-      abortControls.delete(step.id);
+      snapshots[snapshots.length - 1] = completedSnapshot;
+      yield buildYield("step_complete", completedSnapshot, snapshots);
+    } catch (error) {
+      clearStepAbort(step.id, stepAbort.timeoutId, abortControls, masterAbort, onMasterAbort);
 
-      const isAbort = stepAbort.signal.aborted || masterAbort.signal.aborted;
-      const errorMsg = isAbort
-        ? "Request aborted"
-        : err instanceof Error
-          ? err.message
-          : "Unknown error";
-      const errorStatus: StepStatus = isAbort ? "aborted" : "error";
-
+      const isAbort = stepAbort.controller.signal.aborted || masterAbort.signal.aborted;
       const failedSnapshot = createCompletedSnapshot(
         pendingSnapshot,
-        errorStatus,
+        isAbort ? "aborted" : "error",
         null,
         runtimeVariables,
-        errorMsg,
+        isAbort ? "Request aborted" : toErrorMessage(error),
         undefined
       );
-      snapshots[i] = failedSnapshot;
 
-      const finalizedSnapshots = snapshots.map((s) => ({ ...s, variables: { ...s.variables } }));
-      yield {
-        type: "step_complete",
-        snapshot: { ...failedSnapshot, variables: { ...failedSnapshot.variables } },
-        allSnapshots: finalizedSnapshots,
-      };
+      snapshots[snapshots.length - 1] = failedSnapshot;
+      yield buildYield("step_complete", failedSnapshot, snapshots);
 
       if (!isAbort) {
-        yield {
-          type: "error",
-          snapshot: { ...failedSnapshot, variables: { ...failedSnapshot.variables } },
-          allSnapshots: finalizedSnapshots,
-        };
-        return;
+        yield buildYield("error", failedSnapshot, snapshots);
       }
       return;
     }
@@ -240,97 +139,90 @@ export async function* createPipelineGenerator(
 
   const lastSnapshot = snapshots[snapshots.length - 1];
   if (lastSnapshot) {
-    yield {
-      type: "pipeline_complete",
-      snapshot: cloneSnapshot(lastSnapshot),
-      allSnapshots: cloneSnapshots(snapshots),
-    };
+    yield buildYield("pipeline_complete", lastSnapshot, snapshots);
   }
+}
+
+export { resultToSnapshots };
+
+function getStartIndex(pipeline: Pipeline, startStepId?: string) {
+  if (!startStepId) return 0;
+  const index = pipeline.steps.findIndex((step) => step.id === startStepId);
+  return index >= 0 ? index : 0;
+}
+
+function cloneRuntimeVariables(value?: Record<string, unknown>) {
+  if (!value) return {};
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function createStepAbort(
+  stepId: string,
+  stepTimeoutMs: number,
+  abortControls: Map<string, StepAbortControl>
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), stepTimeoutMs);
+  abortControls.set(stepId, { controller, timeoutId });
+  return { controller, timeoutId };
+}
+
+function clearStepAbort(
+  stepId: string,
+  timeoutId: ReturnType<typeof setTimeout>,
+  abortControls: Map<string, StepAbortControl>,
+  masterAbort: AbortController,
+  onMasterAbort: () => void
+) {
+  clearTimeout(timeoutId);
+  abortControls.delete(stepId);
+  masterAbort.signal.removeEventListener("abort", onMasterAbort);
+}
+
+function buildAbortResult(
+  step: PipelineStep,
+  runtimeVariables: Record<string, unknown>,
+  snapshots: StepSnapshot[]
+) {
+  const snapshot = createInitialSnapshot(step, "aborted", runtimeVariables, "Pipeline aborted");
+  snapshots.push(snapshot);
+  return buildYield("error", snapshot, snapshots);
+}
+
+function buildYield(
+  type: GeneratorYield["type"],
+  snapshot: StepSnapshot,
+  snapshots: StepSnapshot[]
+) {
+  return {
+    type,
+    snapshot: cloneSnapshot(snapshot),
+    allSnapshots: cloneSnapshots(snapshots),
+  } satisfies GeneratorYield;
 }
 
 function resolveStep(
   step: PipelineStep,
   runtimeVars: Record<string, unknown>,
   envVars: Record<string, string>,
-  variableOverrides: Record<string, string> = {}
+  variableOverrides: Record<string, string>
 ): PipelineStep {
-  const resolve = (val: string) => resolveTemplate(val, runtimeVars, envVars, variableOverrides);
+  const resolve = (value: string) =>
+    resolveTemplate(value, runtimeVars, envVars, variableOverrides);
 
   return {
     ...step,
     url: resolve(step.url),
-    headers: step.headers.map((h) => ({ ...h, key: resolve(h.key), value: resolve(h.value) })),
-    params: step.params.map((p) => ({ ...p, key: resolve(p.key), value: resolve(p.value) })),
+    headers: step.headers.map((header) => ({
+      ...header,
+      key: resolve(header.key),
+      value: resolve(header.value),
+    })),
+    params: step.params.map((param) => ({
+      ...param,
+      key: resolve(param.key),
+      value: resolve(param.value),
+    })),
     body: step.body ? resolve(step.body) : step.body,
   };
-}
-
-function createInitialSnapshot(
-  step: PipelineStep,
-  status: StepStatus,
-  variables: Record<string, unknown>,
-  error: string | null,
-  entryType: EntryType = "request"
-): StepSnapshot {
-  return {
-    stepId: step.id,
-    stepName: step.name,
-    entryType,
-    method: step.method,
-    url: step.url,
-    resolvedRequest: { url: step.url, headers: {}, body: step.body },
-    status,
-    reducedResponse: null,
-    variables: { ...variables },
-    error,
-    startedAt: null,
-    completedAt: null,
-  };
-}
-
-function createCompletedSnapshot(
-  base: StepSnapshot,
-  status: StepStatus,
-  reduced: ReducedResponse | null,
-  variables: Record<string, unknown>,
-  error: string | null,
-  resolvedRequest?: StepSnapshot["resolvedRequest"],
-  preRequestResult?: ScriptResult,
-  testResult?: ScriptResult,
-  fullResponse?: { body: string; headers: Record<string, string> }
-): StepSnapshot {
-  return {
-    ...base,
-    ...(resolvedRequest && { resolvedRequest }),
-    status,
-    reducedResponse: reduced,
-    variables: { ...variables },
-    error,
-    completedAt: new Date().toISOString(),
-    preRequestResult,
-    testResult,
-    ...(fullResponse && {
-      fullBody: fullResponse.body,
-      fullHeaders: fullResponse.headers,
-    }),
-  };
-}
-
-export function resultToSnapshots(
-  results: Array<ApiResponse & { stepId: string; stepName: string; method: string; url: string }>
-): StepSnapshot[] {
-  return results.map((r) => ({
-    stepId: r.stepId,
-    stepName: r.stepName,
-    entryType: "request" as EntryType,
-    method: r.method as PipelineStep["method"],
-    url: r.url,
-    resolvedRequest: { url: r.url, headers: {}, body: null },
-    status: (r.status >= 200 && r.status < 400 ? "success" : "error") as StepStatus,
-    reducedResponse: reduceResponse(r),
-    variables: {},
-    error: r.status >= 400 ? `HTTP ${r.status} ${r.statusText}` : null,
-    startedAt: null,
-    completedAt: null,
-  }));
 }
