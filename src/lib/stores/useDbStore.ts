@@ -8,6 +8,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { RuntimeTableStatus } from "@/lib/db";
 
 type DbStatus = "disconnected" | "connecting" | "connected" | "error";
 
@@ -17,6 +18,8 @@ interface DbState {
   error: string | null;
   latencyMs: number | null;
   schemaReady: boolean;
+  warnings: string[];
+  tables: RuntimeTableStatus[];
 
   setDbUrl: (url: string) => void;
   connect: () => Promise<boolean>;
@@ -31,6 +34,8 @@ export const useDbStore = create<DbState>()(
       error: null,
       latencyMs: null,
       schemaReady: false,
+      warnings: [],
+      tables: [],
 
       setDbUrl: (url) => set({ dbUrl: url }),
 
@@ -58,6 +63,8 @@ export const useDbStore = create<DbState>()(
               error: data.error || "Connection failed",
               latencyMs: data.latencyMs ?? null,
               schemaReady: false,
+              warnings: data.warnings ?? [],
+              tables: data.tables ?? [],
             });
             return false;
           }
@@ -66,13 +73,18 @@ export const useDbStore = create<DbState>()(
             status: "connected",
             error: null,
             latencyMs: data.latencyMs,
-            schemaReady: data.schemaReady ?? false,
+            schemaReady: Boolean(data.schemaReady),
+            warnings: data.warnings ?? [],
+            tables: data.tables ?? [],
           });
-          return true;
+          return Boolean(data.schemaReady);
         } catch (err) {
           set({
             status: "error",
             error: err instanceof Error ? err.message : "Connection failed",
+            schemaReady: false,
+            warnings: [],
+            tables: [],
           });
           return false;
         }
@@ -80,10 +92,13 @@ export const useDbStore = create<DbState>()(
 
       disconnect: () =>
         set({
+          dbUrl: "",
           status: "disconnected",
           error: null,
           latencyMs: null,
           schemaReady: false,
+          warnings: [],
+          tables: [],
         }),
     }),
     {

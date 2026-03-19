@@ -3,10 +3,10 @@
 import { AlertCircle } from "lucide-react";
 import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { extractVariableRefs, getByPath } from "@/lib/pipeline/variable-resolver";
+import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { extractVariableRefs, getByPath } from "@/lib/pipeline/variable-resolver";
 import type { PipelineStep } from "@/types";
 
 function collectTemplateStrings(step: PipelineStep): string[] {
@@ -50,7 +50,7 @@ function getUnresolvedPaths(
 export function UnresolvedVariablesPanel() {
   const { activePipelineId, pipelines } = usePipelineStore();
   const { runtime, runtimeVariables, variableOverrides, setVariableOverride } =
-    usePipelineDebugStore();
+    usePipelineRuntimeStore();
   const getActiveEnvironmentVariables = usePlaygroundStore((s) => s.getActiveEnvironmentVariables);
 
   const { nextStep, unresolvedPaths } = useMemo(() => {

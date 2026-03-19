@@ -21,7 +21,7 @@ export function MiddlePanel({ snapshot, cookies }: MiddlePanelProps) {
 
   if (!snapshot) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-muted-foreground text-sm italic lg:col-span-4">
+      <div className="flex min-h-0 flex-1 items-center justify-center text-muted-foreground text-sm italic lg:col-span-3">
         Select a step to view details
       </div>
     );
@@ -32,7 +32,7 @@ export function MiddlePanel({ snapshot, cookies }: MiddlePanelProps) {
   const headers = snapshot.fullHeaders ?? response?.headers ?? {};
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col border-r lg:col-span-4 lg:border-r-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r lg:col-span-3 lg:border-r-0">
       <div className="p-4 border-b bg-muted/5">
         <div className="flex items-center gap-3 mb-2">
           {isSuccess ? (
@@ -135,8 +135,8 @@ export function MiddlePanel({ snapshot, cookies }: MiddlePanelProps) {
                 <span className="text-xs font-mono text-muted-foreground min-w-[80px] shrink-0">
                   Body
                 </span>
-                <pre className="text-xs font-mono break-all whitespace-pre-wrap max-h-[300px] overflow-auto">
-                  {snapshot.resolvedRequest.body.slice(0, 1000)}
+                <pre className="w-full text-xs font-mono break-all whitespace-pre-wrap max-h-[300px] overflow-auto">
+                  {snapshot.resolvedRequest.body}
                 </pre>
               </div>
             )}

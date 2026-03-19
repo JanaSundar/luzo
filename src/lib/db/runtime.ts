@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
-import { SCHEMA_INIT_SQL } from "./schema";
+import { ensureRuntimeSchema, type RuntimeSchemaStatus } from "./schema-init";
 
 export interface DbClient {
   db: ReturnType<typeof drizzle>;
@@ -72,15 +72,20 @@ export async function testConnection(
 /**
  * Initialize schema — runs CREATE TABLE IF NOT EXISTS.
  */
-export async function initSchema(dbUrl: string): Promise<{ ok: boolean; error?: string }> {
+export async function initSchema(
+  dbUrl: string
+): Promise<{ ok: boolean; error?: string } & RuntimeSchemaStatus> {
   try {
     const { sql: sqlClient } = createDbClient(dbUrl);
-    await sqlClient.unsafe(SCHEMA_INIT_SQL);
-    return { ok: true };
+    const result = await ensureRuntimeSchema(sqlClient);
+    return { ok: true, ...result };
   } catch (err) {
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Schema init failed",
+      schemaReady: false,
+      warnings: [],
+      tables: [],
     };
   }
 }

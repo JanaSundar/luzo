@@ -3,6 +3,7 @@ import type {
   ReducedContext,
   ReducedResponse,
   ReducedSignal,
+  ReducedStepContext,
   SignalGroup,
   StepSnapshot,
 } from "@/types/pipeline-debug";
@@ -60,6 +61,7 @@ export function buildReducedContext(
 ): ReducedContext {
   const selectedSet = new Set(selectedSignals);
   const signals: ReducedSignal[] = [];
+  const signalsByStepId = new Map<string, ReducedSignal[]>();
 
   for (const group of signalGroups) {
     for (const variable of group.variables) {
@@ -83,13 +85,18 @@ export function buildReducedContext(
       if (isFailedStep) priority = "critical";
       else if (isSlowStep || variable.path.includes("error")) priority = "high";
 
-      signals.push({
+      const signal: ReducedSignal = {
         key: variable.path,
         label: variable.label,
         value: displayValue,
         stepId: variable.stepId,
         priority,
-      });
+      };
+
+      signals.push(signal);
+      const stepSignals = signalsByStepId.get(variable.stepId) ?? [];
+      stepSignals.push(signal);
+      signalsByStepId.set(variable.stepId, stepSignals);
     }
   }
 
@@ -105,6 +112,14 @@ export function buildReducedContext(
   const metadata: ReducedContext["metadata"] = {
     totalSteps: snapshots.length,
     failedSteps: snapshots.filter((s) => s.status === "error").length,
+    successRate:
+      snapshots.length > 0
+        ? Math.round(
+            ((snapshots.length - snapshots.filter((s) => s.status === "error").length) /
+              snapshots.length) *
+              100
+          )
+        : 0,
     avgLatencyMs:
       latencies.length > 0
         ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
@@ -113,10 +128,26 @@ export function buildReducedContext(
     totalDurationMs: calculateTotalDuration(snapshots),
   };
 
+  const steps: ReducedStepContext[] = snapshots.map((snapshot) => ({
+    stepId: snapshot.stepId,
+    stepName: snapshot.stepName,
+    method: snapshot.method,
+    url: snapshot.resolvedRequest.url,
+    status: snapshot.status,
+    statusCode: snapshot.reducedResponse?.status ?? null,
+    latencyMs: snapshot.reducedResponse?.latencyMs ?? null,
+    sizeBytes: snapshot.reducedResponse?.sizeBytes ?? null,
+    requestHeaders: snapshot.resolvedRequest.headers ?? {},
+    headers: snapshot.reducedResponse?.headers ?? {},
+    responseSummary: snapshot.reducedResponse?.summary ?? {},
+    error: snapshot.error,
+    selectedSignals: signalsByStepId.get(snapshot.stepId) ?? [],
+  }));
+
   const contextText = signals.map((s) => `${s.label}: ${s.value}`).join("\n");
   const estimatedTokens = Math.ceil(contextText.length / 4);
 
-  return { signals, metadata, estimatedTokens };
+  return { signals, steps, metadata, estimatedTokens };
 }
 
 /**

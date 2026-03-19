@@ -4,7 +4,9 @@ import { Loader2, Pencil, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { usePipelineRuntimeStore } from "@/lib/stores/usePipelineRuntimeStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
 import { PipelineHeader } from "./PipelineHeader";
 import { PipelineSidebar } from "./PipelineSidebar";
@@ -15,7 +17,7 @@ interface PipelineLayoutProps {
   onDebug?: () => void;
   onStop?: () => void;
   onGenerateReport?: () => void;
-  onExportPDF?: () => void;
+  onExportReport?: (format: ExportFormat) => void;
 }
 
 export function PipelineLayout({
@@ -24,7 +26,7 @@ export function PipelineLayout({
   onDebug,
   onStop,
   onGenerateReport,
-  onExportPDF,
+  onExportReport,
 }: PipelineLayoutProps) {
   const {
     pipelines,
@@ -42,15 +44,15 @@ export function PipelineLayout({
   } = usePipelineStore();
 
   const {
-    runtime,
-    snapshots,
     isGeneratingReport,
     isExportingPDF,
     isReportDirty,
-    reportOutput,
+    reportsByPipelineId,
     selectedSignals,
-    resetSession,
   } = usePipelineDebugStore();
+  const runtime = usePipelineRuntimeStore((state) => state.runtime);
+  const snapshots = usePipelineRuntimeStore((state) => state.snapshots);
+  const resetSession = usePipelineRuntimeStore((state) => state.resetSession);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -63,6 +65,9 @@ export function PipelineLayout({
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const activePipeline = pipelines.find((p) => p.id === activePipelineId);
+  const hasGeneratedReport = activePipelineId
+    ? Boolean(reportsByPipelineId[activePipelineId])
+    : false;
   const isDebugActive = runtime.status === "running" || runtime.status === "paused";
   const isAnyExecuting = isExecuting || isDebugActive;
 
@@ -182,11 +187,11 @@ export function PipelineLayout({
           onDebug={onDebug || (() => {})}
           onStop={onStop || (() => {})}
           onGenerateReport={onGenerateReport}
-          onExportPDF={onExportPDF}
+          onExportReport={onExportReport}
           isGeneratingReport={isGeneratingReport}
           isExportingPDF={isExportingPDF}
           isReportDirty={isReportDirty}
-          reportOutput={reportOutput}
+          hasGeneratedReport={hasGeneratedReport}
           selectedSignalsCount={selectedSignals.length}
         />
 

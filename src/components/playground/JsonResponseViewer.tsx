@@ -99,7 +99,7 @@ export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponse
       <div
         ref={containerRef}
         className={cn(
-          "flex-1 min-h-0 overflow-auto rounded-md border border-border/40 bg-background p-4",
+          "h-full w-full min-h-0 min-w-0 overflow-auto rounded-md border border-border/40 bg-background p-4",
           className
         )}
       >

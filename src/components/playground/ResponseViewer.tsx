@@ -2,6 +2,7 @@ import { Activity, Check, ChevronDown, ChevronUp, Copy, Download, Search } from 
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/common/EmptyState";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import {
@@ -31,7 +32,6 @@ import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function ResponseViewer() {
@@ -127,8 +127,8 @@ export function ResponseViewer() {
   const hasMatches = matchCount > 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-3 min-h-0 overflow-hidden">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 flex-wrap shrink-0">
+    <div className="flex flex-1 min-h-0 min-w-0 w-full flex-col gap-3 overflow-hidden">
+      <div className="flex shrink-0 flex-wrap gap-2 sm:flex-row sm:items-center sm:gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <ResponseStats
             status={response.status}
@@ -269,13 +269,13 @@ export function ResponseViewer() {
         </nav>
       </div>
 
-      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AnimatedTabContent
           key={activeTab}
-          className="flex flex-1 flex-col min-h-0 overflow-hidden"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
           {activeTab === "body" && (
-            <div className="mt-2 flex flex-1 flex-col min-h-0 overflow-hidden">
+            <div className="mt-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div className="flex items-center justify-between mb-2 gap-2">
                 <div className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/40 p-0.5 text-xs">
                   <button
@@ -305,22 +305,22 @@ export function ResponseViewer() {
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col min-h-0 overflow-hidden rounded-md border border-border/40 bg-background">
-                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border/40 bg-background">
+                <div className="flex min-h-0 min-w-0 flex-1 overflow-auto custom-scrollbar">
                   {bodyView === "raw" ? (
-                    <div className="min-h-0 p-4">
+                    <div className="min-h-0 min-w-0 p-4">
                       {isJson ? (
-                        <pre className="m-0 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all">
+                        <pre className="m-0 w-full text-xs leading-relaxed font-mono whitespace-pre-wrap break-all">
                           <JsonColorized text={response.body} />
                         </pre>
                       ) : (
-                        <pre className="m-0 text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
+                        <pre className="m-0 w-full text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
                           {response.body}
                         </pre>
                       )}
                     </div>
                   ) : dataUrl ? (
-                    <div className="min-h-0 p-4 flex flex-col items-center">
+                    <div className="min-h-0 min-w-0 flex flex-col items-center p-4">
                       {isImageResponse && dataUrl && (
                         <Image
                           src={dataUrl}
@@ -334,7 +334,7 @@ export function ResponseViewer() {
                         <iframe
                           src={dataUrl}
                           title="PDF response"
-                          className="w-full flex-1 min-h-[500px] rounded border-0"
+                          className="min-h-[500px] w-full flex-1 rounded border-0"
                         />
                       )}
                     </div>
@@ -344,10 +344,10 @@ export function ResponseViewer() {
                       text={displayBody}
                       searchQuery={searchQuery}
                       onMatchChange={onMatchChange}
-                      className="flex-1"
+                      className="h-full w-full min-w-0"
                     />
                   ) : (
-                    <div className="flex-1 flex items-center justify-center p-4">
+                    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-4">
                       <span className="text-muted-foreground text-sm">Empty response body</span>
                     </div>
                   )}

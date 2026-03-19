@@ -1,5 +1,6 @@
 import type { PipelineStep } from "@/types";
 import type { StepAlias, ValidationError, ValidationResult } from "@/types/pipeline-debug";
+import { collectStepDependencies } from "./template-dependencies";
 import { extractVariableRefs, getStepAliasFromPath } from "./variable-resolver";
 
 /**
@@ -25,41 +26,27 @@ export function validatePipelineDag(steps: PipelineStep[]): ValidationResult {
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
     const currentAlias = aliases[i].alias;
+    const dependencies = collectStepDependencies(step);
 
-    const fieldsToCheck = [
-      { field: "url", value: step.url },
-      { field: "body", value: step.body ?? "" },
-      ...step.headers.map((h) => ({ field: `headers.${h.key}`, value: `${h.key}${h.value}` })),
-      ...step.params.map((p) => ({ field: `params.${p.key}`, value: `${p.key}${p.value}` })),
-    ];
+    for (const dependency of dependencies) {
+      if (!aliasSet.has(dependency.alias)) {
+        errors.push({
+          stepId: step.id,
+          field: dependency.field,
+          message: `Reference "{{${dependency.rawRef}}}" points to "${dependency.alias}" which does not exist. Available: ${[...aliasSet].join(", ")}`,
+          severity: "error",
+        });
+        continue;
+      }
 
-    for (const { field, value } of fieldsToCheck) {
-      const refs = extractVariableRefs(value);
-
-      for (const ref of refs) {
-        const refAlias = getStepAliasFromPath(ref);
-
-        if (refAlias === null) continue;
-
-        if (!aliasSet.has(refAlias)) {
-          errors.push({
-            stepId: step.id,
-            field,
-            message: `Reference "{{${ref}}}" points to "${refAlias}" which does not exist. Available: ${[...aliasSet].join(", ")}`,
-            severity: "error",
-          });
-          continue;
-        }
-
-        const refIndex = aliasToIndex.get(refAlias) ?? -1;
-        if (refIndex >= i) {
-          errors.push({
-            stepId: step.id,
-            field,
-            message: `Step "${currentAlias}" references "${refAlias}" which hasn't executed yet. Only backward references are allowed.`,
-            severity: "error",
-          });
-        }
+      const refIndex = aliasToIndex.get(dependency.alias) ?? -1;
+      if (refIndex >= i) {
+        errors.push({
+          stepId: step.id,
+          field: dependency.field,
+          message: `Step "${currentAlias}" references "${dependency.alias}" which hasn't executed yet. Only backward references are allowed.`,
+          severity: "error",
+        });
       }
     }
   }

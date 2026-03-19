@@ -34,8 +34,8 @@ export function ResponseBodyPanel({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col border-t lg:col-span-5 lg:border-t-0 lg:border-l">
-      <div className="p-3 border-b bg-muted/10 flex items-center justify-between">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t lg:col-span-9 lg:border-t-0 lg:border-l">
+      <div className="flex items-center justify-between border-b bg-muted/10 p-3">
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {isFullResponse ? "Response Body" : "Response Body (Reduced)"}
         </h3>
@@ -49,9 +49,9 @@ export function ResponseBodyPanel({
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-auto custom-scrollbar p-4 bg-muted/5 font-mono">
+      <div className="flex-1 min-h-0 min-w-0 overflow-auto bg-muted/5 p-4 font-mono custom-scrollbar">
         {parsedBody ? (
-          <pre className="text-xs leading-relaxed whitespace-pre-wrap break-all">
+          <pre className="w-full text-xs leading-relaxed whitespace-pre-wrap break-all">
             <JsonSyntaxHighlight text={parsedBody} />
           </pre>
         ) : (

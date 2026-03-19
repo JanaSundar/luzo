@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type {
   ApiRequest,
@@ -205,6 +205,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
     })),
     {
       name: STORAGE_KEY,
+      storage: createJSONStorage(() => localStorage),
       partialize: (s) => {
         const req = s.request;
         const formDataFields = req.formDataFields?.map((f) => ({

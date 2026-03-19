@@ -1,9 +1,11 @@
 "use client";
 
-import { Bug, FileDown, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
+import { Bug, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PipelineView } from "@/types";
+import type { ExportFormat } from "@/types/pipeline-debug";
+import { ReportExportMenu } from "./ReportExportMenu";
 
 interface PipelineHeaderProps {
   activePipelineName: string | null;
@@ -16,11 +18,11 @@ interface PipelineHeaderProps {
   onDebug: () => void;
   onStop: () => void;
   onGenerateReport?: () => void;
-  onExportPDF?: () => void;
+  onExportReport?: (format: ExportFormat) => void;
   isGeneratingReport?: boolean;
   isExportingPDF?: boolean;
   isReportDirty?: boolean;
-  reportOutput?: string | null;
+  hasGeneratedReport?: boolean;
   selectedSignalsCount?: number;
 }
 
@@ -42,11 +44,11 @@ export function PipelineHeader({
   onDebug,
   onStop,
   onGenerateReport,
-  onExportPDF,
+  onExportReport,
   isGeneratingReport,
   isExportingPDF = false,
   isReportDirty,
-  reportOutput,
+  hasGeneratedReport = false,
   selectedSignalsCount = 0,
 }: PipelineHeaderProps) {
   const showExecutionControls = currentView === "builder" || currentView === "stream";
@@ -147,7 +149,7 @@ export function PipelineHeader({
               size="sm"
               className={cn(
                 "gap-1.5 h-8 font-bold",
-                isReportDirty && reportOutput
+                isReportDirty && hasGeneratedReport
                   ? "bg-amber-600 text-white hover:bg-amber-700"
                   : "bg-foreground text-background hover:bg-foreground/90"
               )}
@@ -160,21 +162,14 @@ export function PipelineHeader({
                 <Sparkles className="h-3.5 w-3.5" />
               )}
               <span className="hidden sm:inline">
-                {isReportDirty && reportOutput ? "Regenerate" : "Generate Report"}
+                {isReportDirty && hasGeneratedReport ? "Regenerate" : "Generate Report"}
               </span>
             </Button>
-            {currentView === "report" && reportOutput && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8 font-bold"
-                onClick={() => onExportPDF?.()}
+            {currentView === "report" && hasGeneratedReport && (
+              <ReportExportMenu
                 disabled={isExportingPDF}
-              >
-                <FileDown className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Export PDF</span>
-              </Button>
+                onExport={(format) => onExportReport?.(format)}
+              />
             )}
           </>
         )}

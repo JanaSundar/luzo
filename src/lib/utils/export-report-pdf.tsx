@@ -1,62 +1,55 @@
-/**
- * Export pipeline report to PDF using @react-pdf/renderer.
- * PDF UI matches the website design.
- */
-
 import { pdf } from "@react-pdf/renderer";
 import { ReportPdfDocument } from "@/components/pipelines/ReportPdfDocument";
-import { deriveReportTitle } from "@/lib/utils/report-title";
-import type { PipelineExecutionResult } from "@/types";
+import {
+  createTimestampedFilename,
+  downloadTextFile,
+  slugifyFilenamePart,
+} from "@/lib/reports/export-download";
+import { buildReportJson } from "@/lib/reports/export-json";
+import { buildReportMarkdown } from "@/lib/reports/export-markdown";
+import { buildExportReportModel } from "@/lib/reports/export-model";
+import type { ExportFormat, StructuredReport } from "@/types/pipeline-debug";
 
 export interface ExportReportOptions {
   pipelineName: string;
-  reportTitle?: string;
-  reportOutput: string;
-  executionResult: PipelineExecutionResult;
+  report: StructuredReport;
+  generatedAt?: string;
 }
 
-/** Generate short slug for filename from report title (max ~25 chars) */
-function getShortTitle(reportTitle: string): string {
-  const slug = reportTitle
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .toLowerCase()
-    .slice(0, 25);
-  return slug || "api-report";
+export async function exportReport(
+  options: ExportReportOptions,
+  format: ExportFormat
+): Promise<void> {
+  const model = buildExportReportModel(options);
+  const filenameBase = slugifyFilenamePart(model.title, "api-report");
+
+  if (format === "pdf") {
+    const blob = await pdf(<ReportPdfDocument report={model} />).toBlob();
+    downloadBlob(blob, createTimestampedFilename(filenameBase, "pdf"));
+    return;
+  }
+
+  if (format === "json") {
+    downloadTextFile(
+      buildReportJson(model),
+      createTimestampedFilename(filenameBase, "json"),
+      "application/json"
+    );
+    return;
+  }
+
+  downloadTextFile(
+    buildReportMarkdown(model),
+    createTimestampedFilename(filenameBase, "md"),
+    "text/markdown"
+  );
 }
 
-/** Generate filename: {shortTitle}-{timestamp}.pdf */
-function getExportFilename(reportTitle: string): string {
-  const shortTitle = getShortTitle(reportTitle);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  return `${shortTitle}-${timestamp}.pdf`;
-}
-
-/**
- * Export the report to PDF with website-matching styling.
- */
-export async function exportReportToPDF(options: ExportReportOptions): Promise<void> {
-  const { pipelineName, reportTitle: customTitle, reportOutput, executionResult } = options;
-
-  const reportTitle =
-    customTitle ??
-    deriveReportTitle(executionResult.results.map((r) => ({ method: r.method, url: r.url })));
-
-  const blob = await pdf(
-    <ReportPdfDocument
-      reportTitle={reportTitle}
-      pipelineName={pipelineName}
-      reportOutput={reportOutput}
-      executionResult={executionResult}
-    />
-  ).toBlob();
-
-  const filename = getExportFilename(reportTitle);
-
+function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
   URL.revokeObjectURL(url);
 }

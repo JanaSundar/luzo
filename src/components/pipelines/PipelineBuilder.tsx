@@ -1,8 +1,8 @@
 "use client";
 
-import type { PointerEvent } from "react";
 import { Plus, Workflow } from "lucide-react";
 import { motion, Reorder, useDragControls } from "motion/react";
+import type { PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
@@ -15,6 +15,8 @@ function DraggableStepCard({
   isExpanded,
   onToggleExpand,
   onUpdate,
+  onRunFromHere,
+  onRunFromHereFresh,
   onDuplicate,
   onDelete,
 }: {
@@ -23,6 +25,8 @@ function DraggableStepCard({
   isExpanded: boolean;
   onToggleExpand: () => void;
   onUpdate: (updates: Partial<PipelineStep>) => void;
+  onRunFromHere: () => void;
+  onRunFromHereFresh: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -41,6 +45,8 @@ function DraggableStepCard({
         isExpanded={isExpanded}
         onToggleExpand={onToggleExpand}
         onUpdate={onUpdate}
+        onRunFromHere={onRunFromHere}
+        onRunFromHereFresh={onRunFromHereFresh}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
         dragHandleProps={{
@@ -51,7 +57,14 @@ function DraggableStepCard({
   );
 }
 
-export function PipelineBuilder() {
+export function PipelineBuilder({
+  onRunFromStep,
+}: {
+  onRunFromStep?: (
+    stepId: string,
+    mode: "partial-previous" | "partial-fresh"
+  ) => void | Promise<void>;
+}) {
   const {
     pipelines,
     activePipelineId,
@@ -154,6 +167,8 @@ export function PipelineBuilder() {
                     );
                   }}
                   onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
+                  onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
+                  onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
                   onDuplicate={() => duplicateStep(pipeline.id, step.id)}
                   onDelete={() => removeStep(pipeline.id, step.id)}
                 />
