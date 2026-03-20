@@ -1,5 +1,5 @@
 import { Activity, Check, ChevronDown, ChevronUp, Copy, Download, Search } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useExecutionStore } from "@/lib/stores/useExecutionStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 
 export function ResponseViewer() {
@@ -231,7 +232,10 @@ export function ResponseViewer() {
       <div className="shrink-0 flex flex-col gap-3">
         <div
           role="tablist"
-          className="inline-flex items-center gap-0.5 rounded-lg bg-muted/30 p-0.5 border border-border/50 w-fit"
+          className={cn(
+            "inline-flex w-fit max-w-full min-w-0 flex-wrap items-stretch",
+            segmentedTabListClassName
+          )}
         >
           {[
             { id: "body", label: "Response" },
@@ -263,21 +267,9 @@ export function ResponseViewer() {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id as "body" | "headers" | "pre-request" | "tests")}
-                className={cn(
-                  "relative flex h-7 items-center px-4 text-[11px] uppercase tracking-wider font-semibold transition-all rounded-full outline-none",
-                  isActive
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                className={segmentedTabTriggerClassName(isActive, "h-7 shrink-0 px-3 sm:px-4")}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="response-tabs-pill"
-                    className="absolute inset-0 bg-primary rounded-full shadow-sm"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                  />
-                )}
-                <span className="relative z-10">{tab.label}</span>
+                {tab.label}
               </button>
             );
           })}
@@ -285,189 +277,218 @@ export function ResponseViewer() {
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <AnimatedTabContent
-          key={activeTab}
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-        >
+        <AnimatePresence mode="wait">
           {activeTab === "body" && (
-            <div className="mt-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <div className="flex items-center justify-between mb-2 gap-2">
-                <div className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/40 p-0.5 text-xs">
-                  <button
-                    type="button"
+            <AnimatedTabContent
+              key="body"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="mt-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <div
+                    role="tablist"
+                    aria-label="Body view"
                     className={cn(
-                      "px-2 py-1 rounded-sm transition-colors",
-                      bodyView === "preview"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                      "inline-flex w-fit min-w-0 items-stretch",
+                      segmentedTabListClassName
                     )}
-                    onClick={() => setBodyView("preview")}
                   >
-                    Preview
-                  </button>
-                  <button
-                    type="button"
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={bodyView === "preview"}
+                      className={segmentedTabTriggerClassName(
+                        bodyView === "preview",
+                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+                      )}
+                      onClick={() => setBodyView("preview")}
+                    >
+                      Preview
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={bodyView === "raw"}
+                      className={segmentedTabTriggerClassName(
+                        bodyView === "raw",
+                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+                      )}
+                      onClick={() => setBodyView("raw")}
+                    >
+                      Raw
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border/40 bg-background">
+                  <div
                     className={cn(
-                      "px-2 py-1 rounded-sm transition-colors",
-                      bodyView === "raw"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                      "flex min-h-0 min-w-0 flex-1 custom-scrollbar",
+                      bodyView === "raw" ? "overflow-y-auto overflow-x-hidden" : "overflow-auto"
                     )}
-                    onClick={() => setBodyView("raw")}
                   >
-                    Raw
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border/40 bg-background">
-                <div className="flex min-h-0 min-w-0 flex-1 overflow-auto custom-scrollbar">
-                  {bodyView === "raw" ? (
-                    <div className="min-h-0 min-w-0 p-4">
-                      {isJson ? (
-                        <pre className="m-0 w-full text-xs leading-relaxed font-mono whitespace-pre-wrap break-all">
-                          <JsonColorized text={response.body} />
-                        </pre>
-                      ) : (
-                        <pre className="m-0 w-full text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
-                          {response.body}
-                        </pre>
-                      )}
-                    </div>
-                  ) : dataUrl ? (
-                    <div className="min-h-0 min-w-0 flex flex-col items-center p-4">
-                      {isImageResponse && dataUrl && (
-                        <Image
-                          src={dataUrl}
-                          alt="Response"
-                          width={800}
-                          height={600}
-                          className="max-w-full h-auto object-contain"
-                        />
-                      )}
-                      {isPdfResponse && (
-                        <iframe
-                          src={dataUrl}
-                          title="PDF response"
-                          className="min-h-[500px] w-full flex-1 rounded border-0"
-                        />
-                      )}
-                    </div>
-                  ) : displayBody ? (
-                    <JsonResponseViewer
-                      ref={jsonViewerRef}
-                      text={displayBody}
-                      searchQuery={searchQuery}
-                      onMatchChange={onMatchChange}
-                      className="h-full w-full min-w-0"
-                    />
-                  ) : (
-                    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-4">
-                      <span className="text-muted-foreground text-sm">Empty response body</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "pre-request" && response.preRequestResult && (
-            <div className="mt-2 flex-1 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-4">
-                  <div className="space-y-3">
-                    {response.preRequestResult.error && (
-                      <div className="text-xs text-destructive bg-destructive/5 px-3 py-2 rounded-md font-mono">
-                        {response.preRequestResult.error}
+                    {bodyView === "raw" ? (
+                      <div className="min-h-0 min-w-0 max-w-full p-4">
+                        {isJson ? (
+                          <pre className="m-0 min-w-0 max-w-full text-xs leading-relaxed font-mono whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                            <JsonColorized text={response.body} />
+                          </pre>
+                        ) : (
+                          <pre className="m-0 min-w-0 max-w-full text-xs leading-relaxed whitespace-pre-wrap break-words font-mono [overflow-wrap:anywhere]">
+                            {response.body}
+                          </pre>
+                        )}
                       </div>
-                    )}
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                      Duration: {response.preRequestResult.durationMs}ms
-                    </div>
-                    {response.preRequestResult.logs.length > 0 ? (
-                      <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-muted/30 p-3 rounded-md">
-                        {response.preRequestResult.logs.join("\n")}
-                      </pre>
+                    ) : dataUrl ? (
+                      <div className="min-h-0 min-w-0 flex flex-col items-center p-4">
+                        {isImageResponse && dataUrl && (
+                          <Image
+                            src={dataUrl}
+                            alt="Response"
+                            width={800}
+                            height={600}
+                            className="max-w-full h-auto object-contain"
+                          />
+                        )}
+                        {isPdfResponse && (
+                          <iframe
+                            src={dataUrl}
+                            title="PDF response"
+                            className="min-h-[500px] w-full flex-1 rounded border-0"
+                          />
+                        )}
+                      </div>
+                    ) : displayBody ? (
+                      <JsonResponseViewer
+                        ref={jsonViewerRef}
+                        text={displayBody}
+                        searchQuery={searchQuery}
+                        onMatchChange={onMatchChange}
+                        className="h-full w-full min-w-0"
+                      />
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        No console output from pre-request script
-                      </p>
+                      <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-4">
+                        <span className="text-muted-foreground text-sm">Empty response body</span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
+            </AnimatedTabContent>
+          )}
+
+          {activeTab === "pre-request" && response.preRequestResult && (
+            <AnimatedTabContent
+              key="pre-request"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="mt-2 flex-1 min-h-0 flex flex-col">
+                <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
+                  <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-4">
+                    <div className="space-y-3">
+                      {response.preRequestResult.error && (
+                        <div className="text-xs text-destructive bg-destructive/5 px-3 py-2 rounded-md font-mono">
+                          {response.preRequestResult.error}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                        Duration: {response.preRequestResult.durationMs}ms
+                      </div>
+                      {response.preRequestResult.logs.length > 0 ? (
+                        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-muted/30 p-3 rounded-md">
+                          {response.preRequestResult.logs.join("\n")}
+                        </pre>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No console output from pre-request script
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AnimatedTabContent>
           )}
 
           {activeTab === "headers" && (
-            <div className="mt-2 flex-1 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="px-3 py-2 text-left font-medium">Header</th>
-                        <th className="px-3 py-2 text-left font-medium">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(response.headers).map(([key, value]) => (
-                        <tr key={key} className="border-b last:border-0">
-                          <td className="px-3 py-2 font-mono text-muted-foreground">{key}</td>
-                          <td className="px-3 py-2 font-mono break-all">{value}</td>
+            <AnimatedTabContent
+              key="headers"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="mt-2 flex-1 min-h-0 flex flex-col">
+                <div className="flex-1 min-h-0 rounded-md border border-border/40 bg-background flex flex-col overflow-hidden">
+                  <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="px-3 py-2 text-left font-medium">Header</th>
+                          <th className="px-3 py-2 text-left font-medium">Value</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {Object.entries(response.headers).map(([key, value]) => (
+                          <tr key={key} className="border-b last:border-0">
+                            <td className="px-3 py-2 font-mono text-muted-foreground">{key}</td>
+                            <td className="px-3 py-2 font-mono break-all">{value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
+            </AnimatedTabContent>
           )}
 
           {activeTab === "tests" && tests.length > 0 && (
-            <div className="mt-2 flex-1 min-h-0 overflow-y-auto">
-              <TestResults
-                summary={{
-                  passed: passedCount,
-                  failed: failedCount,
-                  skipped: 0,
-                  total: totalTests,
-                }}
-              >
-                <TestResultsHeader>
-                  <TestResultsSummaryDisplay />
-                  <TestResultsDuration />
-                </TestResultsHeader>
-                <TestResultsContent>
-                  <TestResultsProgress />
-                  <TestSuite
-                    name="Response tests"
-                    status={failedCount > 0 ? "failed" : "passed"}
-                    defaultOpen
-                  >
-                    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                      <TestSuiteName />
-                      <TestSuiteStats passed={passedCount} failed={failedCount} skipped={0} />
-                    </div>
-                    <TestSuiteContent>
-                      {tests.map((t) => (
-                        <Test key={t.name} name={t.name} status={t.passed ? "passed" : "failed"}>
-                          <TestStatusDisplay />
-                          <TestName />
-                          {t.error && (
-                            <TestError>
-                              <TestErrorMessage>{t.error}</TestErrorMessage>
-                            </TestError>
-                          )}
-                        </Test>
-                      ))}
-                    </TestSuiteContent>
-                  </TestSuite>
-                </TestResultsContent>
-              </TestResults>
-            </div>
+            <AnimatedTabContent
+              key="tests"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="mt-2 flex-1 min-h-0 overflow-y-auto">
+                <TestResults
+                  summary={{
+                    passed: passedCount,
+                    failed: failedCount,
+                    skipped: 0,
+                    total: totalTests,
+                  }}
+                >
+                  <TestResultsHeader>
+                    <TestResultsSummaryDisplay />
+                    <TestResultsDuration />
+                  </TestResultsHeader>
+                  <TestResultsContent>
+                    <TestResultsProgress />
+                    <TestSuite
+                      name="Response tests"
+                      status={failedCount > 0 ? "failed" : "passed"}
+                      defaultOpen
+                    >
+                      <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                        <TestSuiteName />
+                        <TestSuiteStats passed={passedCount} failed={failedCount} skipped={0} />
+                      </div>
+                      <TestSuiteContent>
+                        {tests.map((t) => (
+                          <Test key={t.name} name={t.name} status={t.passed ? "passed" : "failed"}>
+                            <TestStatusDisplay />
+                            <TestName />
+                            {t.error && (
+                              <TestError>
+                                <TestErrorMessage>{t.error}</TestErrorMessage>
+                              </TestError>
+                            )}
+                          </Test>
+                        ))}
+                      </TestSuiteContent>
+                    </TestSuite>
+                  </TestResultsContent>
+                </TestResults>
+              </div>
+            </AnimatedTabContent>
           )}
-        </AnimatedTabContent>
+        </AnimatePresence>
       </div>
     </div>
   );

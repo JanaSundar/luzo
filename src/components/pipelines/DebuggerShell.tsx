@@ -10,13 +10,16 @@ import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 import { DebugControlsBar } from "./DebugControlsBar";
 import { type RedactionMode, ResponseBodyView } from "./ResponseBodyView";
-import { PreRequestOutputPanel, TestOutputPanel } from "./ResponseDetailPanels";
+import {
+  PreRequestOutputPanel,
+  type ResponsePanelTab,
+  ResponseTabBar,
+  TestOutputPanel,
+} from "./ResponseDetailPanels";
 import { ResumePrompt } from "./ResumePrompt";
 import { StepStatusPanel } from "./StepStatusPanel";
 import { TimelinePanel } from "./TimelinePanel";
 import { UnresolvedVariablesPanel } from "./UnresolvedVariablesPanel";
-
-type ResponsePanelTab = "response" | "pre-request" | "tests";
 
 function EmptyStreamState() {
   return (
@@ -198,28 +201,6 @@ export function DebuggerShell({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ResponseTabBar({
-  onTabChange,
-}: {
-  panelTab: ResponsePanelTab;
-  onTabChange: (tab: ResponsePanelTab) => void;
-}) {
-  return (
-    <div className="flex items-center border-b bg-muted/5 px-4">
-      {(["response", "pre-request", "tests"] as const).map((tab) => (
-        <button
-          type="button"
-          key={tab}
-          onClick={() => onTabChange(tab)}
-          className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all border-b-2 text-muted-foreground hover:text-foreground"
-        >
-          {tab}
-        </button>
-      ))}
     </div>
   );
 }

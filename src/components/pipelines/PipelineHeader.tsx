@@ -17,13 +17,11 @@ interface PipelineHeaderProps {
   onRun: () => void;
   onDebug: () => void;
   onStop: () => void;
-  onGenerateReport?: () => void;
+  onGenerateReport?: (force?: boolean) => void;
   onExportReport?: (format: ExportFormat) => void;
   isGeneratingReport?: boolean;
   isExportingPDF?: boolean;
-  isReportDirty?: boolean;
   hasGeneratedReport?: boolean;
-  selectedSignalsCount?: number;
   hasAIProvider?: boolean;
 }
 
@@ -48,9 +46,7 @@ export function PipelineHeader({
   onExportReport,
   isGeneratingReport,
   isExportingPDF = false,
-  isReportDirty,
   hasGeneratedReport = false,
-  selectedSignalsCount = 0,
   hasAIProvider = false,
 }: PipelineHeaderProps) {
   const showExecutionControls = currentView === "builder" || currentView === "stream";
@@ -59,9 +55,9 @@ export function PipelineHeader({
   const hasPipelineRun = snapshotsCount > 0;
 
   return (
-    <div className="min-h-14 border-b flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-0 gap-2 sm:gap-0 bg-background/50 backdrop-blur-sm z-10">
-      <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto">
-        <h1 className="text-sm sm:text-lg font-bold tracking-tight whitespace-nowrap">
+    <div className="z-10 flex min-h-14 flex-col justify-between gap-2 border-b bg-background px-3 py-2 sm:flex-row sm:items-center sm:gap-0 sm:px-6 sm:py-0">
+      <div className="flex min-w-0 items-center gap-2 overflow-x-auto sm:gap-4">
+        <h1 className="shrink-0 text-sm font-bold tracking-tight whitespace-nowrap sm:text-lg">
           {activePipelineName || "Select a Pipeline"}
         </h1>
         <nav className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 p-0.5 sm:p-1 rounded-lg shrink-0">
@@ -149,19 +145,12 @@ export function PipelineHeader({
             <Button
               type="button"
               size="sm"
-              className={cn(
-                "gap-1.5 h-8 font-bold",
-                isReportDirty && hasGeneratedReport
-                  ? "bg-amber-600 text-white hover:bg-amber-700"
-                  : "bg-foreground text-background hover:bg-foreground/90"
-              )}
-              onClick={onGenerateReport}
-              disabled={
-                isGeneratingReport ||
-                selectedSignalsCount === 0 ||
-                !activePipelineId ||
-                !hasAIProvider
-              }
+              className="gap-1.5 h-8 font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm"
+              onClick={() => {
+                const isRegenerate = currentView === "report" && hasGeneratedReport;
+                onGenerateReport?.(isRegenerate);
+              }}
+              disabled={isGeneratingReport || !activePipelineId}
               title={!hasAIProvider ? "Configure AI provider in settings" : undefined}
             >
               {isGeneratingReport ? (
@@ -170,7 +159,7 @@ export function PipelineHeader({
                 <Sparkles className="h-3.5 w-3.5" />
               )}
               <span className="hidden sm:inline">
-                {isReportDirty && hasGeneratedReport ? "Regenerate" : "Generate Report"}
+                {currentView === "report" && hasGeneratedReport ? "Regenerate" : "Report"}
               </span>
             </Button>
             {currentView === "report" && hasGeneratedReport && (

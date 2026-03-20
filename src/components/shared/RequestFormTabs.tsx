@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 
 export type TabId = "params" | "headers" | "body" | "auth" | "scripts";
@@ -33,10 +33,10 @@ export function RequestFormTabs({
   ];
 
   return (
-    <div className="flex items-center shrink-0 min-h-[32px]">
+    <div className="flex min-h-[32px] shrink-0 items-center">
       <div
         role="tablist"
-        className="flex items-center gap-0.5 rounded-full bg-muted/40 p-0.5 border border-border/40 overflow-hidden"
+        className={cn("min-w-0 max-w-full overflow-x-auto", segmentedTabListClassName)}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -44,7 +44,7 @@ export function RequestFormTabs({
 
           return (
             <button
-              key={tab.id}
+              key={`${instanceId}-${tab.id}`}
               type="button"
               role="tab"
               aria-label={tab.label}
@@ -52,29 +52,22 @@ export function RequestFormTabs({
               disabled={isDisabled}
               onClick={() => !isDisabled && onTabChange(tab.id)}
               className={cn(
-                "relative flex h-7 items-center gap-2 px-3 sm:px-4 text-[10px] sm:text-[11px] uppercase tracking-wider font-bold transition-all rounded-full outline-none whitespace-nowrap",
-                isActive
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground/80 hover:text-foreground hover:bg-muted/30",
-                isDisabled && "opacity-50 cursor-not-allowed grayscale-[0.5]"
+                segmentedTabTriggerClassName(
+                  isActive,
+                  "h-7 shrink-0 gap-1.5 px-3 sm:px-4 whitespace-nowrap"
+                ),
+                isDisabled && "cursor-not-allowed opacity-50 grayscale-[0.5]"
               )}
             >
-              {isActive && (
-                <motion.div
-                  layoutId={`tab-pill-${instanceId}`}
-                  className="absolute inset-0 bg-primary rounded-full shadow-sm"
-                  transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5">
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
                   <span
                     className={cn(
-                      "flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full text-[8px] font-black leading-none",
+                      "flex h-[14px] min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold leading-none",
                       isActive
-                        ? "bg-primary-foreground text-primary"
-                        : "bg-muted-foreground/20 text-muted-foreground"
+                        ? "bg-white text-black dark:bg-black dark:text-white"
+                        : "bg-black/12 text-black/55 dark:bg-white/12 dark:text-white/55"
                     )}
                   >
                     {tab.count}

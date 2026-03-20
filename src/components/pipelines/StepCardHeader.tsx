@@ -1,8 +1,10 @@
 "use client";
 
-import { Check, ChevronDown, ChevronUp, GripVertical, Pencil } from "lucide-react";
+import { Check, ChevronDown, GripVertical, Pencil } from "lucide-react";
+import { type DragControls, motion } from "motion/react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface StepCardHeaderProps {
   index: number;
@@ -12,7 +14,7 @@ interface StepCardHeaderProps {
   stepId: string;
   renameValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
-  dragHandleProps?: Record<string, unknown>;
+  dragControls: DragControls;
   onToggleExpand: () => void;
   onRenameStart: () => void;
   onRenameSave: () => void;
@@ -28,7 +30,7 @@ export function StepCardHeader({
   stepId,
   renameValue,
   renameInputRef,
-  dragHandleProps,
+  dragControls,
   onToggleExpand,
   onRenameStart,
   onRenameSave,
@@ -36,22 +38,35 @@ export function StepCardHeader({
   onRenameValueChange,
 }: StepCardHeaderProps) {
   return (
-    <div className="flex items-center gap-3 p-4 border-b bg-muted/5 group/header">
-      <div
-        {...dragHandleProps}
-        className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0"
+    <header className="flex min-h-[52px] min-w-0 items-center gap-3 border-b bg-muted/5 px-4 py-3">
+      <button
+        type="button"
+        onPointerDown={(e) => dragControls.start(e)}
+        className={cn(
+          "inline-flex shrink-0 touch-none items-center justify-center rounded border-0 bg-transparent p-0 text-muted-foreground/40 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none select-none cursor-grab active:cursor-grabbing"
+        )}
+        aria-label="Drag to reorder"
+        title="Drag to reorder"
       >
-        <GripVertical className="h-4 w-4" />
-      </div>
+        <GripVertical className="pointer-events-none h-4 w-4" aria-hidden />
+      </button>
 
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-[10px] font-bold text-muted-foreground shrink-0 border border-border/50 shadow-inner">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <motion.div
+          animate={{
+            scale: isExpanded ? 1.1 : 1,
+            backgroundColor: isExpanded ? "var(--primary-foreground)" : "var(--muted)",
+            borderColor: isExpanded ? "var(--primary)" : "var(--border)",
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/50 bg-muted text-[10px] font-bold text-muted-foreground shadow-inner"
+        >
           {index + 1}
-        </div>
+        </motion.div>
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           {renamingId === stepId ? (
-            <div className="flex items-center gap-1 max-w-sm">
+            <div className="flex max-w-md items-center gap-1">
               <input
                 ref={renameInputRef}
                 value={renameValue}
@@ -61,20 +76,20 @@ export function StepCardHeader({
                   if (e.key === "Enter") onRenameSave();
                   if (e.key === "Escape") onRenameCancel();
                 }}
-                className="flex-1 bg-background border rounded px-2 py-0.5 text-sm font-bold outline-none ring-primary/20 focus:ring-2 focus:border-primary transition-all"
+                className="min-w-0 flex-1 rounded border bg-background px-2 py-0.5 text-sm font-bold outline-none ring-primary/20 transition-shadow focus:border-primary focus:ring-2"
               />
               <Button size="icon-xs" variant="ghost" onClick={onRenameSave}>
                 <Check className="h-3 w-3" />
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 group/title">
-              <span className="text-sm font-bold truncate leading-none">
+            <div className="flex min-w-0 items-center gap-2 group/title">
+              <span className="min-w-0 truncate text-sm font-bold leading-snug text-foreground">
                 {name || `Request ${index + 1}`}
               </span>
               <button
                 type="button"
-                className="opacity-0 group-hover/title:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
+                className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover/title:opacity-100"
                 onClick={onRenameStart}
               >
                 <Pencil className="h-3 w-3 text-muted-foreground" />
@@ -84,17 +99,24 @@ export function StepCardHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex shrink-0 items-center gap-1.5">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
           onClick={onToggleExpand}
           className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          aria-expanded={isExpanded}
         >
-          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="flex items-center justify-center"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </motion.div>
         </Button>
       </div>
-    </div>
+    </header>
   );
 }

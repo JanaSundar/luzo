@@ -1,8 +1,7 @@
 "use client";
 
-import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 
 interface ScriptEditorProps<TRule> {
@@ -36,32 +35,38 @@ export function ScriptEditor<TRule>({
   placeholder,
 }: ScriptEditorProps<TRule>) {
   return (
-    <AnimatedTabContent className="flex flex-col flex-1 min-h-0">
-      <div className="flex items-center justify-between mb-2 shrink-0">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="bg-muted p-0.5 rounded-md flex items-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-6 px-2 text-[10px]",
-              editorType === "visual" && "bg-background shadow-sm"
+        <div
+          role="tablist"
+          aria-label="Editor mode"
+          className={cn("inline-flex w-fit min-w-0 items-center", segmentedTabListClassName)}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={editorType === "visual"}
+            className={segmentedTabTriggerClassName(
+              editorType === "visual",
+              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
             )}
             onClick={() => onEditorTypeChange("visual")}
           >
             Visual
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-6 px-2 text-[10px]",
-              editorType === "raw" && "bg-background shadow-sm"
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={editorType === "raw"}
+            className={segmentedTabTriggerClassName(
+              editorType === "raw",
+              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
             )}
             onClick={() => onEditorTypeChange("raw")}
           >
-            Raw Editor
-          </Button>
+            Raw
+          </button>
         </div>
       </div>
 
@@ -88,6 +93,6 @@ export function ScriptEditor<TRule>({
           />
         </div>
       )}
-    </AnimatedTabContent>
+    </div>
   );
 }

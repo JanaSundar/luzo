@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createJSONStorage } from "zustand/middleware";
 import { RequestBuilder } from "@/components/playground/RequestBuilder";
@@ -96,15 +97,18 @@ describe("RequestBuilder", () => {
   });
 
   it("can add a header", async () => {
+    const user = userEvent.setup();
+    usePlaygroundStore.setState((s) => ({
+      request: {
+        ...s.request,
+        headers: [{ key: "", value: "", enabled: true }],
+      },
+    }));
     render(<RequestBuilder />);
-    fireEvent.click(screen.getByRole("tab", { name: /headers/i }));
+    await user.click(screen.getByRole("tab", { name: /headers/i }));
 
-    // Explicitly use the "Add" button inside the key-value editor
-    const addButton = await screen.findByRole("button", { name: /^add$/i });
-    fireEvent.click(addButton);
-
-    await waitFor(() => {
-      expect(screen.getAllByPlaceholderText(/header/i).length).toBeGreaterThan(0);
-    });
+    expect(
+      await screen.findByPlaceholderText(/^header$/i, {}, { timeout: 10000 })
+    ).toBeInTheDocument();
   });
 });

@@ -92,6 +92,7 @@ export function buildSnapshotsFromArtifact(artifact: PersistedExecutionArtifact)
     method: step.method,
     url: step.url,
     resolvedRequest: {
+      method: step.method,
       url: step.resolvedRequestSummary.url,
       headers: step.resolvedRequestSummary.headers,
       body: step.resolvedRequestSummary.bodyPreview,

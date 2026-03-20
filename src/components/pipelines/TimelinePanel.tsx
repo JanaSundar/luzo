@@ -2,6 +2,7 @@
 
 import { AlertCircle, CheckCircle2, Circle, Clock, Database, Pause, XCircle } from "lucide-react";
 import { motion } from "motion/react";
+import { segmentedSurfaceChipClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import { METHOD_COLORS } from "@/lib/utils/http";
 import type { StepSnapshot, StepStatus } from "@/types/pipeline-debug";
@@ -56,10 +57,8 @@ function getScriptBadge(
       className={cn(
         "font-mono text-[9px] shrink-0 border",
         passed
-          ? isPreRequest
-            ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-            : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-          : "bg-destructive/10 text-destructive border-destructive/20"
+          ? segmentedSurfaceChipClassName
+          : "border-destructive/20 bg-destructive/10 text-destructive"
       )}
     >
       {label} {hasTests ? (allPassed ? "✓" : "✗") : passed ? "✓" : "✗"}
@@ -90,8 +89,8 @@ export function TimelinePanel({
           <motion.button
             type="button"
             key={snapshot.stepId}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: i * 0.05 }}
             onClick={() => onSelect(i)}
             className={cn(

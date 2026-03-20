@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import type { ReportEndpointMetric } from "@/types/pipeline-debug";
-import { Badge } from "./StepCard";
 
 interface ReportPerformanceTableProps {
   results: ReportEndpointMetric[];
@@ -23,98 +22,103 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
   }
 
   return (
-    <section className="space-y-6">
-      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        Endpoint Performance Metrics
-      </h3>
-      <div className="border rounded-xl overflow-hidden border-muted/50 shadow-sm">
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-muted/30 border-b border-muted/50 uppercase tracking-widest text-[9px] font-bold">
-                <th className="px-6 py-4">Method/Endpoint</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Latency</th>
-                <th className="px-6 py-4">Size</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-muted/30 font-mono">
-              {safeResults.map((r) => {
-                const isError = r.outcome === "error";
-                const isHighLatency = (r.latencyMs ?? 0) > 1000;
-                const isOutlier = isError || isHighLatency;
+    <div className="space-y-4">
+      <div className="overflow-x-auto custom-scrollbar rounded-xl border border-border/40 shadow-sm bg-white dark:bg-muted/5 overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border/40 bg-muted/30">
+              <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
+                Endpoint
+              </th>
+              <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground text-center">
+                Status
+              </th>
+              <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">
+                Latency
+              </th>
+              <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">
+                Payload
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/20">
+            {safeResults.map((r) => {
+              const isError = r.outcome === "error";
+              const isHighLatency = (r.latencyMs ?? 0) > 1000;
+              const isOutlier = isError || isHighLatency;
 
-                return (
-                  <tr
-                    key={r.stepId}
-                    className={cn(
-                      "group transition-colors",
-                      isOutlier && "bg-red-500/5",
-                      !isOutlier && "hover:bg-muted/5"
-                    )}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
+              return (
+                <tr
+                  key={r.stepId}
+                  className={cn(
+                    "group transition-colors h-20",
+                    isOutlier ? "bg-red-500/[0.03]" : "hover:bg-muted/10"
+                  )}
+                >
+                  <td className="px-8 py-4">
+                    <div className="flex items-center gap-4">
                       <span
                         className={cn(
-                          "inline-block w-12 mr-2 font-bold",
+                          "text-[10px] font-black uppercase tracking-widest w-12 text-center px-1.5 py-1 rounded-md shrink-0 border",
                           r.method === "GET"
-                            ? "text-emerald-500"
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                             : r.method === "POST"
-                              ? "text-blue-500"
-                              : r.method === "PUT"
-                                ? "text-amber-500"
-                                : r.method === "DELETE"
-                                  ? "text-red-500"
-                                  : "text-foreground"
+                              ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                              : r.method === "DELETE"
+                                ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                : "bg-amber-500/10 text-amber-600 border-amber-500/20"
                         )}
                       >
                         {r.method}
                       </span>
-                      <span
-                        className={cn(
-                          isOutlier && "font-semibold",
-                          !isOutlier && "text-muted-foreground"
-                        )}
-                      >
+                      <span className="text-base font-bold tracking-tight text-foreground truncate max-w-[300px]">
                         {r.stepName}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge
-                        className={cn(
-                          "h-5 rounded px-1.5 border font-mono text-[10px] font-bold",
-                          r.outcome === "success"
-                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                            : r.outcome === "warning"
-                              ? "bg-amber-500/20 text-amber-700 border-amber-500/40"
-                              : "bg-red-500/20 text-red-600 border-red-500/40"
-                        )}
-                      >
-                        {r.statusCode ?? "N/A"}
-                      </Badge>
-                    </td>
-                    <td
+                    </div>
+                  </td>
+                  <td className="px-8 py-4 text-center">
+                    <span
                       className={cn(
-                        "px-6 py-4 font-bold whitespace-nowrap",
-                        (r.latencyMs ?? 0) > 1000
-                          ? "text-red-600"
+                        "inline-flex items-center justify-center min-w-[50px] h-8 rounded-xl text-xs font-black border",
+                        r.outcome === "success"
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          : r.outcome === "warning"
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                            : "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                      )}
+                    >
+                      {r.statusCode ?? "---"}
+                    </span>
+                  </td>
+                  <td className="px-8 py-4 text-right">
+                    <span
+                      className={cn(
+                        "text-lg font-black tabular-nums tracking-tight",
+                        isHighLatency
+                          ? "text-rose-600"
                           : (r.latencyMs ?? 0) > 500
                             ? "text-amber-600"
                             : "text-foreground"
                       )}
                     >
-                      {r.latencyMs ?? 0}ms
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                      {((r.sizeBytes ?? 0) / 1024).toFixed(1)}kb
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {r.latencyMs ?? 0}
+                      <span className="text-[10px] ml-1 opacity-40 font-bold uppercase tracking-widest">
+                        ms
+                      </span>
+                    </span>
+                  </td>
+                  <td className="px-8 py-4 text-right">
+                    <span className="text-xs font-bold text-muted-foreground tracking-tight">
+                      {((r.sizeBytes ?? 0) / 1024).toFixed(1)}
+                      <span className="opacity-40 ml-1 font-bold">KB</span>
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </section>
+    </div>
   );
 }

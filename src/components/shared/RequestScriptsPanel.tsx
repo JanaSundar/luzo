@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PreRequestBuilder } from "@/components/playground/PreRequestBuilder";
 import { ScriptEditor } from "@/components/playground/ScriptEditor";
 import { TestBuilder } from "@/components/playground/TestBuilder";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
 import { parsePreRequestScript, parseTestScript } from "@/lib/utils/rule-parser";
@@ -33,22 +34,29 @@ export function RequestScriptsPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-lg w-fit">
-        {(["pre-request", "tests"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setScriptTab(t)}
-            className={cn(
-              "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors",
-              scriptTab === t
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {t === "pre-request" ? "Pre-request" : "Tests"}
-          </button>
-        ))}
+      <div
+        role="tablist"
+        aria-label="Scripts"
+        className={cn("inline-flex w-fit min-w-0 items-center", segmentedTabListClassName)}
+      >
+        {(["pre-request", "tests"] as const).map((t) => {
+          const active = scriptTab === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setScriptTab(t)}
+              className={segmentedTabTriggerClassName(
+                active,
+                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+              )}
+            >
+              {t === "pre-request" ? "Pre-request" : "Tests"}
+            </button>
+          );
+        })}
       </div>
 
       {scriptTab === "pre-request" && (

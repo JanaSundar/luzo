@@ -1,358 +1,157 @@
-# Luzo – API Playground
+# Luzo
 
-An API testing and development playground with pre-request and test scripts, form-data support, code generation, and multi-step pipelines. AI (OpenAI, OpenRouter, Groq) is used only for pipeline report generation—turning execution results into structured documents. Connect your own PostgreSQL for collections.
+**Design API workflows like a flowchart. Debug them like a timeline.**
 
-## Getting Started
+Luzo is a developer-centric API playground and pipeline orchestrator. It’s built for building and debugging multi-step API workflows with deterministic execution and full data ownership.
 
-```bash
-pnpm install
-pnpm dev
-```
+### 🧠 How to think about Luzo
+> If Postman is for requests, Luzo is for workflows.
 
-Open [http://localhost:3000](http://localhost:3000) to use the API playground.
-
-### Dealing with CORS (how this app avoids it)
-
-Browsers enforce CORS on **frontend → API** calls. This playground avoids those issues by **never calling third‑party APIs directly from the browser**:
-
-- The browser only talks to **your Next.js app origin**:
-  - `RequestBuilder` sends non–form-data requests via the `executeRequest` server action.
-  - Form-data and file uploads are sent to the local `/api/execute` route.
-- The Next.js server then calls your target API using **server-side `fetch` (via `undici`)**:
-  - Because these are **server-to-server** requests, browser CORS does not apply.
-
-To make sure you don’t run into CORS problems:
-
-- **Always** send requests through this playground (click **Send** in the UI), instead of calling your API directly from client-side code.
-- Point your requests at the real API URL (e.g. `https://api.yourservice.com/...`) in the URL field – the playground will proxy it from the server.
-- If your API still blocks the request, check for:
-  - IP allowlists that don’t include your dev machine / server.
-  - Extra headers like `Origin` or `Referer` that your backend rejects.
-  - Authentication (make sure you configure Bearer/API key/Basic Auth in the **Auth** tab).
-
-### Scripts
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start development server (Turbopack) |
-| `pnpm build` | Production build |
-| `pnpm start` | Start production server |
-| `pnpm test` | Run tests |
-| `pnpm lint` | Lint with Biome |
-| `pnpm lint:fix` | Fix lint issues (Biome lint --write) |
-| `pnpm format` | Format code (Biome format --write) |
-| `pnpm biome check --write .` | Lint, format, and organize imports |
+Luzo is a workspace where individual API calls are just steps in a larger, state-managed execution loop. It bridges the gap between simple ad-hoc testing and complex system automation.
 
 ---
 
-## Architecture Overview
+## ⚡ Try this in 30 seconds
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           App Shell (Layout)                              │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │ Header (nav: Playground, Collections, Pipelines, Settings)          │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │ Main Content (page.tsx)                                            │  │
-│  │  ┌─────────────────────┐  ┌─────────────────────────────────────┐ │  │
-│  │  │ Request Panel       │  │ Response Panel                       │ │  │
-│  │  │ - RequestBuilder    │  │ - ResponseViewer                     │ │  │
-│  │  │ - EnvironmentSelector│  │ - JsonColorized                      │ │  │
-│  │  │ - CodeGenerator     │  │ - Test results                       │ │  │
-│  │  └─────────────────────┘  └─────────────────────────────────────┘ │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+1. **Clone & Install**:
+   ```bash
+   pnpm install && pnpm dev
+   ```
+2. **Build a Chain**: Create a `GET /user` step, follow it with a `POST /audit-log`, and bridge the `user.id` between them automatically.
+3. **Debug**: Click **Execute**, pause at Step 2, and inspect the live environment state before it finishes.
 
 ---
 
-## Detailed Implementation Flow
+## Preview
 
-### 1. Request Execution Flow
-
-```
-┌──────────────────┐     ┌─────────────────────┐     ┌──────────────────────┐
-│  RequestBuilder  │────▶│  Execute Request    │────▶│  Response Display    │
-│  (User config)   │     │  (Server/API)       │     │  (ResponseViewer)    │
-└──────────────────┘     └─────────────────────┘     └──────────────────────┘
-```
-
-#### 1.1 Non–Form-Data Requests (JSON, Raw, URL-Encoded)
-
-```
-User clicks Send
-       │
-       ▼
-RequestBuilder.send()
-       │
-       ├── getActiveEnvironmentVariables()  ◀── useEnvironmentStore
-       │
-       ▼
-executeRequest(request, envVars)  ◀── Server Action (api-tests.ts)
-       │
-       ├── interpolateVariables() on url, headers, params
-       ├── applyAuth() → Bearer/Basic/API-Key
-       ├── runPreRequestScript() if preRequestScript set
-       │      └── lz.request, lz.env (Luzo API)
-       │
-       ▼
-executeWithAxios()  ◀── lib/http/client.ts
-       │
-       ├── buildAxiosConfig() → method, url, headers, body
-       ├── axios(config) → HTTP request
-       ├── runTestScript() if testScript set
-       │      └── lz.response, lz.test(), lz.expect()
-       │
-       ▼
-ApiResponse { status, headers, body, time, size, testResults? }
-       │
-       ▼
-setPlaygroundResponse() → useExecutionStore
-       │
-       ▼
-ResponseViewer renders (status, headers, body, tests)
-```
-
-#### 1.2 Form-Data Requests (with optional files)
-
-```
-User clicks Send (bodyType === "form-data")
-       │
-       ▼
-RequestBuilder builds FormData
-       │
-       ├── __config: { method, url, headers, params, auth, envVariables,
-       │               preRequestScript?, testScript? }
-       ├── Form fields: key → value (text) or key → File (file)
-       │
-       ▼
-fetch("/api/execute", { method: "POST", body: formData })
-       │
-       ▼
-POST /api/execute  ◀── app/api/execute/route.ts
-       │
-       ├── Parse FormData, extract __config
-       ├── interpolateVariables on url, params, headers
-       ├── applyAuth()
-       ├── runPreRequestScript() if set
-       ├── axios({ method, url, headers, data: bodyFormData })
-       ├── runTestScript() if set
-       │
-       ▼
-Response.json({ status, headers, body, time, size, testResults? })
-       │
-       ▼
-setPlaygroundResponse() → useExecutionStore → ResponseViewer
-```
-
-### 2. State Management Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     usePlaygroundStore (Zustand + persist)                │
-├─────────────────────────────────────────────────────────────────────────┤
-│  request: ApiRequest                                                    │
-│    - method, url, headers, params, body, bodyType, formDataFields       │
-│  responseLayout: ResponseLayout                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     useExecutionStore (Zustand + persist)                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│  activeRawResponse: ApiResponse | null                                  │
-│  isLoading: boolean                                                     │
-│  results: Record<stepId, ExecutionResult> (pipeline execution)           │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     useEnvironmentStore (Zustand + persist)              │
-├─────────────────────────────────────────────────────────────────────────┤
-│  environments: Environment[]                                            │
-│  activeEnvironmentId: string                                            │
-│  getActiveEnvironmentVariables(): Record<string, string>                │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     useHistoryStore (Zustand + persist)                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  history: SavedRequest[] (Last 100 executions, local IndexedDB)         │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     useSettingsStore (Zustand + persist)                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  providers: Record<AiProvider, ProviderConfig> (OpenAI, OpenRouter, Groq)  │
-│  dbUrl, dbStatus, dbSchemaReady (BYODB PostgreSQL)                       │
-└─────────────────────────────────────────────────────────────────────────┘
-         │
-         │  Collections & SavedRequests via /api/db/collections
-         ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Database (BYODB – Bring Your Own DB)                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  User-provided PostgreSQL URL. Schema: collections, saved_requests     │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 3. Variable Interpolation Flow
-
-```
-Environment variables: { baseUrl: "https://api.example.com" }
-       │
-       ▼
-Request: url = "{{baseUrl}}/users"
-       │
-       ▼
-interpolateVariables(url, envVars)
-       │
-       ▼
-"https://api.example.com/users"
-```
-
-Used in: url, headers, params, auth tokens.
-
-### 4. Response Display Flow
-
-```
-ApiResponse.body (string)
-       │
-       ├── isJson? → tryFormatJson() → displayBody (indented)
-       │
-       ▼
-JsonColorized(displayBody, highlight?)
-       │
-       ├── tokenize() → keys, strings, numbers, booleans, null, punctuation, whitespace
-       ├── Sorcerer theme (dark) / readable (light)
-       ├── highlightText() if search → <mark> on matches
-       │
-       ▼
-Rendered with syntax highlighting + search highlights
-       │
-       ▼
-Match count shown next to search input
-```
-
-### 5. Code Generation Flow
-
-```
-RequestBuilder request
-       │
-       ▼
-CodeGenerator (popover)
-       │
-       ├── Language: curl, JavaScript, TypeScript, Python, Go, Java, C#
-       ├── generateCode(request, { language })
-       │
-       ▼
-lib/utils/code-generator.ts
-       │
-       ├── buildHeaders(), buildUrl()
-       ├── Form-data: FormData / multipart per language
-       ├── JSON/Raw: body string
-       │
-       ▼
-Copy to clipboard
-```
-
-### 6. Pre-Request & Test Scripts (Luzo Interceptors)
-
-```javascript
-Pre-Request Script (runs before request)
-─────────────────────────────────────────
-  lz.request.url = "https://..."
-  lz.request.headers.upsert("X-Custom", "value")
-  lz.env.set("token", "abc123")
-  lz.variables.set("ts", Date.now())
-
-Test Script (runs after response)
-─────────────────────────────────
-  lz.test("Status is 200", function() {
-    lz.expect(lz.response.status).to.equal(200);
-  });
-  lz.test("Has success", function() {
-    const json = lz.response.json();
-    lz.expect(json).to.have.property("success");
-  });
-```
-
-Executed in Node `vm` sandbox. `lz` object exposed per script type.
-
----
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── actions/
-│   │   ├── api-tests.ts      # executeRequest server action
-│   │   ├── code-generator.ts
-│   │   └── ai-report.ts
-│   ├── api/
-│   │   ├── execute/route.ts  # Form-data proxy (server-side fetch via undici)
-│   │   ├── health/route.ts
-│   │   ├── db/
-│   │   │   ├── connect/route.ts   # Test DB connection, init schema
-│   │   │   ├── collections/route.ts
-│   │   │   ├── query/route.ts
-│   │   │   └── schema/route.ts
-│   │   └── providers/
-│   │       ├── [provider]/validate/route.ts
-│   │       ├── [provider]/models/route.ts
-│   │       └── custom/
-│   ├── page.tsx              # Playground (Request + Response panels)
-│   ├── collections/page.tsx
-│   ├── pipelines/page.tsx    # API pipeline builder & execution
-│   ├── settings/page.tsx     # AI providers (OpenAI, OpenRouter, Groq), DB config
-│   └── layout.tsx
-├── components/
-│   ├── layout/               # Header
-│   ├── playground/           # RequestBuilder, ResponseViewer, FormDataBodyEditor,
-│   │                         # JsonColorized, CodeGenerator, EnvironmentSelector
-│   ├── collections/          # CollectionsWorkspace, SaveToCollectionDialog
-│   ├── pipelines/            # PipelineBuilder, StepCard, PipelineLayout
-│   ├── settings/             # ProviderConfigView, DatabaseConfigView, ProviderIcons
-│   ├── ui/                   # shadcn components
-│   └── common/               # LoadingSpinner, EmptyState, ErrorBoundary
-├── lib/
-│   ├── http/
-│   │   ├── client.ts         # Server-side HTTP client (undici fetch), executeWithAxios
-│   │   └── scripts.ts        # Pre-request & test script runners
-│   ├── stores/               # usePlaygroundStore, useExecutionStore, useEnvironmentStore,
-│   │                         # useHistoryStore, useSettingsStore, usePipelineStore
-│   ├── utils/                # variables, code-generator
-│   ├── db/                   # Drizzle runtime, BYODB PostgreSQL
-│   └── pipeline/             # DAG execution, variable resolution
-├── types/index.ts
-└── config/                   # model-registry, ai-providers
-```
+![Luzo API Playground Placeholder](https://via.placeholder.com/1200x600?text=Luzo+API+Playground+Interface)
+*Minimalist interface for API development and orchestration.*
 
 ---
 
 ## Key Features
 
-| Feature | Implementation |
-|---------|----------------|
-| **HTTP methods** | GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS |
-| **Body types** | None, JSON, Raw, Form Data, x-www-form-urlencoded |
-| **Collections** | BYODB PostgreSQL; connect your DB in Settings. Minimalist divider-based UI |
-| **Duplicate Prevention** | Automatic validation prevents redundant requests in collections |
-| **AI (report generation)** | OpenAI, OpenRouter, Groq for pipeline execution reports only |
-| **Auth** | None, Bearer, Basic, API Key |
-| **Environments** | Multiple envs with `{{variable}}` interpolation |
-| **Pre-request scripts** | Luzo-style `lz` API, runs before request |
-| **Test scripts** | `lz.test()`, `lz.expect()`, assertions after response |
-| **Code generation** | cURL, JS, TS, Python, Go, Java, C# |
-| **Pipelines** | Multi-step API workflows with variable chaining, debug mode |
-| **UI Aesthetics** | Premium minimalist design, hidden scrollbars, global pointer cursors |
-| **JSON display** | Syntax highlighting (Sorcerer/light theme), auto-prettified JSON |
-| **Search** | Highlight matches, show match count |
+### 🚀 Advanced Pipeline Orchestration
+**Build workflows, not just calls.**
+Design complex API chains where data flows seamlessly between steps. Luzo uses a DAG (Directed Acyclic Graph) approach to ensure your execution logic is always sound.
+
+### 🛠️ The Debug Controller (Core Engine)
+**Debug like a timeline.**
+- **Step-by-Step Execution**: Pause at any stage and inspect exactly what’s happening.
+- **Retry from failure, not from scratch**: If a step fails, fix it and resume from that specific point. Luzo automatically rewinds the state for you.
+- **Real-time Streaming**: Watch your variables resolve and your logs stream in live.
+
+### 🔐 BYOK & BYODB (Ownership)
+**Your keys. Your data. Always.**
+- **BYOK (AI Providers)**: Connect your own keys (OpenAI, Groq, OpenRouter). They stay local and are used only for generating your execution reports.
+- **BYODB (PostgreSQL)**: Connect your own database. Your collections, history, and secrets stay in your infrastructure.
+
+### 🧪 Luzo Interceptors (Scripts)
+**Code-level control over every request.**
+Execute logic before or after any call in a sandboxed Node `vm` environment. Use `lz.test()` and `lz.expect()` for assertions that actually matter.
 
 ---
 
-## Deploy on Vercel
+## Getting Started
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+- [pnpm](https://pnpm.io/) (v8+)
 
-See [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying) for details.
+### Configuration
+Luzo works instantly with local storage. For the full persistence and AI experience, add these to your `.env.local`:
+
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/luzo"
+OPENAI_API_KEY="..."
+GROQ_API_KEY="..."
+```
+
+---
+
+## Advanced Insights
+
+### Variable Chaining
+Access any value from a previous step's response using the `{{stepAlias.path}}` syntax.
+*Example:* `{{auth.response.body.token}}`
+
+### Interceptor Examples
+```javascript
+// Post-request assertion
+lz.test("User was created", () => {
+  lz.expect(lz.response.status).to.equal(201);
+  lz.expect(lz.response.json().user).to.have.property("id");
+});
+```
+
+---
+
+## Architecture
+
+### System Overview
+Luzo uses a dual-layer architecture: a high-interaction frontend for orchestration and a proxy backend to bypass CORS and manage sensitive script execution.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Luzo App Shell                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Navigation: [ Playground ]  [ Collections ]  [ Pipelines ]  [ Settings ]   │
+├──────────────────────────────────────┬──────────────────────────────────────┤
+│           Request Builder            │           Response Viewer            │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│  • Method & URL                      │  • Status & Performance              │
+│  • Headers & Params                  │  • Pretty JSON / Raw                 │
+│  • Auth & Environments               │  • Headers & Size                    │
+│  • Interceptors (Scripts)            │  • Test Assertions                   │
+│  • Body (Form-data / JSON)           │  • AI Execution Report               │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+### Execution Flow
+```
+[Validation] ──▶ [Generator Executor] ──▶ [State Management]
+ (DAG Check)       (Step Yielding)         (Rewind/Retry)
+```
+
+---
+
+## Technical Stack
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS 4
+- **State**: Zustand (+ persist)
+- **Database**: Drizzle ORM + PostgreSQL
+- **Sandbox**: Node `vm` for Interceptors
+
+---
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── actions/          # Server Actions
+│   └── api/              # Proxy & DB routes
+├── lib/
+│   ├── pipeline/         # Core Execution Engine
+│   └── db/               # BYODB data layer
+└── components/           # Orchestration & Layout UI
+```
+
+---
+
+## Scripts
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development server |
+| `pnpm build` | Production build |
+| `pnpm test` | Run test suite |
+| `pnpm lint` | Lint with Biome |
+
+---
+
+## Philosophy: Why Luzo?
+
+Luzo was built for developers who find existing tools too social and not enough "engineering."
+
+1. **Total Autonomy**: Your data lives in your DB. Your keys stay in your environment.
+2. **Execution Control**: No black boxes. Step through every byte of your pipeline.
+3. **Speed over Bloat**: A minimalist interface that stays out of your way.

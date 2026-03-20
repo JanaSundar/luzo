@@ -103,7 +103,13 @@ export function SaveToCollectionDialog({
       <DialogTrigger
         render={
           trigger ?? (
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              title="Save to Collection"
+            >
               <FolderPlus className="h-4 w-4" />
             </Button>
           )
@@ -118,8 +124,28 @@ export function SaveToCollectionDialog({
         </DialogHeader>
 
         {!canUseCollections ? (
-          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-            Connect a database in Settings before saving requests to Collections.
+          <div className="rounded-xl border border-dashed border-border/60 p-6 text-center space-y-4 bg-muted/5">
+            <div className="mx-auto w-10 h-10 rounded-full bg-muted/10 flex items-center justify-center">
+              <FolderPlus className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-bold uppercase tracking-widest">Connect Database</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Collections require a database connection to persist requests across sessions. Your
+                current request is saved in your local history.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all"
+              onClick={() => {
+                setOpen(false);
+                window.location.href = "/settings";
+              }}
+            >
+              Open Settings
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">

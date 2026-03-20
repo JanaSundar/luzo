@@ -53,11 +53,13 @@ const DEFAULT_REQUEST: ApiRequest = {
 
 interface PlaygroundState {
   request: ApiRequest;
+  originalRequest: ApiRequest | null; // Track last loaded/saved request for dirty detection
   responseLayout: ResponseLayout;
 
   setMethod: (method: HttpMethod) => void;
   setUrl: (url: string) => void;
   setRequest: (request: Partial<ApiRequest>) => void;
+  setLoadedRequest: (request: ApiRequest) => void; // Call when loading from collection
   resetRequest: () => void;
   setResponseLayout: (layout: ResponseLayout) => void;
 }
@@ -66,6 +68,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
   persist(
     immer<PlaygroundState>((set) => ({
       request: DEFAULT_REQUEST,
+      originalRequest: null,
       responseLayout: "horizontal",
 
       setMethod: (method) =>
@@ -83,9 +86,16 @@ export const usePlaygroundStore = create<PlaygroundState>()(
           state.request = { ...state.request, ...partial };
         }),
 
+      setLoadedRequest: (request) =>
+        set((state) => {
+          state.request = request;
+          state.originalRequest = request;
+        }),
+
       resetRequest: () =>
         set((state) => {
           state.request = DEFAULT_REQUEST;
+          state.originalRequest = null;
         }),
 
       setResponseLayout: (responseLayout) =>
@@ -105,6 +115,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         const sanitizedReq = sanitizeRequestForPersistence({ ...req, formDataFields });
         return {
           request: sanitizedReq,
+          originalRequest: s.originalRequest,
           responseLayout: s.responseLayout,
         };
       },

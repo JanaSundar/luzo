@@ -19,10 +19,14 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("button", { name: /overview/i })).toBeInTheDocument();
     expect(screen.getByText(/integrations overview/i)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /providers/i }));
-    expect(screen.getByText(/configure openrouter/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^providers$/i }));
+    expect(
+      await screen.findByRole("heading", { name: /configure openrouter/i }, { timeout: 3000 })
+    ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /database/i }));
-    expect(screen.getByText(/configure postgresql/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^database$/i }));
+    expect(
+      await screen.findByRole("heading", { name: /configure postgresql/i }, { timeout: 3000 })
+    ).toBeInTheDocument();
   });
 });
