@@ -54,9 +54,9 @@ export function RequestFormTabs({
               className={cn(
                 segmentedTabTriggerClassName(
                   isActive,
-                  "h-7 shrink-0 gap-1.5 px-3 sm:px-4 whitespace-nowrap"
+                  "h-7 shrink-0 gap-1.5 px-3 sm:px-4 whitespace-nowrap",
                 ),
-                isDisabled && "cursor-not-allowed opacity-50 grayscale-[0.5]"
+                isDisabled && "cursor-not-allowed opacity-50 grayscale-[0.5]",
               )}
             >
               <span className="flex items-center gap-1.5">
@@ -67,7 +67,7 @@ export function RequestFormTabs({
                       "flex h-[14px] min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold leading-none",
                       isActive
                         ? "bg-white text-black dark:bg-black dark:text-white"
-                        : "bg-black/12 text-black/55 dark:bg-white/12 dark:text-white/55"
+                        : "bg-black/12 text-black/55 dark:bg-white/12 dark:text-white/55",
                     )}
                   >
                     {tab.count}

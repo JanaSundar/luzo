@@ -18,7 +18,7 @@ export function useDebugController() {
       }
       return controller.start(pipeline, envVars, options);
     },
-    []
+    [],
   );
 
   const step = useCallback(() => controllerRef.current?.step(), []);

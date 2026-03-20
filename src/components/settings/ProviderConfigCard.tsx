@@ -39,7 +39,7 @@ export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProp
       className={cn(
         "flex flex-col gap-3 p-4 rounded-lg border text-left transition-all hover:bg-muted/30",
         "bg-card",
-        isError ? "border-destructive/40" : "border-border"
+        isError ? "border-destructive/40" : "border-border",
       )}
     >
       <div className="flex items-start justify-between">
@@ -47,7 +47,7 @@ export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProp
           className={cn(
             "h-10 w-10 rounded-lg flex items-center justify-center shrink-0 p-2 [&>svg]:size-full",
             meta.iconBg,
-            isError && "bg-destructive/15 text-destructive"
+            isError && "bg-destructive/15 text-destructive",
           )}
         >
           <Icon className="size-full" />
@@ -59,7 +59,7 @@ export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProp
               ? "bg-emerald-500"
               : isError
                 ? "bg-destructive"
-                : "bg-muted-foreground/30"
+                : "bg-muted-foreground/30",
           )}
         />
       </div>

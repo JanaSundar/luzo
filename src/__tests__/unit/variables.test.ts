@@ -33,7 +33,7 @@ describe("interpolateVariables", () => {
 
   it("handles string with no variables", () => {
     expect(interpolateVariables("https://api.example.com", { key: "value" })).toBe(
-      "https://api.example.com"
+      "https://api.example.com",
     );
   });
 
@@ -68,7 +68,7 @@ describe("hasUnresolvedVariables", () => {
 
   it("returns false when all variables are resolved", () => {
     expect(
-      hasUnresolvedVariables("{{baseUrl}}/users", { baseUrl: "https://api.example.com" })
+      hasUnresolvedVariables("{{baseUrl}}/users", { baseUrl: "https://api.example.com" }),
     ).toBe(false);
   });
 

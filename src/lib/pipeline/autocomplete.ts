@@ -10,7 +10,7 @@ export function getAutocompleteSuggestions(
   pipeline: Pipeline | undefined,
   currentStepId: string,
   envVars: Record<string, string> = {},
-  executionContext: Record<string, unknown> = {}
+  executionContext: Record<string, unknown> = {},
 ): VariableSuggestion[] {
   const suggestions: VariableSuggestion[] = [];
 
@@ -89,7 +89,7 @@ export function getAutocompleteSuggestions(
           label: `${alias.alias} → Response Body`,
           stepId: alias.stepId,
           type: "body",
-        }
+        },
       );
     }
   }
@@ -106,7 +106,7 @@ export function progressiveValidate(
   template: string,
   steps: PipelineStep[],
   currentStepIndex: number,
-  executionContext: Record<string, unknown> | null
+  executionContext: Record<string, unknown> | null,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const aliases = buildStepAliases(steps);
@@ -177,11 +177,11 @@ export function progressiveValidate(
  */
 export function filterSuggestions(
   suggestions: VariableSuggestion[],
-  query: string
+  query: string,
 ): VariableSuggestion[] {
   if (!query) return suggestions;
   const q = query.toLowerCase();
   return suggestions.filter(
-    (s) => s.path.toLowerCase().includes(q) || s.label.toLowerCase().includes(q)
+    (s) => s.path.toLowerCase().includes(q) || s.label.toLowerCase().includes(q),
   );
 }

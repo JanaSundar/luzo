@@ -16,7 +16,7 @@ export function WorkspacePane({ children, className, border, ...props }: Workspa
       className={cn(
         "h-full flex flex-col min-h-0 glass rounded-xl overflow-hidden shadow-premium transition-all duration-300",
         border ? "border border-border" : "border-0",
-        className
+        className,
       )}
       {...props}
     >

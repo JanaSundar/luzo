@@ -83,7 +83,7 @@ describe("Pipeline Execution Architecture", () => {
         abortControls,
         masterAbort,
         useStream: false,
-      }
+      },
     );
 
     const yields: GeneratorYield[] = [];
@@ -108,7 +108,7 @@ describe("Pipeline Execution Architecture", () => {
     expect(lastYield?.type).toBe("step_complete");
     expect(lastYield?.snapshot.status).toBe("success");
     expect(
-      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body
+      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body,
     ).toEqual({
       message: "success",
     });
@@ -132,7 +132,7 @@ describe("Pipeline Execution Architecture", () => {
         abortControls,
         masterAbort,
         useStream: true,
-      }
+      },
     );
 
     let result = await generator.next();
@@ -159,7 +159,7 @@ describe("Pipeline Execution Architecture", () => {
     expect(lastYield?.type).toBe("step_complete");
     expect(lastYield?.snapshot.status).toBe("success");
     expect(
-      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body
+      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body,
     ).toEqual({
       message: "success",
     });
@@ -190,7 +190,7 @@ describe("Pipeline Execution Architecture", () => {
         abortControls,
         masterAbort,
         useStream: false,
-      }
+      },
     );
 
     let result = await generator.next();

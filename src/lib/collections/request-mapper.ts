@@ -24,7 +24,7 @@ interface CollectionRow {
 export function toCollectionRequest(source: ApiRequest | PipelineStep): StoredRequestPayload {
   return {
     ...source,
-    formDataFields: source.formDataFields?.map(({ file, ...field }) => field),
+    formDataFields: source.formDataFields?.map(({ file: _, ...field }) => field),
   };
 }
 

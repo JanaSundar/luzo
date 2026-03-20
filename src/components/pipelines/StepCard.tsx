@@ -63,7 +63,7 @@ export function StepCard({
     pipeline,
     step.id,
     getActiveEnvironmentVariables(),
-    runtimeVariables as Record<string, unknown>
+    runtimeVariables as Record<string, unknown>,
   );
 
   const handleRenameStart = () => {
@@ -89,7 +89,7 @@ export function StepCard({
       onTabChange: setActiveTab,
       disabledTabs,
     }),
-    [step, suggestions, onUpdate, activeTab, disabledTabs]
+    [step, suggestions, onUpdate, activeTab, disabledTabs],
   );
 
   return (
@@ -105,7 +105,7 @@ export function StepCard({
         animate={{ borderRadius: 22 }}
         style={{ borderRadius: 22, backfaceVisibility: "hidden" }}
         className={cn(
-          "relative isolate flex w-full flex-col overflow-hidden border bg-background text-left shadow-sm transition-colors hover:border-primary/30"
+          "relative isolate flex w-full flex-col overflow-hidden border bg-background text-left shadow-sm transition-colors hover:border-primary/30",
         )}
       >
         <motion.div layout="position">

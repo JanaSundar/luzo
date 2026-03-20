@@ -158,7 +158,7 @@ export function PipelineLayout({
         }}
         onToggleSelection={(id) =>
           setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
           )
         }
         onRenameStart={handleRenameStart}

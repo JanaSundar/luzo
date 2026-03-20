@@ -142,7 +142,7 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
         state.startedAt = snap.startedAt;
         state.completedAt = snap.completedAt;
       }),
-  }))
+  })),
 );
 
 export type { ExecutionState };

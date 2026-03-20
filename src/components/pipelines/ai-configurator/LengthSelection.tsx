@@ -51,7 +51,7 @@ export function LengthSelection({ currentLength, onLengthChange }: LengthSelecti
               "flex flex-col gap-2 p-4 rounded-xl border-2 transition-all text-left group",
               currentLength === length.id
                 ? "border-primary bg-primary/5 shadow-md"
-                : "border-muted hover:border-border hover:bg-muted/5"
+                : "border-muted hover:border-border hover:bg-muted/5",
             )}
           >
             <div className="flex items-center justify-between">
@@ -64,7 +64,7 @@ export function LengthSelection({ currentLength, onLengthChange }: LengthSelecti
                   "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
                   currentLength === length.id
                     ? "border-primary bg-primary"
-                    : "border-muted group-hover:border-border"
+                    : "border-muted group-hover:border-border",
                 )}
               >
                 {currentLength === length.id && (

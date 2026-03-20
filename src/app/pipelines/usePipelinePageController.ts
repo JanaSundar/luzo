@@ -43,7 +43,7 @@ export function usePipelinePageController() {
   const clearReport = usePipelineDebugStore((state) => state.clearReport);
   const setSelectedSignals = usePipelineDebugStore((state) => state.setSelectedSignals);
   const getActiveEnvironmentVariables = useEnvironmentStore(
-    (state) => state.getActiveEnvironmentVariables
+    (state) => state.getActiveEnvironmentVariables,
   );
   const providers = useSettingsStore((state) => state.providers);
   const activeProvider = useSettingsStore((state) => state.activeAiProvider);
@@ -52,7 +52,7 @@ export function usePipelinePageController() {
   const controller = useDebugController();
 
   const activePipeline = usePipelineStore(
-    (state) => state.pipelines.find((p) => p.id === activePipelineId) ?? null
+    (state) => state.pipelines.find((p) => p.id === activePipelineId) ?? null,
   );
   const lastPersistedIdRef = useRef<string | null>(null);
   const lastAppliedIdRef = useRef<string | null>(null);
@@ -122,7 +122,7 @@ export function usePipelinePageController() {
         totalSteps,
         errorMessage: null,
         pipeline: activePipeline,
-      }
+      },
     );
     saveExecutionArtifact(activePipeline.id, artifact);
   }, [
@@ -165,7 +165,7 @@ export function usePipelinePageController() {
         totalSteps,
         errorMessage: errorMessage,
         pipeline: activePipeline,
-      }
+      },
     );
     saveExecutionArtifact(activePipeline.id, artifact);
     refreshSignals(activePipeline.steps);
@@ -196,7 +196,7 @@ export function usePipelinePageController() {
 
     if (wasRunning && isDone) {
       const successCount = snapshots.filter(
-        (s) => s.status === "success" || s.status === "done"
+        (s) => s.status === "success" || s.status === "done",
       ).length;
       const failCount = snapshots.filter((s) => s.status === "error").length;
 
@@ -204,7 +204,7 @@ export function usePipelinePageController() {
         toast.success(`Pipeline Completed: ${successCount} steps succeeded`);
       } else {
         toast.error(
-          `Pipeline Finished with issues: ${successCount} Succeeded, ${failCount} Failed`
+          `Pipeline Finished with issues: ${successCount} Succeeded, ${failCount} Failed`,
         );
       }
     }
@@ -320,7 +320,7 @@ export function usePipelinePageController() {
       setView,
       clearReport,
       setSelectedSignals,
-    ]
+    ],
   );
 
   const handleStop = useCallback(() => {

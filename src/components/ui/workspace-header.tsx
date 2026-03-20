@@ -23,7 +23,7 @@ export function WorkspaceHeader({
     <div
       className={cn(
         "px-5 py-3 border-b border-border bg-muted/50 flex items-center justify-between shrink-0",
-        className
+        className,
       )}
     >
       <div className="flex items-center">

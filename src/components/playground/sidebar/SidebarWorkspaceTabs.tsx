@@ -27,7 +27,7 @@ export function SidebarWorkspaceTabs({ tab, onTabChange, collapsed }: SidebarWor
       <div
         className={cn(
           "flex w-full max-w-full flex-col items-stretch min-w-0",
-          segmentedTabTrackClassName
+          segmentedTabTrackClassName,
         )}
         role="tablist"
         aria-label="Sidebar section"

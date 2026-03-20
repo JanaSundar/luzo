@@ -129,7 +129,7 @@ function ErrorFallbackDevelopment({ error, resetErrorBoundary }: FallbackProps) 
       <div
         className={cn(
           "w-full max-w-3xl overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-muted/40 to-background shadow-lg",
-          "ring-1 ring-border/30 dark:from-muted/25"
+          "ring-1 ring-border/30 dark:from-muted/25",
         )}
       >
         <div className="border-b border-border/40 bg-muted/20 px-4 py-3 sm:px-5 sm:py-4">

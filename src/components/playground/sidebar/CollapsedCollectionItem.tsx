@@ -34,13 +34,13 @@ export function CollapsedCollectionItem({
         <HoverCardTrigger
           className={cn(
             "flex h-9 w-full max-w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 shadow-none outline-none",
-            "focus-visible:ring-2 focus-visible:ring-ring"
+            "focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
           <span
             className={cn(
               "flex h-7 w-7 max-w-full shrink-0 items-center justify-center rounded-md text-[10px] font-bold transition-colors",
-              hasActiveRequest ? "bg-foreground text-background" : "text-muted-foreground"
+              hasActiveRequest ? "bg-foreground text-background" : "text-muted-foreground",
             )}
           >
             {collection.name.charAt(0).toUpperCase()}
@@ -75,7 +75,7 @@ export function CollapsedCollectionItem({
                 const urlDuplicateAsTitle = isStrippedRequestNameEqualToUrl(
                   req.name,
                   req.request.method,
-                  req.request.url
+                  req.request.url,
                 );
                 const rowInner = (
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -88,7 +88,7 @@ export function CollapsedCollectionItem({
                       <span
                         className={cn(
                           "min-w-0 truncate font-mono text-[11px]",
-                          active ? "font-medium text-foreground" : "text-muted-foreground"
+                          active ? "font-medium text-foreground" : "text-muted-foreground",
                         )}
                       >
                         {displayName}
@@ -97,7 +97,7 @@ export function CollapsedCollectionItem({
                     <span
                       className={cn(
                         httpMethodBadgeClass(req.request.method, { naturalWidth: true }),
-                        "w-fit shrink-0"
+                        "w-fit shrink-0",
                       )}
                     >
                       {req.request.method}
@@ -117,7 +117,7 @@ export function CollapsedCollectionItem({
                     className={cn(
                       "group/row flex w-full min-w-0 items-start gap-0.5 rounded-lg px-1.5 py-1 transition-colors",
                       "hover:bg-transparent",
-                      active && "ring-1 ring-inset ring-border/70"
+                      active && "ring-1 ring-inset ring-border/70",
                     )}
                   >
                     <Tooltip>
@@ -154,7 +154,7 @@ export function CollapsedCollectionItem({
                         className={cn(
                           "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
                           "hover:bg-destructive/10 hover:text-destructive",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         )}
                       >
                         <Trash2 className="h-3 w-3" />

@@ -38,7 +38,7 @@ export async function removeCollectionRequest(dbUrl: string, id: string) {
 
 async function postCollectionsRequest<T = { ok: boolean }>(
   dbUrl: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<T> {
   const response = await fetch("/api/db/collections", {
     method: "POST",

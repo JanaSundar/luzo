@@ -13,7 +13,7 @@ export function PipelineBadge({
     <span
       className={cn(
         "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-        className
+        className,
       )}
     >
       {children}

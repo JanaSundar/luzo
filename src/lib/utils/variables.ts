@@ -13,7 +13,7 @@ export function extractVariables(template: string): string[] {
 
 export function hasUnresolvedVariables(
   template: string,
-  variables: Record<string, string>
+  variables: Record<string, string>,
 ): boolean {
   const needed = extractVariables(template);
   return needed.some((key) => !(key in variables));

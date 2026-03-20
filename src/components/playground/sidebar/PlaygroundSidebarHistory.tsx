@@ -45,7 +45,7 @@ export function PlaygroundSidebarHistory({
           (item) =>
             item.request.url.toLowerCase().includes(q) ||
             item.request.method.toLowerCase().includes(q) ||
-            (item.name?.toLowerCase().includes(q) ?? false)
+            (item.name?.toLowerCase().includes(q) ?? false),
         );
     return groupSavedRequestsByDay(filtered);
   }, [history, search]);
@@ -60,12 +60,12 @@ export function PlaygroundSidebarHistory({
             <SidebarGroupLabel
               className={cn(
                 "px-1.5 pt-2 pb-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground",
-                group.bucket === grouped[0]?.bucket && "pt-0"
+                group.bucket === grouped[0]?.bucket && "pt-0",
               )}
             >
               {group.label}
             </SidebarGroupLabel>
-          </SidebarMenuItem>
+          </SidebarMenuItem>,
         );
       }
       group.items.forEach((item, i) => {
@@ -87,7 +87,7 @@ export function PlaygroundSidebarHistory({
               onClick={() => onLoadRequest(item.request, item.name || item.request.url)}
               onDelete={() => onRemoveEntry(item.id)}
             />
-          </SidebarMenuItem>
+          </SidebarMenuItem>,
         );
       });
     }

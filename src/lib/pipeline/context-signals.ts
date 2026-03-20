@@ -92,13 +92,13 @@ export function extractSignals(snapshots: StepSnapshot[], steps: PipelineStep[])
     if (snapshot.reducedResponse?.summary) {
       const flattened = flattenObject(
         snapshot.reducedResponse.summary,
-        `${alias.alias}.response.body`
+        `${alias.alias}.response.body`,
       );
       for (const { path, value } of flattened) {
         const lastKey = path.split(".").pop() ?? path;
         const sensitivity = classifySensitivity(lastKey, value);
         const isImportant = IMPORTANT_FIELD_PATTERNS.some((p) =>
-          p.test(path.replace(`${alias.alias}.`, ""))
+          p.test(path.replace(`${alias.alias}.`, "")),
         );
 
         variables.push({

@@ -212,7 +212,7 @@ function renderBlock(node: BlockContent, key: number | string, isFirst: boolean)
               {headerRow.children.map((cell, i) => {
                 if (cell.type !== "tableCell") return null;
                 const text = (cell.children as PhrasingContent[]).map((c, j) =>
-                  renderPhrasing(c, j)
+                  renderPhrasing(c, j),
                 );
                 return (
                   <Text key={i} style={[pdfStyles.tableHeaderCell, { flex: 1 }]}>
@@ -229,7 +229,7 @@ function renderBlock(node: BlockContent, key: number | string, isFirst: boolean)
                 {row.children.map((cell, ci) => {
                   if (cell.type !== "tableCell") return null;
                   const text = (cell.children as PhrasingContent[]).map((c, j) =>
-                    renderPhrasing(c, j)
+                    renderPhrasing(c, j),
                   );
                   return (
                     <Text key={ci} style={pdfStyles.tableCell}>

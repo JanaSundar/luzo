@@ -38,7 +38,7 @@ const tabsListVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 function TabsList({
@@ -75,7 +75,7 @@ function TabsTrigger({ className, children, ...props }: TabsPrimitive.Tab.Props)
       className={cn(
         "relative z-10 inline-flex h-full items-center justify-center gap-1.5 rounded-full px-4 py-0 text-[11px] uppercase tracking-wider font-semibold whitespace-nowrap text-muted-foreground transition-colors group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground hover:bg-muted/30 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
         "aria-[selected=true]:text-primary-foreground",
-        className
+        className,
       )}
       {...props}
     >

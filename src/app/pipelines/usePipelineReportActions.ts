@@ -62,7 +62,7 @@ export function usePipelineReportActions({
 
         const derivedTitle = executionResult
           ? deriveReportTitle(
-              executionResult.results.map((result) => ({ method: result.method, url: result.url }))
+              executionResult.results.map((result) => ({ method: result.method, url: result.url })),
             )
           : undefined;
         const result = await generateAIReport({
@@ -74,7 +74,7 @@ export function usePipelineReportActions({
 
         saveReport(
           activePipeline.id,
-          createReportCache(cacheKey, reportConfig, result.report, result.mode)
+          createReportCache(cacheKey, reportConfig, result.report, result.mode),
         );
         setView("report");
         toast.success("Intelligence report generated");
@@ -84,7 +84,7 @@ export function usePipelineReportActions({
         setGeneratingReport(false);
       }
     },
-    [activePipeline, aiProviderConfig, getReport, saveReport, setGeneratingReport, setView]
+    [activePipeline, aiProviderConfig, getReport, saveReport, setGeneratingReport, setView],
   );
 
   const handleExportReport = useCallback(
@@ -111,24 +111,24 @@ export function usePipelineReportActions({
             report: savedReport.report,
             generatedAt: savedReport.generatedAt,
           },
-          format
+          format,
         );
         toast.success(
           format === "pdf"
             ? "PDF downloaded"
             : format === "json"
               ? "JSON downloaded"
-              : "Markdown downloaded"
+              : "Markdown downloaded",
         );
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : `${format.toUpperCase()} export failed`
+          error instanceof Error ? error.message : `${format.toUpperCase()} export failed`,
         );
       } finally {
         setExportingPDF(false);
       }
     },
-    [activePipelineId, getReport, pipelines, setExportingPDF]
+    [activePipelineId, getReport, pipelines, setExportingPDF],
   );
 
   return { handleGenerateReport, handleExportReport };

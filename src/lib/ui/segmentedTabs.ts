@@ -9,7 +9,7 @@ export const segmentedTabTrackClassName =
 /** Horizontal segmented control (default). */
 export const segmentedTabListClassName = cn(
   "flex min-w-0 items-center",
-  segmentedTabTrackClassName
+  segmentedTabTrackClassName,
 );
 
 /** Same surface semantics as the track — for small chips (e.g. PRE / TEST) in light and dark mode. */
@@ -27,6 +27,6 @@ export function segmentedTabTriggerClassName(active: boolean, className?: string
     active
       ? "bg-black text-white shadow-sm dark:bg-white dark:text-black dark:shadow-sm"
       : "text-black/50 hover:bg-black/10 hover:text-black dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white",
-    className
+    className,
   );
 }

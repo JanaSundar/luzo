@@ -93,6 +93,6 @@ export const useExecutionStore = create<ExecutionState>()(
     {
       name: "luzo-execution-store",
       storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-execution" })),
-    }
-  )
+    },
+  ),
 );

@@ -45,7 +45,7 @@ export function DatabaseConfigView() {
         toast.success(
           data.schemaReady
             ? "Database connected successfully"
-            : "Database connected with schema warnings"
+            : "Database connected with schema warnings",
         );
       } else {
         setDbStatus({
@@ -163,7 +163,7 @@ export function DatabaseConfigView() {
             "h-9 px-6 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all outline-none flex items-center gap-2",
             status === "connected"
               ? "border border-input bg-background hover:bg-muted/30"
-              : "bg-foreground text-background hover:bg-foreground/90 disabled:opacity-65 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground"
+              : "bg-foreground text-background hover:bg-foreground/90 disabled:opacity-65 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground",
           )}
         >
           {status === "connecting" || isConnecting ? (
@@ -209,7 +209,7 @@ function StatusBadge({ status, latencyMs }: { status: string; latencyMs: number 
         className={cn(
           "h-1.5 w-1.5 rounded-full",
           current.color,
-          status === "connecting" && "animate-pulse"
+          status === "connecting" && "animate-pulse",
         )}
       />
       <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">

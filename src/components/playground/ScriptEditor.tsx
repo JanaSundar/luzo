@@ -49,7 +49,7 @@ export function ScriptEditor<TRule>({
             aria-selected={editorType === "visual"}
             className={segmentedTabTriggerClassName(
               editorType === "visual",
-              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
             )}
             onClick={() => onEditorTypeChange("visual")}
           >
@@ -61,7 +61,7 @@ export function ScriptEditor<TRule>({
             aria-selected={editorType === "raw"}
             className={segmentedTabTriggerClassName(
               editorType === "raw",
-              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
             )}
             onClick={() => onEditorTypeChange("raw")}
           >

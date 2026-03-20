@@ -85,7 +85,7 @@ describe("useHistoryStore", () => {
     expect(useHistoryStore.getState().history[0]?.name).toBe("GET users renamed");
     expect(useHistoryStore.getState().history[0]?.createdAt).toBe(created);
     expect(
-      new Date(useHistoryStore.getState().history[0]?.updatedAt ?? "").getTime()
+      new Date(useHistoryStore.getState().history[0]?.updatedAt ?? "").getTime(),
     ).toBeGreaterThan(new Date(created ?? "").getTime());
   });
 

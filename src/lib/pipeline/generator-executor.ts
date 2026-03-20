@@ -48,7 +48,7 @@ interface GeneratorOptions {
 export async function* createPipelineGenerator(
   pipeline: Pipeline,
   envVariables: Record<string, string>,
-  options: GeneratorOptions
+  options: GeneratorOptions,
 ): AsyncGenerator<GeneratorYield, void, Record<string, string> | undefined> {
   const { stepTimeoutMs = DEFAULT_STEP_TIMEOUT_MS, abortControls, masterAbort } = options;
 
@@ -89,7 +89,7 @@ export async function* createPipelineGenerator(
       stepIndex,
       "running",
       runtimeVariables,
-      null
+      null,
     );
     pendingSnapshot.startedAt = Date.now();
     pendingSnapshot.streamStatus = "idle";
@@ -111,7 +111,7 @@ export async function* createPipelineGenerator(
         step,
         runtimeVariables,
         envVariables,
-        variableOverrides ?? {}
+        variableOverrides ?? {},
       );
       const queryParams = resolvedStep.params
         .filter((p) => p.enabled && p.key)
@@ -128,7 +128,7 @@ export async function* createPipelineGenerator(
             if (h.enabled && h.key) acc[h.key] = h.value;
             return acc;
           },
-          {} as Record<string, string>
+          {} as Record<string, string>,
         ),
         body: resolvedStep.body,
       };
@@ -190,7 +190,7 @@ export async function* createPipelineGenerator(
           undefined,
           undefined,
           { body: response?.body ?? "", headers: response?.headers ?? {} },
-          "error"
+          "error",
         );
         abortedSnapshot.highlightPath = extractHighlightPath(response?.body);
         snapshots[snapshots.length - 1] = abortedSnapshot;
@@ -216,7 +216,7 @@ export async function* createPipelineGenerator(
           body: resolvedResponse.body,
           headers: resolvedResponse.headers,
         },
-        "done"
+        "done",
       );
 
       snapshots[snapshots.length - 1] = completedSnapshot;
@@ -241,7 +241,7 @@ export async function* createPipelineGenerator(
         undefined,
         undefined,
         undefined,
-        "error"
+        "error",
       );
       failedSnapshot.highlightPath = extractHighlightPath(errorBody);
 
@@ -270,7 +270,7 @@ function cloneRuntimeVariables(value?: Record<string, unknown>) {
 function createStepAbort(
   stepId: string,
   stepTimeoutMs: number,
-  abortControls: Map<string, StepAbortControl>
+  abortControls: Map<string, StepAbortControl>,
 ) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), stepTimeoutMs);
@@ -283,7 +283,7 @@ function clearStepAbort(
   timeoutId: ReturnType<typeof setTimeout>,
   abortControls: Map<string, StepAbortControl>,
   masterAbort: AbortController,
-  onMasterAbort: () => void
+  onMasterAbort: () => void,
 ) {
   clearTimeout(timeoutId);
   abortControls.delete(stepId);
@@ -294,14 +294,14 @@ function buildAbortResult(
   step: PipelineStep,
   stepIndex: number,
   runtimeVariables: Record<string, unknown>,
-  snapshots: StepSnapshot[]
+  snapshots: StepSnapshot[],
 ) {
   const snapshot = createInitialSnapshot(
     step,
     stepIndex,
     "error",
     runtimeVariables,
-    "Pipeline aborted"
+    "Pipeline aborted",
   );
   snapshot.streamStatus = "error";
   snapshot.streamChunks = [];
@@ -312,7 +312,7 @@ function buildAbortResult(
 function buildYield(
   type: GeneratorYield["type"],
   snapshot: StepSnapshot,
-  snapshots: StepSnapshot[]
+  snapshots: StepSnapshot[],
 ) {
   return {
     type,
@@ -325,7 +325,7 @@ function resolveStep(
   step: PipelineStep,
   runtimeVars: Record<string, unknown>,
   envVars: Record<string, string>,
-  variableOverrides: Record<string, string>
+  variableOverrides: Record<string, string>,
 ): PipelineStep {
   const resolve = (value: string) =>
     resolveTemplate(value, runtimeVars, envVars, variableOverrides);

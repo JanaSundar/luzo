@@ -25,7 +25,7 @@ const LABEL: Record<HistoryDayBucket, string> = {
 };
 
 export function groupSavedRequestsByDay<T extends Pick<SavedRequest, "updatedAt">>(
-  items: T[]
+  items: T[],
 ): { bucket: HistoryDayBucket; label: string; items: T[] }[] {
   const buckets: Record<HistoryDayBucket, T[]> = {
     today: [],

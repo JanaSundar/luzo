@@ -21,7 +21,7 @@ describe("CollectionsWorkspace", () => {
     render(<CollectionsWorkspace />);
 
     expect(
-      screen.getByText(/connect your database to unlock reusable collections/i)
+      screen.getByText(/connect your database to unlock reusable collections/i),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open settings/i })).toBeInTheDocument();
   });

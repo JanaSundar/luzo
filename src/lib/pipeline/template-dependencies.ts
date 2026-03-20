@@ -25,7 +25,7 @@ export function collectStepDependencies(step: PipelineStep): TemplateDependency[
   return candidates.flatMap(({ field, value }) =>
     extractVariableRefs(value)
       .map((rawRef) => toDependency(field, rawRef))
-      .filter((dependency): dependency is TemplateDependency => dependency !== null)
+      .filter((dependency): dependency is TemplateDependency => dependency !== null),
   );
 }
 

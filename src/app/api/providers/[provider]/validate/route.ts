@@ -39,7 +39,7 @@ function getModel(provider: AiProvider, apiKey: string) {
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ provider: string }> }
+  { params }: { params: Promise<{ provider: string }> },
 ) {
   try {
     const { provider: providerParam } = await params;
@@ -87,7 +87,7 @@ export async function POST(
 
     return NextResponse.json(
       { valid: false, error: errorMessage },
-      { status: status >= 400 && status < 600 ? status : 500 }
+      { status: status >= 400 && status < 600 ? status : 500 },
     );
   }
 }

@@ -108,7 +108,7 @@ describe("RequestBuilder", () => {
     await user.click(screen.getByRole("tab", { name: /headers/i }));
 
     expect(
-      await screen.findByPlaceholderText(/^header$/i, {}, { timeout: 10000 })
+      await screen.findByPlaceholderText(/^header$/i, {}, { timeout: 10000 }),
     ).toBeInTheDocument();
   });
 });

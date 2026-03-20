@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to fetch schema" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

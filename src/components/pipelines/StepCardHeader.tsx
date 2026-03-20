@@ -43,7 +43,7 @@ export function StepCardHeader({
         type="button"
         onPointerDown={(e) => dragControls.start(e)}
         className={cn(
-          "inline-flex shrink-0 touch-none items-center justify-center rounded border-0 bg-transparent p-0 text-muted-foreground/40 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none select-none cursor-grab active:cursor-grabbing"
+          "inline-flex shrink-0 touch-none items-center justify-center rounded border-0 bg-transparent p-0 text-muted-foreground/40 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none select-none cursor-grab active:cursor-grabbing",
         )}
         aria-label="Drag to reorder"
         title="Drag to reorder"

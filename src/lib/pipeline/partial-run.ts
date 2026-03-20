@@ -55,7 +55,7 @@ export function planPartialPipelineRun({
     pipeline,
     startStepId,
     stepAliases,
-    collectStepDependencies
+    collectStepDependencies,
   );
 
   if (mode === "partial-fresh") {
@@ -96,7 +96,7 @@ export function planPartialPipelineRun({
       partialMode: "partial-previous",
       initialRuntimeVariables: buildRuntimeVariablesFromArtifact(
         artifact as PersistedExecutionArtifact,
-        requiredAliases
+        requiredAliases,
       ),
       reusedAliases: requiredAliases,
       staleContextWarning: isArtifactStale(artifact as PersistedExecutionArtifact, pipeline)
@@ -109,13 +109,13 @@ export function planPartialPipelineRun({
 function formatAliases(
   aliasNames: string[],
   pipeline: Pipeline,
-  stepAliases: ReturnType<typeof buildStepAliases>
+  stepAliases: ReturnType<typeof buildStepAliases>,
 ) {
   const stepNameByAlias = new Map(
     stepAliases.map((alias) => [
       alias.alias,
       pipeline.steps[alias.index]?.name || `Step ${alias.index + 1}`,
-    ])
+    ]),
   );
 
   return aliasNames.map((alias) => `${stepNameByAlias.get(alias) ?? alias} (${alias})`).join(", ");

@@ -42,7 +42,7 @@ export function AIConfigurator() {
         narrativeConfig: { ...narrativeConfig, ...partial },
       });
     },
-    [pipeline, narrativeConfig, updatePipeline]
+    [pipeline, narrativeConfig, updatePipeline],
   );
 
   const handleToneChange = useCallback(
@@ -54,7 +54,7 @@ export function AIConfigurator() {
       handleUpdate({ tone, prompt: newPrompt });
       setReportConfig({ tone, prompt: newPrompt });
     },
-    [currentPrompt, handleUpdate, narrativeConfig, setReportConfig]
+    [currentPrompt, handleUpdate, narrativeConfig, setReportConfig],
   );
 
   const handlePromptChange = useCallback(
@@ -65,7 +65,7 @@ export function AIConfigurator() {
       });
       setReportConfig({ prompt: value });
     },
-    [handleUpdate, narrativeConfig.promptOverrides, narrativeConfig.tone, setReportConfig]
+    [handleUpdate, narrativeConfig.promptOverrides, narrativeConfig.tone, setReportConfig],
   );
 
   const handleLengthChange = useCallback(
@@ -73,7 +73,7 @@ export function AIConfigurator() {
       handleUpdate({ length });
       setReportConfig({ length });
     },
-    [handleUpdate, setReportConfig]
+    [handleUpdate, setReportConfig],
   );
 
   // Sync length from pipeline narrativeConfig to reportConfig store

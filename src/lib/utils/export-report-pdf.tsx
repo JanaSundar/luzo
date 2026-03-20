@@ -18,7 +18,7 @@ export interface ExportReportOptions {
 
 export async function exportReport(
   options: ExportReportOptions,
-  format: ExportFormat
+  format: ExportFormat,
 ): Promise<void> {
   const model = buildExportReportModel(options);
   const filenameBase = slugifyFilenamePart(model.title, "api-report");
@@ -33,7 +33,7 @@ export async function exportReport(
     downloadTextFile(
       buildReportJson(model),
       createTimestampedFilename(filenameBase, "json"),
-      "application/json"
+      "application/json",
     );
     return;
   }
@@ -41,7 +41,7 @@ export async function exportReport(
   downloadTextFile(
     buildReportMarkdown(model),
     createTimestampedFilename(filenameBase, "md"),
-    "text/markdown"
+    "text/markdown",
   );
 }
 

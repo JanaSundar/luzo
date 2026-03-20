@@ -45,7 +45,7 @@ export function buildCheckpointArtifact(
     totalSteps?: number;
     errorMessage?: string | null;
     pipeline?: Pipeline;
-  }
+  },
 ): CheckpointArtifact {
   const pipeline = options.pipeline;
   const aliases = pipeline ? buildStepAliases(pipeline.steps) : [];
@@ -68,7 +68,7 @@ export function buildCheckpointArtifact(
       errorMessage: options.errorMessage ?? null,
     },
     steps: snapshots.map((snapshot) =>
-      toStepArtifact(snapshot, aliasByStepId.get(snapshot.stepId) ?? "")
+      toStepArtifact(snapshot, aliasByStepId.get(snapshot.stepId) ?? ""),
     ),
     stepContextByAlias: buildContextByAlias(aliases, runtimeVariables, snapshots),
     warnings: options.staleContextWarning ? [options.staleContextWarning] : [],
@@ -138,7 +138,7 @@ function buildRuntimeFromArtifact(artifact: CheckpointArtifact): Record<string, 
   return Object.fromEntries(
     Object.values(artifact.stepContextByAlias)
       .filter((context): context is PersistedStepContext => Boolean(context))
-      .map((context) => [context.alias, cloneVal(context.payload)])
+      .map((context) => [context.alias, cloneVal(context.payload)]),
   );
 }
 
@@ -164,10 +164,10 @@ function toStepArtifact(snapshot: StepSnapshot, alias: string): PersistedStepArt
 function buildContextByAlias(
   aliases: StepAlias[],
   runtimeVariables: Record<string, unknown>,
-  snapshots: StepSnapshot[]
+  snapshots: StepSnapshot[],
 ): Record<string, PersistedStepContext> {
   const snapshotByAlias = new Map(
-    snapshots.filter((s) => s.status === "success").map((s) => [s.stepId, s] as const)
+    snapshots.filter((s) => s.status === "success").map((s) => [s.stepId, s] as const),
   );
 
   return Object.fromEntries(
@@ -204,7 +204,7 @@ function buildContextByAlias(
           } satisfies PersistedStepContext,
         ] as const;
       })
-      .filter((e): e is [string, PersistedStepContext] => e !== null)
+      .filter((e): e is [string, PersistedStepContext] => e !== null),
   );
 }
 
@@ -214,7 +214,7 @@ function buildPipelineHash(pipeline: Pipeline): string {
       id: step.id,
       method: step.method,
       url: step.url,
-    }))
+    })),
   );
   let hash = 5381;
   for (let i = 0; i < raw.length; i++) {

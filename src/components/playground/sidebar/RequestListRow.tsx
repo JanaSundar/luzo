@@ -53,7 +53,7 @@ export function RequestListRow({
       <span
         className={cn(
           plainMethod ? httpMethodPlainExpandedClass(method) : httpMethodBadgeClass(method),
-          plainMethod && "min-w-0"
+          plainMethod && "min-w-0",
         )}
       >
         {method}
@@ -101,7 +101,7 @@ export function RequestListRow({
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     !plain && "hover:bg-transparent",
     !plain && isActive && "font-medium text-foreground",
-    plain && "hover:bg-transparent"
+    plain && "hover:bg-transparent",
   );
 
   const inner = collapsed ? collapsedBody : expandedBody;
@@ -146,7 +146,7 @@ export function RequestListRow({
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
           "hover:bg-destructive/10 hover:text-destructive",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
       >
         <Trash2 className="h-3.5 w-3.5 shrink-0" />

@@ -64,6 +64,6 @@ export const useReportStore = create<ReportState>()(
     {
       name: "luzo-report-store",
       storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-reports" })),
-    }
-  )
+    },
+  ),
 );

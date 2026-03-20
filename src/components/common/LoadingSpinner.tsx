@@ -39,7 +39,7 @@ export function LoadingSpinner({
           size === "sm" && "text-base",
           size === "md" && "text-lg",
           size === "lg" && "text-xl",
-          className
+          className,
         )}
       >
         {DOTS_FRAMES[frame]}

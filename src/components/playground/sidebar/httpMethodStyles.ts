@@ -22,7 +22,7 @@ export function httpMethodTextClass(method: string): string {
 export function httpMethodPlainExpandedClass(method: string): string {
   return cn(
     "inline-flex min-w-[2.75rem] shrink-0 justify-start text-[9px] font-bold uppercase tracking-wide tabular-nums leading-none",
-    httpMethodTextClass(method)
+    httpMethodTextClass(method),
   );
 }
 
@@ -37,7 +37,7 @@ export function httpMethodBadgeClass(method: string, options?: { naturalWidth?: 
     method === "PUT" && "bg-orange-500/10 text-orange-700 dark:text-orange-400",
     method === "DELETE" && "bg-red-500/10 text-red-600 dark:text-red-400",
     !["GET", "POST", "PATCH", "PUT", "DELETE"].includes(method) &&
-      "bg-muted/50 text-muted-foreground"
+      "bg-muted/50 text-muted-foreground",
   );
 }
 
@@ -51,7 +51,7 @@ export function httpMethodLetter(method: string): string {
 export function httpMethodLetterBareClass(method: string): string {
   return cn(
     "flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold leading-none tabular-nums",
-    httpMethodTextClass(method)
+    httpMethodTextClass(method),
   );
 }
 
@@ -65,6 +65,6 @@ export function httpMethodLetterClass(method: string): string {
     m === "PATCH" && "bg-amber-500/15 text-amber-800 dark:text-amber-400",
     m === "PUT" && "bg-orange-500/10 text-orange-700 dark:text-orange-400",
     m === "DELETE" && "bg-red-500/10 text-red-600 dark:text-red-400",
-    !["GET", "POST", "PATCH", "PUT", "DELETE"].includes(m) && "bg-muted/50 text-muted-foreground"
+    !["GET", "POST", "PATCH", "PUT", "DELETE"].includes(m) && "bg-muted/50 text-muted-foreground",
   );
 }

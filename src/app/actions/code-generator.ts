@@ -5,7 +5,7 @@ import type { ApiRequest, CodeGenerationOptions } from "@/types";
 
 export async function generateCodeAction(
   request: ApiRequest,
-  options: CodeGenerationOptions
+  options: CodeGenerationOptions,
 ): Promise<string> {
   try {
     return generateCode(request, options);

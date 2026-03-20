@@ -181,7 +181,7 @@ export function PlaygroundSidebar() {
       <div
         className={cn(
           "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-          "group-data-[collapsible=icon]:mx-1.5 group-data-[collapsible=icon]:my-2 group-data-[collapsible=icon]:max-h-[calc(100svh-3.5rem-1rem)] group-data-[collapsible=icon]:rounded-2xl group-data-[collapsible=icon]:border group-data-[collapsible=icon]:border-border/45 group-data-[collapsible=icon]:bg-sidebar group-data-[collapsible=icon]:shadow-md"
+          "group-data-[collapsible=icon]:mx-1.5 group-data-[collapsible=icon]:my-2 group-data-[collapsible=icon]:max-h-[calc(100svh-3.5rem-1rem)] group-data-[collapsible=icon]:rounded-2xl group-data-[collapsible=icon]:border group-data-[collapsible=icon]:border-border/45 group-data-[collapsible=icon]:bg-sidebar group-data-[collapsible=icon]:shadow-md",
         )}
       >
         <PlaygroundSidebarHeader
@@ -196,7 +196,7 @@ export function PlaygroundSidebar() {
         <div
           className={cn(
             "shrink-0 px-3 pb-2",
-            "group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:pb-2"
+            "group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:pb-2",
           )}
         >
           <SidebarWorkspaceTabs tab={tab} onTabChange={setTab} collapsed={collapsed} />
@@ -242,13 +242,13 @@ export function PlaygroundSidebar() {
               "flex w-full gap-2 px-1",
               collapsed
                 ? "flex-col items-center justify-center gap-1.5"
-                : "flex-row items-center justify-between"
+                : "flex-row items-center justify-between",
             )}
           >
             <SidebarTrigger
               className={cn(
                 "h-8 w-8 shrink-0 rounded-lg text-muted-foreground",
-                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7"
+                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
               )}
             />
             <Link
@@ -258,7 +258,7 @@ export function PlaygroundSidebar() {
               className={cn(
                 buttonVariants({ variant: "ghost", size: "icon" }),
                 "h-8 w-8 shrink-0 rounded-lg",
-                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7"
+                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
               )}
             >
               <Settings className="h-4 w-4 text-muted-foreground" />

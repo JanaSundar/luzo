@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!connectionResult.ok) {
       return NextResponse.json(
         { connected: false, error: connectionResult.error, latencyMs: connectionResult.latencyMs },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!schemaResult.ok) {
       return NextResponse.json(
         { connected: true, schemaReady: false, error: schemaResult.error },
-        { status: 500 }
+        { status: 500 },
       );
     }
 

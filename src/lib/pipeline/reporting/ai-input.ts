@@ -35,7 +35,7 @@ const IMPORTANT_REQUEST_HEADERS = [
 
 function filterHeaders(
   headers: Record<string, string>,
-  importantList: string[]
+  importantList: string[],
 ): Record<string, string> {
   const filtered: Record<string, string> = {};
   for (const key of importantList) {
@@ -51,7 +51,7 @@ function filterHeaders(
 export function buildToneFilteredAiInput(
   context: ReducedContext,
   tone: NarrativeTone,
-  length: ReportLength = "medium"
+  length: ReportLength = "medium",
 ) {
   if (tone === "executive") {
     return {

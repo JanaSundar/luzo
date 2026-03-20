@@ -16,7 +16,7 @@ export function buildExecutionArtifact(
   pipeline: Pipeline,
   snapshots: StepSnapshot[],
   runtime: DebugRuntimeState,
-  runtimeVariables: Record<string, unknown>
+  runtimeVariables: Record<string, unknown>,
 ): PersistedExecutionArtifact {
   const aliases = buildStepAliases(pipeline.steps);
   const aliasByStepId = new Map(aliases.map((alias) => [alias.stepId, alias.alias]));
@@ -33,7 +33,7 @@ export function buildExecutionArtifact(
       completedAt: runtime.completedAt,
     },
     steps: snapshots.map((snapshot) =>
-      toStepArtifact(snapshot, aliasByStepId.get(snapshot.stepId) ?? "")
+      toStepArtifact(snapshot, aliasByStepId.get(snapshot.stepId) ?? ""),
     ),
     stepContextByAlias: buildContextByAlias(aliases, runtimeVariables, snapshots),
     warnings: runtime.staleContextWarning ? [runtime.staleContextWarning] : [],
@@ -41,7 +41,7 @@ export function buildExecutionArtifact(
 }
 
 export function buildExecutionResultFromArtifact(
-  artifact: PersistedExecutionArtifact
+  artifact: PersistedExecutionArtifact,
 ): PipelineExecutionResult | null {
   if (artifact.steps.length === 0) return null;
 
@@ -70,14 +70,14 @@ export function buildExecutionResultFromArtifact(
 
 export function buildRuntimeVariablesFromArtifact(
   artifact: PersistedExecutionArtifact,
-  aliases?: string[]
+  aliases?: string[],
 ): Record<string, unknown> {
   const activeAliases = aliases ?? Object.keys(artifact.stepContextByAlias);
   return Object.fromEntries(
     activeAliases
       .map((alias) => artifact.stepContextByAlias[alias])
       .filter((context): context is PersistedStepContext => Boolean(context))
-      .map((context) => [context.alias, cloneValue(context.payload)])
+      .map((context) => [context.alias, cloneValue(context.payload)]),
   );
 }
 
@@ -123,7 +123,7 @@ export function getRequiredPreviousAliases(
   pipeline: Pipeline,
   startStepId: string,
   aliases: StepAlias[],
-  collectDependencies: (step: Pipeline["steps"][number]) => Array<{ alias: string }>
+  collectDependencies: (step: Pipeline["steps"][number]) => Array<{ alias: string }>,
 ) {
   const startIndex = pipeline.steps.findIndex((step) => step.id === startStepId);
   if (startIndex === -1) return [];
@@ -134,7 +134,7 @@ export function getRequiredPreviousAliases(
       pipeline.steps
         .slice(startIndex)
         .flatMap((step) => collectDependencies(step).map((dependency) => dependency.alias))
-        .filter((alias) => allowedAliases.has(alias))
+        .filter((alias) => allowedAliases.has(alias)),
     ),
   ];
 }
@@ -149,7 +149,7 @@ export function buildPipelineStructureHash(pipeline: Pipeline) {
       params: step.params.map(({ key, value, enabled }) => ({ key, value, enabled })),
       body: step.body,
       bodyType: step.bodyType,
-    }))
+    })),
   );
 
   let hash = 5381;
@@ -208,12 +208,12 @@ function parseResponseBody(fullBody?: string) {
 function buildContextByAlias(
   aliases: StepAlias[],
   runtimeVariables: Record<string, unknown>,
-  snapshots: StepSnapshot[]
+  snapshots: StepSnapshot[],
 ) {
   const snapshotByAlias = new Map(
     snapshots
       .filter((snapshot) => snapshot.status === "success")
-      .map((snapshot) => [snapshot.stepId, snapshot] as const)
+      .map((snapshot) => [snapshot.stepId, snapshot] as const),
   );
 
   return Object.fromEntries(
@@ -235,7 +235,7 @@ function buildContextByAlias(
         if (!snapshot) return null;
         return [alias.alias, buildStepContext(alias.alias, snapshot)] as const;
       })
-      .filter((entry): entry is [string, PersistedStepContext] => Boolean(entry))
+      .filter((entry): entry is [string, PersistedStepContext] => Boolean(entry)),
   );
 }
 

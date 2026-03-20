@@ -52,7 +52,7 @@ export function PipelineSidebar({
       className={cn(
         "bg-muted/20 flex flex-col min-h-0 border-r",
         "fixed inset-y-0 left-0 z-40 w-64 transition-transform duration-200 lg:relative lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
       <div className="p-4 border-b flex items-center justify-between">
@@ -67,7 +67,7 @@ export function PipelineSidebar({
             size="xs"
             className={cn(
               "px-2 font-bold uppercase tracking-widest text-[9px]",
-              selectionMode && "bg-primary/10 text-primary"
+              selectionMode && "bg-primary/10 text-primary",
             )}
           >
             {selectionMode ? "Cancel" : "Select"}
@@ -81,7 +81,7 @@ export function PipelineSidebar({
       <div
         className={cn(
           "grid border-b transition-[grid-template-rows] duration-200 ease-out",
-          selectionMode ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          selectionMode ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
         <div className="min-h-0 overflow-hidden">
@@ -152,7 +152,7 @@ export function PipelineSidebar({
                   "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-primary",
                   activePipelineId === p.id && !selectionMode
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted",
                 )}
               >
                 {selectionMode ? (
@@ -167,7 +167,7 @@ export function PipelineSidebar({
                   <div
                     className={cn(
                       "h-2 w-2 rounded-full shrink-0",
-                      activePipelineId === p.id ? "bg-primary-foreground" : "bg-primary"
+                      activePipelineId === p.id ? "bg-primary-foreground" : "bg-primary",
                     )}
                   />
                 )}
@@ -179,7 +179,7 @@ export function PipelineSidebar({
                       "flex items-center gap-0.5 shrink-0 transition-opacity",
                       activePipelineId === p.id
                         ? "opacity-70 hover:opacity-100"
-                        : "opacity-0 group-hover:opacity-70"
+                        : "opacity-0 group-hover:opacity-70",
                     )}
                   >
                     <button

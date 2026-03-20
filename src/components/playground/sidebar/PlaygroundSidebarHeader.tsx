@@ -30,7 +30,7 @@ export function PlaygroundSidebarHeader({
     <SidebarHeader
       className={cn(
         "gap-3 border-b border-border/40 p-3",
-        "group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:pt-2"
+        "group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:pt-2",
       )}
     >
       <div className="hidden w-full flex-col items-center group-data-[collapsible=icon]:flex">
@@ -46,7 +46,7 @@ export function PlaygroundSidebarHeader({
               className={cn(
                 "rounded-md p-1 text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                !canCreateCollection && "cursor-not-allowed opacity-40"
+                !canCreateCollection && "cursor-not-allowed opacity-40",
               )}
             >
               <Plus className="h-3.5 w-3.5" />

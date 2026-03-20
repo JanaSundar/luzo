@@ -35,7 +35,7 @@ export class DebugController {
   start(
     pipeline: Pipeline,
     envVars: Record<string, string>,
-    options: ControllerOptions
+    options: ControllerOptions,
   ): { valid: boolean; errors?: string[] } {
     if (this.isRunning) return { valid: false, errors: ["Pipeline is already running"] };
 
@@ -169,7 +169,7 @@ export class DebugController {
         "[DebugController] step() ignored. Status:",
         this.status,
         "advancing:",
-        this.isAdvancing
+        this.isAdvancing,
       );
       return;
     }
@@ -235,7 +235,7 @@ export class DebugController {
     // 2. If no error but we were stopped/aborted, find the first unfinished step
     if (failedIndex === -1 && (this.status === "interrupted" || this.status === "aborted")) {
       failedIndex = this.snapshots.findIndex(
-        (s) => s.status !== "success" && s.status !== "done" && s.status !== "skipped"
+        (s) => s.status !== "success" && s.status !== "done" && s.status !== "skipped",
       );
     }
 

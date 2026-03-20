@@ -131,7 +131,8 @@
   * {
     @apply border-border outline-ring/50;
   }
-  button, [role="button"] {
+  button,
+  [role="button"] {
     @apply cursor-pointer;
   }
   body {

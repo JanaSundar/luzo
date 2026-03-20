@@ -113,7 +113,7 @@ const TABLES = [
 ] as const;
 
 export async function ensureRuntimeSchema(
-  sql: ReturnType<typeof postgres>
+  sql: ReturnType<typeof postgres>,
 ): Promise<RuntimeSchemaStatus> {
   const tables = await Promise.all(TABLES.map((table) => ensureTable(sql, table)));
   const warnings = tables.flatMap((table) => table.warnings);
@@ -122,7 +122,7 @@ export async function ensureRuntimeSchema(
 
 async function ensureTable(
   sql: ReturnType<typeof postgres>,
-  table: (typeof TABLES)[number]
+  table: (typeof TABLES)[number],
 ): Promise<RuntimeTableStatus> {
   const exists = await hasTable(sql, table.name);
   if (!exists) {
@@ -141,7 +141,7 @@ async function ensureTable(
         column.name,
         { expectedType: column.dataType, actualType, exists: existsAfterCreate, matches },
       ];
-    })
+    }),
   ) as RuntimeTableStatus["columns"];
 
   for (const column of table.columns) {
@@ -160,7 +160,7 @@ async function ensureTable(
 
     if (normalizeType(actualType) !== column.dataType) {
       warnings.push(
-        `${table.name}.${column.name} expected ${column.dataType} but found ${actualType}. Review this column manually.`
+        `${table.name}.${column.name} expected ${column.dataType} but found ${actualType}. Review this column manually.`,
       );
       columns[column.name] = {
         expectedType: column.dataType,
@@ -195,7 +195,7 @@ async function getColumns(sql: ReturnType<typeof postgres>, tableName: string) {
     rows.map((row) => [
       row.column_name,
       row.data_type === "USER-DEFINED" ? row.udt_name : row.data_type,
-    ])
+    ]),
   );
 }
 

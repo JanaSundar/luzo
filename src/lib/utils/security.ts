@@ -73,7 +73,7 @@ export function validateUrl(url: string): ValidationResult {
       if (INTERNAL_RANGES.includes(range)) {
         return { valid: false, error: "Requests to internal/private addresses are not allowed" };
       }
-    } catch (_error: unknown) {
+    } catch {
       // If parsing fails despite isValid (unlikely), block it to be safe if it looks like an IP
       return { valid: false, error: "Invalid IP address format" };
     }
@@ -103,7 +103,7 @@ export function sanitizeHeader(key: string, value: string): ValidationResult {
 }
 
 export function validateHeaders(
-  headers: Array<{ key: string; value: string; enabled?: boolean }>
+  headers: Array<{ key: string; value: string; enabled?: boolean }>,
 ): ValidationResult {
   const enabled = headers.filter((h) => h.enabled !== false && h.key);
   if (enabled.length > MAX_HEADERS) {
@@ -117,7 +117,7 @@ export function validateHeaders(
 }
 
 export function validateParams(
-  params: Array<{ key: string; value: string; enabled?: boolean }>
+  params: Array<{ key: string; value: string; enabled?: boolean }>,
 ): ValidationResult {
   const enabled = params.filter((p) => p.enabled !== false && p.key);
   if (enabled.length > MAX_PARAMS) {
@@ -155,7 +155,7 @@ export function validateScript(script: string): ValidationResult {
 }
 
 export function validateMethod(
-  method: string
+  method: string,
 ): method is "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" {
   const allowed = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
   return allowed.includes(method?.toUpperCase());

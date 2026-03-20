@@ -9,12 +9,12 @@ export interface ProcessedResponse {
  */
 export async function processResponseBody(
   rawData: ArrayBuffer,
-  contentType: string
+  contentType: string,
 ): Promise<ProcessedResponse> {
   const size = rawData.byteLength;
   const lowerContentType = contentType.toLowerCase().split(";")[0].trim();
 
-  const isImage = /^image\//.test(lowerContentType);
+  const isImage = lowerContentType.startsWith("image/");
   const isPdf = lowerContentType === "application/pdf";
   const isBinaryPreview = isImage || isPdf;
 

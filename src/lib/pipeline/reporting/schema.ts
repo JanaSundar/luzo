@@ -11,7 +11,7 @@ const narrativeOutputSchema = z.object({
       z.object({
         name: z.string(),
         analysis: z.string(),
-      })
+      }),
     )
     .default([]),
   risks: z.array(z.string()).default([]),
@@ -35,7 +35,7 @@ const technicalOutputSchema = z.object({
       status: z.string(),
       issues: z.array(z.string()),
       observations: z.array(z.string()),
-    })
+    }),
   ),
   recommendations: z.array(z.string()),
 });
@@ -93,7 +93,7 @@ function buildTitleHint(derivedTitle?: string): string {
 export function buildReportSystemPrompt(
   tone: NarrativeTone,
   length: ReportLength,
-  derivedTitle?: string
+  derivedTitle?: string,
 ) {
   if (tone === "technical") {
     const parts = [
@@ -132,7 +132,7 @@ export function buildReportSystemPrompt(
           recommendations: "string[]",
         },
         null,
-        2
+        2,
       ),
       "",
       buildSpecificityConstraint(),

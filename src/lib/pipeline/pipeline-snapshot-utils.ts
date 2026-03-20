@@ -34,7 +34,7 @@ export function createInitialSnapshot(
   variables: Record<string, unknown>,
   error: string | null,
   entryType: EntryType = "request",
-  streamStatus: StreamStatus = "idle"
+  streamStatus: StreamStatus = "idle",
 ): StepSnapshot {
   return {
     stepId: step.id,
@@ -65,7 +65,7 @@ export function createCompletedSnapshot(
   preRequestResult?: ScriptResult,
   testResult?: ScriptResult,
   fullResponse?: { body: string; headers: Record<string, string> },
-  streamStatus: StreamStatus = "done"
+  streamStatus: StreamStatus = "done",
 ): StepSnapshot {
   return {
     ...base,
@@ -87,7 +87,7 @@ export function createCompletedSnapshot(
 }
 
 export function resultToSnapshots(
-  results: Array<ApiResponse & { stepId: string; stepName: string; method: string; url: string }>
+  results: Array<ApiResponse & { stepId: string; stepName: string; method: string; url: string }>,
 ): StepSnapshot[] {
   return results.map((result, i) => ({
     stepId: result.stepId,

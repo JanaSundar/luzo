@@ -10,7 +10,7 @@ import get from "lodash-es/get";
 export function interpolatePipelineVariables(
   template: string,
   envVariables: Record<string, string>,
-  executionContext: Record<string, unknown>
+  executionContext: Record<string, unknown>,
 ): string {
   if (!template) return template;
 

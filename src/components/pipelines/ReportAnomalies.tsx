@@ -16,7 +16,7 @@ function AnomalyCard({ anomaly }: { anomaly: StepSnapshot }) {
     <div
       className={cn(
         "flex items-start gap-3 p-4 rounded-lg border-2",
-        isError ? "bg-red-500/10 border-red-500/40" : "bg-amber-500/10 border-amber-500/40"
+        isError ? "bg-red-500/10 border-red-500/40" : "bg-amber-500/10 border-amber-500/40",
       )}
     >
       {isError ? (

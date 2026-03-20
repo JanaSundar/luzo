@@ -43,7 +43,7 @@ export function createNarrativeReport(
   context: ReducedContext,
   config: AIReportConfig,
   output: NarrativeAiOutput,
-  derivedTitle?: string
+  derivedTitle?: string,
 ): NarrativeReport {
   const endpointMetrics = toEndpointMetrics(context);
 
@@ -112,7 +112,7 @@ export function createReportCache(
   cacheKey: string,
   config: AIReportConfig,
   report: NarrativeReport,
-  mode: "preview" | "ai"
+  mode: "preview" | "ai",
 ): AIReportCache {
   return {
     cacheKey,
@@ -135,7 +135,7 @@ function uniqueItems(items: string[]) {
 function fallbackRequestAnalysis(
   name: string,
   statusCode: number | null,
-  latencyMs: number | null
+  latencyMs: number | null,
 ) {
   if (statusCode != null && statusCode >= 400) {
     return `${name} returned an error response (${statusCode}) and needs follow-up.`;
