@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps, cva } from "class-variance-authority";
 import { LayoutGroup, motion } from "motion/react";
 import { createContext, useContext, useId } from "react";
 import { cn } from "@/lib/utils";

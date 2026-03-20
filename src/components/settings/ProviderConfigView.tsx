@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { MODEL_REGISTRY } from "@/config/model-registry";
 import { validateApiKey } from "@/lib/settings/api-key-validation";
-import { fetchProviderModels, type ProviderModel } from "@/lib/settings/fetch-provider-models";
+import { type ProviderModel, fetchProviderModels } from "@/lib/settings/fetch-provider-models";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
