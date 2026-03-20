@@ -155,13 +155,13 @@ src/
 
 ## Scripts
 
-| Command      | Description              |
-| ------------ | ------------------------ |
-| `pnpm dev`   | Start development server |
-| `pnpm build` | Production build         |
-| `pnpm test`  | Run test suite           |
-| `pnpm lint`  | Lint with Oxlint        |
-| `pnpm format`| Format with Oxfmt        |
+| Command       | Description              |
+| ------------- | ------------------------ |
+| `pnpm dev`    | Start development server |
+| `pnpm build`  | Production build         |
+| `pnpm test`   | Run test suite           |
+| `pnpm lint`   | Lint with Oxlint         |
+| `pnpm format` | Format with Oxfmt        |
 
 ---
 

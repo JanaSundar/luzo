@@ -11,12 +11,13 @@ import {
   Wrench,
 } from "lucide-react";
 import type { ReactNode, SVGProps } from "react";
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import { buildExportReportModel } from "@/lib/reports/export-model";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { cn } from "@/lib/utils";
 import { ReportPerformanceTable } from "./ReportPerformanceTable";
+import { Streamdown } from "streamdown";
 
 export function ReportPreview() {
   const { pipelines, activePipelineId, executionResult } = usePipelineStore();
@@ -146,7 +147,7 @@ export function ReportPreview() {
                     {req.url}
                   </p>
                   <div className="text-sm leading-snug text-foreground/80 pl-4 border-l-2 border-primary/20 italic">
-                    <Markdown text={req.analysis} />
+                    <Streamdown>{req.analysis}</Streamdown>
                   </div>
                 </div>
               ))}
@@ -187,32 +188,6 @@ function ReportStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Markdown({ text }: { text: string }) {
-  const paragraphs = text.split(/\n\n+/);
-
-  return (
-    <div className="space-y-4">
-      {paragraphs.map((para, pIdx) => {
-        const parts = para.split(/(\*\*.*?\*\*)/g);
-        return (
-          <p key={pIdx} className="leading-relaxed">
-            {parts.map((part, i) => {
-              if (part.startsWith("**") && part.endsWith("**")) {
-                return (
-                  <strong key={i} className="text-primary font-bold bg-primary/5 px-1 rounded">
-                    {part.slice(2, -2)}
-                  </strong>
-                );
-              }
-              return <Fragment key={i}>{part}</Fragment>;
-            })}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
 function ReportSection({
   title,
   icon,
@@ -232,7 +207,7 @@ function ReportSection({
       </div>
       {content && (
         <div className="text-sm leading-relaxed text-foreground/90 pl-1">
-          <Markdown text={content} />
+          <Streamdown>{content}</Streamdown>
         </div>
       )}
       {items && items.length > 0 && (
@@ -244,7 +219,7 @@ function ReportSection({
             >
               <span className="text-primary/40 font-black mt-1 shrink-0">•</span>
               <div className="text-sm leading-relaxed text-foreground/80">
-                <Markdown text={item} />
+                <Streamdown>{item}</Streamdown>
               </div>
             </li>
           ))}
