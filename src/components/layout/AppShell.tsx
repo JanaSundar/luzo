@@ -22,10 +22,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <Header />
       <motion.main
-        className="flex flex-1 min-h-0 relative"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-1 min-h-0 w-full relative"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
         <ErrorBoundary>{children}</ErrorBoundary>
       </motion.main>

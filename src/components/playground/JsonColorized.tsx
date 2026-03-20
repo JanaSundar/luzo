@@ -191,7 +191,10 @@ export function JsonLine({
   style?: React.CSSProperties;
 }) {
   return (
-    <div style={style} className="whitespace-pre font-mono text-xs leading-relaxed flex">
+    <div
+      style={style}
+      className="min-w-0 max-w-full whitespace-pre-wrap break-words font-mono text-xs leading-relaxed"
+    >
       {line.tokens.map((t) => (
         <span key={t.id} className={TOKEN_CLASSES[t.type] || ""}>
           {highlight ? highlightText(t.value, highlight) : t.value}
@@ -205,7 +208,7 @@ export function JsonColorized({ text, highlight }: { text: string; highlight?: s
   const lines = useJsonLines(text);
 
   return (
-    <code className="block whitespace-pre wrap-break-word font-mono text-xs leading-relaxed">
+    <code className="block min-w-0 max-w-full whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
       {lines.map((line) => (
         <JsonLine key={line.id} line={line} highlight={highlight} />
       ))}

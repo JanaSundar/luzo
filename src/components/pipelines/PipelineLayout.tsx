@@ -16,7 +16,7 @@ interface PipelineLayoutProps {
   onRun?: () => void;
   onDebug?: () => void;
   onStop?: () => void;
-  onGenerateReport?: () => void;
+  onGenerateReport?: (force?: boolean) => void;
   onExportReport?: (format: ExportFormat) => void;
 }
 
@@ -43,14 +43,8 @@ export function PipelineLayout({
 
   const [skipDeleteConfirmation, setSkipDeleteConfirmation] = useState(false);
 
-  const {
-    isGeneratingReport,
-    isExportingPDF,
-    isReportDirty,
-    reportsByPipelineId,
-    selectedSignals,
-    aiProvider,
-  } = usePipelineDebugStore();
+  const { isGeneratingReport, isExportingPDF, reportsByPipelineId, aiProvider } =
+    usePipelineDebugStore();
   const status = usePipelineExecutionStore((state) => state.status);
   const snapshots = usePipelineExecutionStore((state) => state.snapshots);
   const resetSession = usePipelineExecutionStore((state) => state.reset);
@@ -190,9 +184,7 @@ export function PipelineLayout({
           onExportReport={onExportReport}
           isGeneratingReport={isGeneratingReport}
           isExportingPDF={isExportingPDF}
-          isReportDirty={isReportDirty}
           hasGeneratedReport={hasGeneratedReport}
-          selectedSignalsCount={selectedSignals.length}
           hasAIProvider={Boolean(aiProvider.apiKey)}
         />
 
@@ -200,10 +192,10 @@ export function PipelineLayout({
           {activePipelineId ? (
             <motion.div
               key={currentView}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="h-full min-h-0"
             >
               {children}
             </motion.div>

@@ -31,58 +31,61 @@ export function usePipelineReportActions({
   const aiProviderConfig = usePipelineDebugStore((state) => state.aiProvider);
   const setView = usePipelineStore((state) => state.setView);
 
-  const handleGenerateReport = useCallback(async () => {
-    const { signalGroups, selectedSignals, reportConfig, isReportDirty, aiProvider } =
-      usePipelineDebugStore.getState();
-    const { executionResult } = usePipelineStore.getState();
-    const currentSnapshots = usePipelineExecutionStore.getState().snapshots;
+  const handleGenerateReport = useCallback(
+    async (force = false) => {
+      const { signalGroups, selectedSignals, reportConfig, isReportDirty, aiProvider } =
+        usePipelineDebugStore.getState();
+      const { executionResult } = usePipelineStore.getState();
+      const currentSnapshots = usePipelineExecutionStore.getState().snapshots;
 
-    if (!activePipeline || currentSnapshots.length === 0 || signalGroups.length === 0) {
-      toast.error("Run the pipeline first to generate a report");
-      return;
-    }
-
-    if (!aiProvider.apiKey) {
-      toast.error("AI provider not configured. Please add your API key in settings.");
-      return;
-    }
-
-    setGeneratingReport(true);
-    try {
-      const context = buildReducedContext(signalGroups, selectedSignals, currentSnapshots);
-      const cacheKey = createReportCacheKey(context, reportConfig);
-      const cachedReport = getReport(activePipeline.id);
-
-      if (cachedReport?.cacheKey === cacheKey && !isReportDirty) {
-        setView("report");
-        toast.success("Loaded saved report");
+      if (!activePipeline || currentSnapshots.length === 0 || signalGroups.length === 0) {
+        toast.error("Run the pipeline first to generate a report");
         return;
       }
 
-      const derivedTitle = executionResult
-        ? deriveReportTitle(
-            executionResult.results.map((result) => ({ method: result.method, url: result.url }))
-          )
-        : undefined;
-      const result = await generateAIReport({
-        context,
-        config: reportConfig,
-        provider: aiProviderConfig,
-        derivedTitle,
-      });
+      if (!aiProvider.apiKey) {
+        toast.error("AI provider not configured. Please add your API key in settings.");
+        return;
+      }
 
-      saveReport(
-        activePipeline.id,
-        createReportCache(cacheKey, reportConfig, result.report, result.mode)
-      );
-      setView("report");
-      toast.success("Intelligence report generated");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Report generation failed");
-    } finally {
-      setGeneratingReport(false);
-    }
-  }, [activePipeline, aiProviderConfig, getReport, saveReport, setGeneratingReport, setView]);
+      setGeneratingReport(true);
+      try {
+        const context = buildReducedContext(signalGroups, selectedSignals, currentSnapshots);
+        const cacheKey = createReportCacheKey(context, reportConfig);
+        const cachedReport = getReport(activePipeline.id);
+
+        if (cachedReport?.cacheKey === cacheKey && !isReportDirty && !force) {
+          setView("report");
+          toast.success("Loaded saved report");
+          return;
+        }
+
+        const derivedTitle = executionResult
+          ? deriveReportTitle(
+              executionResult.results.map((result) => ({ method: result.method, url: result.url }))
+            )
+          : undefined;
+        const result = await generateAIReport({
+          context,
+          config: reportConfig,
+          provider: aiProviderConfig,
+          derivedTitle,
+        });
+
+        saveReport(
+          activePipeline.id,
+          createReportCache(cacheKey, reportConfig, result.report, result.mode)
+        );
+        setView("report");
+        toast.success("Intelligence report generated");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Report generation failed");
+      } finally {
+        setGeneratingReport(false);
+      }
+    },
+    [activePipeline, aiProviderConfig, getReport, saveReport, setGeneratingReport, setView]
+  );
 
   const handleExportReport = useCallback(
     async (format: ExportFormat) => {

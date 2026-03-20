@@ -17,6 +17,7 @@ import {
   TestSuiteName,
   TestSuiteStats,
 } from "@/components/common/TestResults";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 
@@ -36,23 +37,35 @@ export function ResponseTabBar({
   onTabChange: (tab: ResponsePanelTab) => void;
 }) {
   return (
-    <nav className="flex shrink-0 items-center gap-0 border-b bg-muted/10">
-      {RESPONSE_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => onTabChange(tab.id)}
-          className={cn(
-            "border-b-2 -mb-px px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all",
-            panelTab === tab.id
-              ? "border-foreground bg-background text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </nav>
+    <div className="flex shrink-0 items-center border-b bg-muted/10 px-4 py-2.5">
+      <div
+        role="tablist"
+        aria-label="Response panels"
+        className={cn(
+          "inline-flex w-fit min-w-0 max-w-full items-stretch overflow-x-auto",
+          segmentedTabListClassName
+        )}
+      >
+        {RESPONSE_TABS.map((tab) => {
+          const active = panelTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onTabChange(tab.id)}
+              className={segmentedTabTriggerClassName(
+                active,
+                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

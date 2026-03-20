@@ -80,6 +80,9 @@ importers:
       ipaddr.js:
         specifier: ^2.3.0
         version: 2.3.0
+      js-cookie:
+        specifier: ^3.0.5
+        version: 3.0.5
       json-colorizer:
         specifier: ^3.0.1
         version: 3.0.1
@@ -183,6 +186,9 @@ importers:
       '@types/chai':
         specifier: ^5.2.3
         version: 5.2.3
+      '@types/js-cookie':
+        specifier: ^3.0.6
+        version: 3.0.6
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -1550,6 +1556,9 @@ packages:
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
 
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
+
   '@types/lodash-es@4.17.12':
     resolution: {integrity: sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==}
 
@@ -2707,6 +2716,10 @@ packages:
 
   jose@6.2.1:
     resolution: {integrity: sha512-jUaKr1yrbfaImV7R2TN/b3IcZzsw38/chqMpo2XJ7i2F8AfM/lA4G1goC3JVEwg0H7UldTmSt3P68nt31W7/mw==}
+
+  js-cookie@3.0.5:
+    resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
+    engines: {node: '>=14'}
 
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
@@ -5461,6 +5474,8 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
+  '@types/js-cookie@3.0.6': {}
+
   '@types/lodash-es@4.17.12':
     dependencies:
       '@types/lodash': 4.17.24
@@ -6502,6 +6517,8 @@ snapshots:
   jiti@2.6.1: {}
 
   jose@6.2.1: {}
+
+  js-cookie@3.0.5: {}
 
   js-tokens@10.0.0: {}
 

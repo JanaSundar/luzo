@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ACTION_BUTTON_CLASSES_NO_HOVER, cn } from "@/lib/utils";
@@ -79,15 +78,15 @@ export function PipelineSidebar({
         </div>
       </div>
 
-      <AnimatePresence>
-        {selectionMode && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between overflow-hidden"
-          >
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+      <div
+        className={cn(
+          "grid border-b transition-[grid-template-rows] duration-200 ease-out",
+          selectionMode ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex items-center justify-between bg-muted/30 px-4 py-2">
+            <span className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               {selectedIds.length} selected
             </span>
             <Button
@@ -101,9 +100,9 @@ export function PipelineSidebar({
               <Trash2 className="h-3.5 w-3.5" />
               Delete Selected
             </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
         {pipelines.map((p) => (
@@ -172,7 +171,7 @@ export function PipelineSidebar({
                     )}
                   />
                 )}
-                <span className="truncate flex-1 text-left">{p.name}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{p.name}</span>
 
                 {!selectionMode && (
                   <div

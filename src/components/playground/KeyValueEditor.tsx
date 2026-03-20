@@ -76,7 +76,14 @@ export function KeyValueEditor({
           </div>
         ))}
       </div>
-      <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={add}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 h-8"
+        aria-label="Add key-value row"
+        onClick={add}
+      >
         <Plus className="h-3.5 w-3.5" />
         Add
       </Button>

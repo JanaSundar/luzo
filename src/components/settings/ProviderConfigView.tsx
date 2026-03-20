@@ -16,6 +16,7 @@ import { validateApiKey } from "@/lib/settings/api-key-validation";
 import { fetchProviderModels, type ProviderModel } from "@/lib/settings/fetch-provider-models";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import type { AiProvider } from "@/types";
 import { PROVIDER_META } from "./ProviderConfigCard";
@@ -142,7 +143,7 @@ export function ProviderConfigView() {
         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-1">
           Select Provider
         </label>
-        <nav className="flex items-center gap-0.5 rounded-full bg-muted/50 p-0.5 border border-border/50 w-fit">
+        <nav className={cn("flex w-fit items-stretch", segmentedTabListClassName)}>
           {AI_PROVIDERS.map((p) => {
             const isActive = activeProvider === p;
             const pMeta = PROVIDER_META[p];
@@ -151,14 +152,12 @@ export function ProviderConfigView() {
                 key={p}
                 type="button"
                 onClick={() => setActiveProvider(p)}
-                className={cn(
-                  "relative flex h-7 items-center gap-2 px-4 text-[10px] uppercase tracking-wider font-bold transition-all rounded-full outline-none whitespace-nowrap",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                className={segmentedTabTriggerClassName(
+                  isActive,
+                  "h-7 gap-2 px-4 whitespace-nowrap"
                 )}
               >
-                <span className="relative z-10">{pMeta.name}</span>
+                {pMeta.name}
               </button>
             );
           })}

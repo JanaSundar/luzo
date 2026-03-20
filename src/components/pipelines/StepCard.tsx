@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, Reorder, useDragControls } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
@@ -15,6 +15,9 @@ import type { PipelineStep } from "@/types";
 import { StepCardHeader } from "./StepCardHeader";
 import { StepCardMenu } from "./StepCardMenu";
 
+/** Re-export for legacy imports (`import { Badge } from "./StepCard"`). */
+export { PipelineBadge as Badge } from "./PipelineBadge";
+
 interface StepCardProps {
   step: PipelineStep;
   index: number;
@@ -25,7 +28,6 @@ interface StepCardProps {
   onRunFromHereFresh: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
-  dragHandleProps?: Record<string, unknown>;
 }
 
 export function StepCard({
@@ -38,8 +40,8 @@ export function StepCard({
   onRunFromHereFresh,
   onDuplicate,
   onDelete,
-  dragHandleProps,
 }: StepCardProps) {
+  const dragControls = useDragControls();
   const { activePipelineId, pipelines } = usePipelineStore();
   const { getActiveEnvironmentVariables } = useEnvironmentStore();
   const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
@@ -57,7 +59,6 @@ export function StepCard({
     }
   }, [renamingId]);
 
-  // Pass active environment variables and runtime vars for nuclear-level suggestions
   const suggestions = getAutocompleteSuggestions(
     pipeline,
     step.id,
@@ -79,122 +80,105 @@ export function StepCard({
 
   const disabledTabs: TabId[] = step.method === "GET" || step.method === "HEAD" ? ["body"] : [];
 
-  return (
-    <motion.div
-      className={cn(
-        "bg-background border rounded-2xl shadow-sm overflow-visible transition-all duration-300",
-        isExpanded ? "ring-1 ring-primary/20 shadow-lg" : "hover:border-primary/30"
-      )}
-    >
-      <StepCardHeader
-        index={index}
-        name={step.name || `Request ${index + 1}`}
-        isExpanded={isExpanded}
-        renamingId={renamingId}
-        stepId={step.id}
-        renameValue={renameValue}
-        renameInputRef={renameInputRef}
-        dragHandleProps={dragHandleProps}
-        onToggleExpand={onToggleExpand}
-        onRenameStart={handleRenameStart}
-        onRenameSave={handleRenameSave}
-        onRenameCancel={() => setRenamingId(null)}
-        onRenameValueChange={setRenameValue}
-      />
-
-      <div className="px-4 py-3 flex items-center gap-3">
-        <RequestUrlBar
-          method={step.method}
-          url={step.url || ""}
-          suggestions={suggestions}
-          onMethodChange={(method) => onUpdate({ method })}
-          onUrlChange={(url) => onUpdate({ url })}
-          className="flex-1 bg-muted/30"
-        />
-        <SaveToCollectionDialog
-          request={step}
-          defaultName={step.name || `${step.method} ${step.url || `Request ${index + 1}`}`}
-        />
-        <StepCardMenu
-          onRunFromHere={onRunFromHere}
-          onRunFromHereFresh={onRunFromHereFresh}
-          onDuplicate={onDuplicate}
-          onDelete={onDelete}
-        />
-      </div>
-
-      {isExpanded && (
-        <>
-          <div className="px-4 pb-3 shrink-0">
-            <RequestForm
-              headers={step.headers}
-              params={step.params}
-              body={step.body}
-              bodyType={step.bodyType}
-              formDataFields={step.formDataFields}
-              auth={step.auth}
-              preRequestEditorType={step.preRequestEditorType}
-              testEditorType={step.testEditorType}
-              preRequestRules={step.preRequestRules}
-              testRules={step.testRules}
-              preRequestScript={step.preRequestScript}
-              testScript={step.testScript}
-              suggestions={suggestions}
-              onChange={(updates) => onUpdate(updates)}
-              activeTab={activeTab}
-              onTabChange={(tab) => {
-                setActiveTab(tab);
-                if (!isExpanded) onToggleExpand();
-              }}
-              instanceId={step.id}
-              showTabsOnly
-              disabledTabs={disabledTabs}
-            />
-          </div>
-
-          <div className="px-4 pb-3 flex-1 overflow-y-auto min-h-0 max-h-[400px]">
-            <RequestForm
-              headers={step.headers}
-              params={step.params}
-              body={step.body}
-              bodyType={step.bodyType}
-              formDataFields={step.formDataFields}
-              auth={step.auth}
-              preRequestEditorType={step.preRequestEditorType}
-              testEditorType={step.testEditorType}
-              preRequestRules={step.preRequestRules}
-              testRules={step.testRules}
-              preRequestScript={step.preRequestScript}
-              testScript={step.testScript}
-              suggestions={suggestions}
-              onChange={(updates) => onUpdate(updates)}
-              activeTab={activeTab}
-              onTabChange={(tab) => {
-                setActiveTab(tab);
-                if (!isExpanded) onToggleExpand();
-              }}
-              instanceId={step.id}
-              showContentOnly
-              disabledTabs={disabledTabs}
-            />
-          </div>
-        </>
-      )}
-
-      {isExpanded && <div className="px-4 pb-4 h-px bg-muted/20" />}
-    </motion.div>
+  const commonFormProps = useMemo(
+    () => ({
+      ...step,
+      suggestions,
+      onChange: onUpdate,
+      activeTab,
+      onTabChange: setActiveTab,
+      disabledTabs,
+    }),
+    [step, suggestions, onUpdate, activeTab, disabledTabs]
   );
-}
 
-export function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span
-      className={cn(
-        "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-        className
-      )}
+    <Reorder.Item
+      value={step}
+      dragControls={dragControls}
+      dragListener={false}
+      layout
+      className="relative w-full min-w-0 max-w-full"
     >
-      {children}
-    </span>
+      <motion.div
+        layout="position"
+        animate={{ borderRadius: 22 }}
+        style={{ borderRadius: 22, backfaceVisibility: "hidden" }}
+        className={cn(
+          "relative isolate flex w-full flex-col overflow-hidden border bg-background text-left shadow-sm transition-colors hover:border-primary/30"
+        )}
+      >
+        <motion.div layout="position">
+          <StepCardHeader
+            index={index}
+            name={step.name || `Request ${index + 1}`}
+            isExpanded={isExpanded}
+            renamingId={renamingId}
+            stepId={step.id}
+            renameValue={renameValue}
+            renameInputRef={renameInputRef}
+            dragControls={dragControls}
+            onToggleExpand={onToggleExpand}
+            onRenameStart={handleRenameStart}
+            onRenameSave={handleRenameSave}
+            onRenameCancel={() => setRenamingId(null)}
+            onRenameValueChange={setRenameValue}
+          />
+        </motion.div>
+
+        <motion.div
+          layout="position"
+          className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap"
+        >
+          <div className="min-w-0 w-full flex-1 sm:w-auto">
+            <RequestUrlBar
+              method={step.method}
+              url={step.url || ""}
+              suggestions={suggestions}
+              onMethodChange={(method) => onUpdate({ method })}
+              onUrlChange={(url) => onUpdate({ url })}
+              className="bg-muted/30"
+            />
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <SaveToCollectionDialog
+              request={step}
+              defaultName={step.name || `${step.method} ${step.url || `Request ${index + 1}`}`}
+            />
+            <StepCardMenu
+              onRunFromHere={onRunFromHere}
+              onRunFromHereFresh={onRunFromHereFresh}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+            />
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {isExpanded ? (
+            <motion.div
+              layout="position"
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden"
+            >
+              <motion.div layout="position" className="shrink-0 bg-background px-4 pt-3">
+                <RequestForm {...commonFormProps} showTabsOnly />
+              </motion.div>
+              <motion.div
+                layout="position"
+                className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 [scrollbar-gutter:stable]"
+              >
+                <motion.div layout="position" className="max-h-[400px] min-h-0 pt-2">
+                  <RequestForm {...commonFormProps} showContentOnly animateTabContent={false} />
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+    </Reorder.Item>
   );
 }

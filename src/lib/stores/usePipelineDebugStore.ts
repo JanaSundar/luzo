@@ -40,7 +40,15 @@ interface DebugStore {
 
 const INITIAL_REPORT_CONFIG: AIReportConfig = {
   tone: "technical",
-  prompt: "Analyze the API pipeline execution and provide insights based on the selected signals.",
+  prompt: `Perform an exhaustive technical audit of the API pipeline as a Senior Infrastructure and Performance Engineer.
+Analysis must follow this rigorous engineering structure:
+Technical Overview: 2-3 sentences summarizing the protocol compliance, structural integrity, and overall pipeline orchestration health.
+Performance & Latency: Detailed analysis of the latency profile, identifying specifically where P95/P99 spikes occurred and locating potential cold starts or database bottlenecks.
+Request Analysis: For every request, provide a granular technical breakdown including status-code validity, response-time efficiency vs. historical expectations, and payload consistency.
+System Insights: 3-5 high-impact technical highlights regarding the scalability, reliability, and potential technical debt observed in the execution flow.
+Engineering Risks: Identify critical race conditions, resource exhaustion vulnerabilities, or security exposures found within the request logic.
+Technical Remediation: Provide a prioritized roadmap of code-level next steps for engineering teams, including optimizations like caching, better indexing, or stricter schema validation.
+Final Assessment: Conclude with a definitive statement on technical stability, production readiness, and the level of confidence in the pipeline's current architecture.`,
   selectedSignals: [],
   mode: "preview",
   length: "medium",

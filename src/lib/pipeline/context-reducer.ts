@@ -104,7 +104,7 @@ export function buildReducedContext(
   }
 
   signals.sort((a, b) => {
-    const order = { critical: 0, high: 1, normal: 2 };
+    const order = { critical: 0, high: 1, normal: 2 } as const;
     return order[a.priority] - order[b.priority];
   });
 

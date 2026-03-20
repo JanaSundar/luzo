@@ -74,6 +74,29 @@ describe("useHistoryStore", () => {
     expect(entry?.updatedAt).toBe(entry?.createdAt);
   });
 
+  it("updates existing entry when request matches (dedup)", async () => {
+    useHistoryStore.getState().addToHistory("GET users", baseRequest);
+    const id = useHistoryStore.getState().history[0]?.id;
+    const created = useHistoryStore.getState().history[0]?.createdAt;
+    await new Promise((r) => setTimeout(r, 2));
+    useHistoryStore.getState().addToHistory("GET users renamed", { ...baseRequest });
+    expect(useHistoryStore.getState().history).toHaveLength(1);
+    expect(useHistoryStore.getState().history[0]?.id).toBe(id);
+    expect(useHistoryStore.getState().history[0]?.name).toBe("GET users renamed");
+    expect(useHistoryStore.getState().history[0]?.createdAt).toBe(created);
+    expect(
+      new Date(useHistoryStore.getState().history[0]?.updatedAt ?? "").getTime()
+    ).toBeGreaterThan(new Date(created ?? "").getTime());
+  });
+
+  it("appends when url differs", () => {
+    useHistoryStore.getState().addToHistory("A", baseRequest);
+    useHistoryStore
+      .getState()
+      .addToHistory("B", { ...baseRequest, url: "https://api.example.com/other" });
+    expect(useHistoryStore.getState().history).toHaveLength(2);
+  });
+
   it("limits history to 100 items", () => {
     for (let i = 0; i < 105; i++) {
       useHistoryStore.getState().addToHistory(`Request ${i}`, {
@@ -88,6 +111,14 @@ describe("useHistoryStore", () => {
   it("clears history", () => {
     useHistoryStore.getState().addToHistory("test", baseRequest);
     useHistoryStore.getState().clearHistory();
+    expect(useHistoryStore.getState().history).toHaveLength(0);
+  });
+
+  it("removes one history entry by id", () => {
+    useHistoryStore.getState().addToHistory("A", baseRequest);
+    const id = useHistoryStore.getState().history[0]?.id;
+    expect(id).toBeTruthy();
+    useHistoryStore.getState().removeFromHistory(id);
     expect(useHistoryStore.getState().history).toHaveLength(0);
   });
 });

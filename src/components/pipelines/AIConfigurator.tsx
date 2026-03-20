@@ -99,7 +99,7 @@ export function AIConfigurator() {
   const selectedCount = selectedSignals.length;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 pb-4">
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold tracking-tight">AI Report Configurator</h2>
         <p className="text-muted-foreground text-sm">

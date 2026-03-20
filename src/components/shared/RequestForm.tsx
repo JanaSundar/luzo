@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { type ReactNode, useMemo, useState } from "react";
 import { FormDataBodyEditor } from "@/components/playground/FormDataBodyEditor";
 import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
@@ -66,7 +67,24 @@ interface RequestFormProps {
   instanceId?: string;
   showTabsOnly?: boolean;
   showContentOnly?: boolean;
+  /** When false, tab panels swap without motion (avoids distorted text in tight flex/scroll layouts, e.g. pipeline StepCard). */
+  animateTabContent?: boolean;
   disabledTabs?: TabId[];
+}
+
+function RequestFormTabPanel({
+  animate,
+  className,
+  children,
+}: {
+  animate: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (animate) {
+    return <AnimatedTabContent className={className}>{children}</AnimatedTabContent>;
+  }
+  return <div className={cn("w-full min-w-0", className ?? "block")}>{children}</div>;
 }
 
 export function RequestForm({
@@ -92,6 +110,7 @@ export function RequestForm({
   instanceId,
   showTabsOnly = false,
   showContentOnly = false,
+  animateTabContent = true,
   disabledTabs = [],
 }: RequestFormProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<TabId>(defaultTab);
@@ -121,127 +140,135 @@ export function RequestForm({
 
       {!showTabsOnly && (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {activeTab === "params" && (
-            <AnimatedTabContent>
-              <KeyValueEditor
-                pairs={params}
-                onChange={(updated) => onChange({ params: updated })}
-                placeholder="Parameter"
-                suggestions={suggestions}
-              />
-            </AnimatedTabContent>
-          )}
+          <AnimatePresence mode="wait">
+            {activeTab === "params" && (
+              <RequestFormTabPanel key="params" animate={animateTabContent}>
+                <KeyValueEditor
+                  pairs={params}
+                  onChange={(updated) => onChange({ params: updated })}
+                  placeholder="Parameter"
+                  suggestions={suggestions}
+                />
+              </RequestFormTabPanel>
+            )}
 
-          {activeTab === "headers" && (
-            <AnimatedTabContent>
-              <KeyValueEditor
-                pairs={headers}
-                onChange={(updated) => onChange({ headers: updated })}
-                placeholder="Header"
-                suggestions={suggestions}
-              />
-            </AnimatedTabContent>
-          )}
+            {activeTab === "headers" && (
+              <RequestFormTabPanel key="headers" animate={animateTabContent}>
+                <KeyValueEditor
+                  pairs={headers}
+                  onChange={(updated) => onChange({ headers: updated })}
+                  placeholder="Header"
+                  suggestions={suggestions}
+                />
+              </RequestFormTabPanel>
+            )}
 
-          {activeTab === "body" && (
-            <AnimatedTabContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-                <div className="flex shrink-0 items-center justify-between gap-2">
-                  <Select
-                    value={bodyType}
-                    onValueChange={(v) => {
-                      const newType = v as ApiRequest["bodyType"];
-                      onChange({
-                        bodyType: newType,
-                        body: newType === "form-data" ? null : body,
-                        formDataFields:
-                          newType === "form-data" && !formDataFields?.length ? [] : formDataFields,
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-40 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="raw">Raw</SelectItem>
-                      <SelectItem value="form-data">Form Data</SelectItem>
-                      <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {bodyType === "json" && (
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                      onClick={() => {
-                        const current = body ?? "";
-                        if (!current.trim()) return;
-                        try {
-                          const parsed = JSON.parse(current);
-                          onChange({ body: JSON.stringify(parsed, null, 2) });
-                        } catch {
-                          // ignore parse errors
-                        }
+            {activeTab === "body" && (
+              <RequestFormTabPanel
+                key="body"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+                  <div className="flex shrink-0 items-center justify-between gap-2">
+                    <Select
+                      value={bodyType}
+                      onValueChange={(v) => {
+                        const newType = v as ApiRequest["bodyType"];
+                        onChange({
+                          bodyType: newType,
+                          body: newType === "form-data" ? null : body,
+                          formDataFields:
+                            newType === "form-data" && !formDataFields?.length
+                              ? []
+                              : formDataFields,
+                        });
                       }}
                     >
-                      Prettify
-                    </button>
+                      <SelectTrigger className="h-8 w-40 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="json">JSON</SelectItem>
+                        <SelectItem value="raw">Raw</SelectItem>
+                        <SelectItem value="form-data">Form Data</SelectItem>
+                        <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {bodyType === "json" && (
+                      <button
+                        type="button"
+                        className="text-xs text-primary hover:underline"
+                        onClick={() => {
+                          const current = body ?? "";
+                          if (!current.trim()) return;
+                          try {
+                            const parsed = JSON.parse(current);
+                            onChange({ body: JSON.stringify(parsed, null, 2) });
+                          } catch {
+                            // ignore parse errors
+                          }
+                        }}
+                      >
+                        Prettify
+                      </button>
+                    )}
+                  </div>
+
+                  {bodyType === "form-data" && (
+                    <FormDataBodyEditor
+                      fields={formDataFields ?? []}
+                      onChange={(updated) => onChange({ formDataFields: updated })}
+                      suggestions={suggestions}
+                    />
+                  )}
+
+                  {bodyType !== "none" && bodyType !== "form-data" && (
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <div className="mb-1 shrink-0 text-xs text-muted-foreground">
+                        {bodyType === "json" ? "JSON body" : "Raw body"}
+                      </div>
+                      <JsonBodyEditor
+                        value={body ?? ""}
+                        onChange={(val) => onChange({ body: val })}
+                        suggestions={suggestions}
+                        placeholder={
+                          bodyType === "json" ? '{\n  "key": "value"\n}' : "Request body..."
+                        }
+                        className="min-h-[200px]"
+                        mode={bodyType === "json" ? "json" : "text"}
+                      />
+                    </div>
                   )}
                 </div>
+              </RequestFormTabPanel>
+            )}
 
-                {bodyType === "form-data" && (
-                  <FormDataBodyEditor
-                    fields={formDataFields ?? []}
-                    onChange={(updated) => onChange({ formDataFields: updated })}
-                    suggestions={suggestions}
-                  />
-                )}
+            {activeTab === "auth" && (
+              <RequestFormTabPanel key="auth" animate={animateTabContent}>
+                <RequestAuthPanel
+                  auth={auth}
+                  suggestions={suggestions}
+                  onChange={(updated) => onChange({ auth: updated })}
+                />
+              </RequestFormTabPanel>
+            )}
 
-                {bodyType !== "none" && bodyType !== "form-data" && (
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                    <div className="mb-1 shrink-0 text-xs text-muted-foreground">
-                      {bodyType === "json" ? "JSON body" : "Raw body"}
-                    </div>
-                    <JsonBodyEditor
-                      value={body ?? ""}
-                      onChange={(val) => onChange({ body: val })}
-                      suggestions={suggestions}
-                      placeholder={
-                        bodyType === "json" ? '{\n  "key": "value"\n}' : "Request body..."
-                      }
-                      className="min-h-[200px]"
-                      mode={bodyType === "json" ? "json" : "text"}
-                    />
-                  </div>
-                )}
-              </div>
-            </AnimatedTabContent>
-          )}
-
-          {activeTab === "auth" && (
-            <AnimatedTabContent>
-              <RequestAuthPanel
-                auth={auth}
-                suggestions={suggestions}
-                onChange={(updated) => onChange({ auth: updated })}
-              />
-            </AnimatedTabContent>
-          )}
-
-          {activeTab === "scripts" && (
-            <AnimatedTabContent>
-              <RequestScriptsPanel
-                preRequestEditorType={preRequestEditorType}
-                testEditorType={testEditorType}
-                preRequestRules={preRequestRules}
-                testRules={testRules}
-                preRequestScript={preRequestScript}
-                testScript={testScript}
-                onChange={onChange}
-              />
-            </AnimatedTabContent>
-          )}
+            {activeTab === "scripts" && (
+              <RequestFormTabPanel key="scripts" animate={animateTabContent}>
+                <RequestScriptsPanel
+                  preRequestEditorType={preRequestEditorType}
+                  testEditorType={testEditorType}
+                  preRequestRules={preRequestRules}
+                  testRules={testRules}
+                  preRequestScript={preRequestScript}
+                  testScript={testScript}
+                  onChange={onChange}
+                />
+              </RequestFormTabPanel>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>

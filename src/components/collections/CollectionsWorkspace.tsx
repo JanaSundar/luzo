@@ -26,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
 import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
+import { sortSavedRequestsByRecencyDesc } from "@/lib/history/sortSavedRequests";
 import { useHistoryStore } from "@/lib/stores/useHistoryStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
@@ -70,6 +71,8 @@ export function CollectionsWorkspace() {
       return haystack.includes(search.toLowerCase());
     });
   }, [activeCollection, search]);
+
+  const historySortedByDate = useMemo(() => sortSavedRequestsByRecencyDesc(history), [history]);
   const totalSavedRequests = collections.reduce(
     (count, collection) => count + collection.requests.length,
     0
@@ -269,7 +272,10 @@ export function CollectionsWorkspace() {
           </WorkspaceHeader>
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-4">
-              <CollectionsHistorySection history={history} onOpenRequest={openInPlayground} />
+              <CollectionsHistorySection
+                history={historySortedByDate}
+                onOpenRequest={openInPlayground}
+              />
             </div>
           </ScrollArea>
         </WorkspacePane>

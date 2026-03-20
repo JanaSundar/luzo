@@ -17,58 +17,90 @@ Font.register({
 const PAGE_PADDING = 40;
 
 const styles = StyleSheet.create({
-  page: { padding: PAGE_PADDING, fontFamily: "Inter", fontSize: 10, color: "#111827" },
+  page: {
+    padding: PAGE_PADDING,
+    fontFamily: "Inter",
+    fontSize: 9,
+    color: "#111827",
+    lineHeight: 1.5,
+  },
   title: { fontSize: 22, fontWeight: 700, marginBottom: 6 },
   meta: { fontSize: 9, color: "#6b7280", marginBottom: 16 },
-  divider: { height: 1, backgroundColor: "#111827", marginBottom: 18 },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 22 },
+  divider: { height: 1, backgroundColor: "#111827", marginBottom: 12, opacity: 0.1 },
+  statsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   statCard: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#f8fafc",
+    borderRadius: 6,
+    padding: 8,
+    backgroundColor: "#f9fafb",
   },
-  statLabel: { fontSize: 7, textTransform: "uppercase", color: "#6b7280", marginBottom: 4 },
-  statValue: { fontSize: 14, fontWeight: 700 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: 700, marginBottom: 8 },
-  paragraph: { lineHeight: 1.5, marginBottom: 8 },
+  statLabel: {
+    fontSize: 6,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    color: "#6b7280",
+    marginBottom: 2,
+  },
+  statValue: { fontSize: 13, fontWeight: 700 },
+  section: { marginTop: 8, marginBottom: 4 },
+  sectionTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginBottom: 4,
+    color: "#111827",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    paddingBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  paragraph: { fontSize: 8.5, lineHeight: 1.4, color: "#374151" },
   requestCard: {
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 6,
     backgroundColor: "#fff",
   },
-  requestMeta: { fontSize: 8, color: "#6b7280", marginBottom: 4 },
-  requestTitle: { fontSize: 10, fontWeight: 700, marginBottom: 4 },
-  bulletRow: { flexDirection: "row", gap: 6, marginBottom: 6 },
-  bullet: { width: 8, fontWeight: 700 },
-  bulletText: { flex: 1, lineHeight: 1.45 },
+  requestMeta: { fontSize: 7, color: "#6b7280", marginBottom: 2 },
+  requestTitle: { fontSize: 9, fontWeight: 700, marginBottom: 2 },
+  bulletRow: { flexDirection: "row", gap: 6, marginBottom: 4 },
+  bullet: { width: 8, fontSize: 9 },
+  bulletText: { flex: 1, lineHeight: 1.45, fontSize: 9 },
   footer: {
     position: "absolute",
     bottom: 20,
     left: PAGE_PADDING,
     right: PAGE_PADDING,
-    fontSize: 8,
+    fontSize: 7,
     color: "#6b7280",
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  pageNumber: { fontSize: 8, color: "#6b7280" },
+  pageNumber: { fontSize: 7, color: "#6b7280" },
   header: {
     position: "absolute",
     top: 20,
     left: PAGE_PADDING,
     right: PAGE_PADDING,
-    fontSize: 8,
+    fontSize: 7,
     color: "#6b7280",
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  table: { marginTop: 8, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 4 },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    padding: 6,
+    alignItems: "center",
+  },
+  tableHeader: { backgroundColor: "#f9fafb", borderBottomColor: "#e5e7eb" },
+  tableCell: { fontSize: 7, color: "#4b5563" },
 });
 
 interface ReportPdfDocumentProps {
@@ -79,88 +111,105 @@ export function ReportPdfDocument({ report }: ReportPdfDocumentProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header title={report.title} pipelineName={report.pipelineName} />
-        <Text style={styles.title}>{sanitizeForPdf(report.title)}</Text>
-        <Text style={styles.meta}>
-          {sanitizeForPdf(report.pipelineName)} · {sanitizeForPdf(report.tone.toUpperCase())}
-        </Text>
-        <View style={styles.divider} />
+        <View style={{ marginBottom: 18 }}>
+          <Text style={styles.title}>{sanitizeForPdf(report.title)}</Text>
+        </View>
 
         <View style={styles.statsRow}>
           <StatCard label="Success Rate" value={`${report.metrics.successRate}%`} />
           <StatCard label="Avg Latency" value={`${report.metrics.avgLatencyMs}ms`} />
-          <StatCard label="P95 Latency" value={`${report.metrics.p95LatencyMs}ms`} />
+          <StatCard label="Total Steps" value={report.metrics.totalSteps.toString()} />
           <StatCard label="Failures" value={`${report.metrics.failedSteps}`} />
         </View>
 
-        <Section title="Executive Summary">
-          <Text style={styles.paragraph}>{sanitizeForPdf(report.summary)}</Text>
+        <Section title="Overview">
+          <MarkdownText text={report.summary} />
         </Section>
 
-        <Section title="Health Summary">
-          <Text style={styles.paragraph}>{sanitizeForPdf(report.healthSummary)}</Text>
-        </Section>
-
-        <Footer generatedAt={report.generatedAt} />
-      </Page>
-
-      <Page size="A4" style={styles.page}>
-        <Header title={report.title} pipelineName={report.pipelineName} />
-
-        <Section title="Per Request Breakdown">
-          {report.requests.map((request, index) => (
-            <View key={request.stepId ?? `request-${index}`} style={styles.requestCard}>
-              <Text style={styles.requestTitle}>{sanitizeForPdf(request.name)}</Text>
-              <Text style={styles.requestMeta}>
-                {sanitizeForPdf(request.method)} · {sanitizeForPdf(request.url)}
-              </Text>
-              <Text style={styles.requestMeta}>
-                Status {request.statusCode ?? "N/A"} · {request.latencyMs ?? 0}ms
-              </Text>
-              <Text style={styles.paragraph}>{sanitizeForPdf(request.analysis)}</Text>
-            </View>
-          ))}
-        </Section>
-
-        <Footer generatedAt={report.generatedAt} />
-      </Page>
-
-      <Page size="A4" style={styles.page}>
-        <Header title={report.title} pipelineName={report.pipelineName} />
-
-        <Section title="Key Insights">
-          <BulletList items={report.insights} />
+        <Section title="Risk Analysis">
+          <BulletList items={report.risks} />
         </Section>
 
         <Section title="Recommendations">
           <BulletList items={report.recommendations} />
         </Section>
 
-        <Section title="Risks">
-          <BulletList items={report.risks} />
+        <Section title="Request Analysis">
+          {report.requests.map((req, idx) => (
+            <View key={idx} style={styles.requestCard} wrap={false}>
+              <View
+                style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}
+              >
+                <Text style={styles.requestTitle}>{sanitizeForPdf(req.name)}</Text>
+                <View style={{ flexDirection: "row", gap: 4 }}>
+                  <Text
+                    style={{
+                      fontSize: 7,
+                      color: req.statusCode && req.statusCode < 400 ? "#059669" : "#dc2626",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {req.statusCode || "ERR"}
+                  </Text>
+                  <Text style={{ fontSize: 7, color: "#6b7280" }}>{req.latencyMs}ms</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 6, color: "#94a3b8", marginBottom: 4 }}>
+                {sanitizeForPdf(req.url)}
+              </Text>
+              <View style={{ borderLeftWidth: 1.5, borderLeftColor: "#e5e7eb", paddingLeft: 6 }}>
+                <MarkdownText text={req.analysis} />
+              </View>
+            </View>
+          ))}
         </Section>
 
-        <Footer generatedAt={report.generatedAt} />
-      </Page>
-
-      <Page size="A4" style={styles.page}>
-        <Header title={report.title} pipelineName={report.pipelineName} />
-
         <Section title="Conclusion">
-          <Text style={styles.paragraph}>{sanitizeForPdf(report.conclusion)}</Text>
+          <MarkdownText text={report.conclusion} />
         </Section>
 
         <View
-          style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb" }}
+          style={{
+            marginTop: 10,
+            paddingTop: 8,
+            borderTopWidth: 1,
+            borderTopColor: "#f3f4f6",
+            borderTopStyle: "dashed",
+          }}
         >
-          <Text style={{ fontSize: 9, color: "#6b7280", marginBottom: 8 }}>Report Metrics</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-            <MetricItem label="Total Steps" value={String(report.metrics.totalSteps)} />
-            <MetricItem label="Failed Steps" value={String(report.metrics.failedSteps)} />
-            <MetricItem label="Success Rate" value={`${report.metrics.successRate}%`} />
-            <MetricItem label="Avg Latency" value={`${report.metrics.avgLatencyMs}ms`} />
-            <MetricItem label="P95 Latency" value={`${report.metrics.p95LatencyMs}ms`} />
-            <MetricItem label="Total Duration" value={`${report.metrics.totalDurationMs}ms`} />
+          <Text
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              marginBottom: 4,
+              color: "#111827",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Performance Appendix
+          </Text>
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { flex: 3, fontWeight: 700 }]}>ENDPOINT</Text>
+              <Text style={[styles.tableCell, { flex: 1, textAlign: "center", fontWeight: 700 }]}>
+                STATUS
+              </Text>
+              <Text style={[styles.tableCell, { flex: 1, textAlign: "right", fontWeight: 700 }]}>
+                LATENCY
+              </Text>
+            </View>
+            {report.requests.map((r, i) => (
+              <View key={i} style={styles.tableRow} wrap={false}>
+                <Text style={[styles.tableCell, { flex: 3 }]}>{sanitizeForPdf(r.name)}</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: "center" }]}>
+                  {r.statusCode || "---"}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: "right" }]}>
+                  {r.latencyMs}ms
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -170,23 +219,10 @@ export function ReportPdfDocument({ report }: ReportPdfDocumentProps) {
   );
 }
 
-function Header({ title, pipelineName }: { title: string; pipelineName: string }) {
-  return (
-    <View style={styles.header} fixed>
-      <Text>{sanitizeForPdf(pipelineName)}</Text>
-      <Text>{sanitizeForPdf(title)}</Text>
-    </View>
-  );
-}
-
 function Footer({ generatedAt }: { generatedAt: string }) {
   return (
-    <View style={styles.footer} fixed>
-      <Text>{sanitizeForPdf(new Date(generatedAt).toLocaleString())}</Text>
-      <Text
-        style={styles.pageNumber}
-        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-      />
+    <View style={[styles.footer, { justifyContent: "flex-end" }]} fixed>
+      <Text>{sanitizeForPdf(new Date(generatedAt).toLocaleDateString())}</Text>
     </View>
   );
 }
@@ -196,15 +232,6 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <View style={styles.statCard}>
       <Text style={styles.statLabel}>{sanitizeForPdf(label)}</Text>
       <Text style={styles.statValue}>{sanitizeForPdf(value)}</Text>
-    </View>
-  );
-}
-
-function MetricItem({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ marginBottom: 8, minWidth: 80 }}>
-      <Text style={{ fontSize: 7, color: "#6b7280" }}>{sanitizeForPdf(label)}</Text>
-      <Text style={{ fontSize: 10, fontWeight: 700 }}>{sanitizeForPdf(value)}</Text>
     </View>
   );
 }
@@ -223,11 +250,43 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <View>
       {safeItems.map((item, index) => (
-        <View key={`${item}-${index}`} style={styles.bulletRow}>
-          <Text style={styles.bullet}>-</Text>
-          <Text style={styles.bulletText}>{sanitizeForPdf(item)}</Text>
+        <View key={`${item}-${index}`} style={styles.bulletRow} wrap={false}>
+          <Text style={styles.bullet}>•</Text>
+          <View style={{ flex: 1 }}>
+            <MarkdownText text={item} />
+          </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+function MarkdownText({ text }: { text: string }) {
+  const paragraphs = text.split(/\n\n+/);
+  return (
+    <View>
+      {paragraphs.map((para, pIdx) => {
+        const parts = sanitizeForPdf(para).split(/(\*\*.*?\*\*)/g);
+        return (
+          <View key={pIdx} style={{ marginBottom: 4 }}>
+            <Text style={styles.paragraph}>
+              {parts.map((part, i) => {
+                if (part.startsWith("**") && part.endsWith("**")) {
+                  return (
+                    <Text
+                      key={i}
+                      style={{ fontWeight: 700, color: "#111827", backgroundColor: "#f3f4f6" }}
+                    >
+                      {part.slice(2, -2)}
+                    </Text>
+                  );
+                }
+                return part;
+              })}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 }

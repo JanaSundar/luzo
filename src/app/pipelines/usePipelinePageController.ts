@@ -40,6 +40,8 @@ export function usePipelinePageController() {
   const refreshSignals = usePipelineDebugStore((state) => state.refreshSignals);
   const setReportConfig = usePipelineDebugStore((state) => state.setReportConfig);
   const setAIProvider = usePipelineDebugStore((state) => state.setAIProvider);
+  const clearReport = usePipelineDebugStore((state) => state.clearReport);
+  const setSelectedSignals = usePipelineDebugStore((state) => state.setSelectedSignals);
   const getActiveEnvironmentVariables = useEnvironmentStore(
     (state) => state.getActiveEnvironmentVariables
   );
@@ -62,8 +64,9 @@ export function usePipelinePageController() {
 
   useEffect(() => {
     const config = providers[activeProvider];
-    if (!config?.apiKey || config.apiKey.length < 20) return;
-    setAIProvider({ provider: activeProvider, model: config.model ?? "", apiKey: config.apiKey });
+    const apiKey = config?.apiKey?.trim();
+    if (!apiKey) return;
+    setAIProvider({ provider: activeProvider, model: config?.model ?? "", apiKey });
   }, [activeProvider, providers, setAIProvider]);
 
   useEffect(() => {
@@ -186,12 +189,38 @@ export function usePipelinePageController() {
     saveExecutionArtifact,
   ]);
 
+  const lastStatusRef = useRef(status);
+  useEffect(() => {
+    const wasRunning = lastStatusRef.current === "running";
+    const isDone = status === "completed" || status === "error";
+
+    if (wasRunning && isDone) {
+      const successCount = snapshots.filter(
+        (s) => s.status === "success" || s.status === "done"
+      ).length;
+      const failCount = snapshots.filter((s) => s.status === "error").length;
+
+      if (status === "completed" && failCount === 0) {
+        toast.success(`Pipeline Completed: ${successCount} steps succeeded`);
+      } else {
+        toast.error(
+          `Pipeline Finished with issues: ${successCount} Succeeded, ${failCount} Failed`
+        );
+      }
+    }
+    lastStatusRef.current = status;
+  }, [status, snapshots]);
+
   const handleRun = useCallback(async () => {
     if (!activePipeline) return;
     setExecuting(true);
     setExecutionResult(null);
     setView("stream");
     resetExecution();
+    if (activePipelineId) {
+      clearReport(activePipelineId);
+      setSelectedSignals([]);
+    }
     const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
       executionMode: "auto",
     });
@@ -200,16 +229,19 @@ export function usePipelinePageController() {
       setExecuting(false);
       return;
     }
-    toast.success("Pipeline Executed Successfully");
+    // toast.success("Pipeline Executed Successfully"); // Removed: handling via useEffect summary
     setExecuting(false);
   }, [
     activePipeline,
+    activePipelineId,
     controller,
     resetExecution,
     getActiveEnvironmentVariables,
     setExecuting,
     setExecutionResult,
     setView,
+    clearReport,
+    setSelectedSignals,
   ]);
 
   const handleDebug = useCallback(() => {
@@ -217,6 +249,10 @@ export function usePipelinePageController() {
     resetExecution();
     setView("stream");
     setExecutionResult(null);
+    if (activePipelineId) {
+      clearReport(activePipelineId);
+      setSelectedSignals([]);
+    }
     const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
       executionMode: "debug",
     });
@@ -227,11 +263,14 @@ export function usePipelinePageController() {
     toast.info("Debug mode started — use Step or Continue to execute");
   }, [
     activePipeline,
+    activePipelineId,
     controller,
     resetExecution,
     getActiveEnvironmentVariables,
     setExecutionResult,
     setView,
+    clearReport,
+    setSelectedSignals,
   ]);
 
   const handleRunFromStep = useCallback(
@@ -254,6 +293,10 @@ export function usePipelinePageController() {
       setExecutionResult(null);
       setView("stream");
       resetExecution();
+      if (activePipelineId) {
+        clearReport(activePipelineId);
+        setSelectedSignals([]);
+      }
       const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
         ...plan.options,
         executionMode: "auto",
@@ -263,17 +306,20 @@ export function usePipelinePageController() {
         setExecuting(false);
         return;
       }
-      toast.success("Partial Pipeline Run Completed");
+      // toast.success("Partial Pipeline Run Completed"); // Removed: handling via useEffect summary
       setExecuting(false);
     },
     [
       activePipeline,
+      activePipelineId,
       controller,
       resetExecution,
       getActiveEnvironmentVariables,
       setExecuting,
       setExecutionResult,
       setView,
+      clearReport,
+      setSelectedSignals,
     ]
   );
 
