@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
-import { ensureRuntimeSchema, type RuntimeSchemaStatus } from "./schema-init";
+import { type RuntimeSchemaStatus, ensureRuntimeSchema } from "./schema-init";
 
 export interface DbClient {
   db: ReturnType<typeof drizzle>;

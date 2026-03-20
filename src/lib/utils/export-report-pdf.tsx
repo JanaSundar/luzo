@@ -1,5 +1,3 @@
-import { pdf } from "@react-pdf/renderer";
-import { ReportPdfDocument } from "@/components/pipelines/ReportPdfDocument";
 import {
   createTimestampedFilename,
   downloadTextFile,
@@ -14,6 +12,7 @@ export interface ExportReportOptions {
   pipelineName: string;
   report: StructuredReport;
   generatedAt?: string;
+  theme?: "light" | "dark";
 }
 
 export async function exportReport(
@@ -24,7 +23,20 @@ export async function exportReport(
   const filenameBase = slugifyFilenamePart(model.title, "api-report");
 
   if (format === "pdf") {
-    const blob = await pdf(<ReportPdfDocument report={model} />).toBlob();
+    const response = await fetch("/api/export/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(model),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.details || errorData.error || "Failed to generate PDF. Please try again.",
+      );
+    }
+
+    const blob = await response.blob();
     downloadBlob(blob, createTimestampedFilename(filenameBase, "pdf"));
     return;
   }

@@ -2,7 +2,7 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps, cva } from "class-variance-authority";
 import Cookies from "js-cookie";
 import { PanelLeftIcon } from "lucide-react";
 import { type HTMLMotionProps, motion } from "motion/react";

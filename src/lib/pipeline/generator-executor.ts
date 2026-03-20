@@ -1,8 +1,8 @@
 import { executeRequest } from "@/app/actions/api-tests";
 import {
-  executeRequestStream as executeStream,
   type StreamChunk,
   type StreamResult,
+  executeRequestStream as executeStream,
 } from "@/lib/http/client";
 import type { Pipeline, PipelineStep } from "@/types";
 import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";

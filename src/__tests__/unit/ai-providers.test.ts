@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getModelOption, getProviderConfig, PROVIDER_CONFIGS } from "@/config/ai-providers";
+import { PROVIDER_CONFIGS, getModelOption, getProviderConfig } from "@/config/ai-providers";
 
 describe("PROVIDER_CONFIGS", () => {
   it("has openrouter, groq, and openai providers", () => {

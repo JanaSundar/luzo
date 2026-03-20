@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { executeRequest } from "@/app/actions/api-tests";
 import { executeRequestStream } from "@/lib/http/client";
 import {
-  createPipelineGenerator,
   type GeneratorExecutorModule,
+  createPipelineGenerator,
 } from "@/lib/pipeline/generator-executor";
 import type { Pipeline } from "@/types";
 import type {

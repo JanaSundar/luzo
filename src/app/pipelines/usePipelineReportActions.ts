@@ -10,6 +10,7 @@ import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStor
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { exportReport } from "@/lib/utils/export-report-pdf";
 import { deriveReportTitle } from "@/lib/utils/report-title";
+import { useTheme } from "next-themes";
 import type { Pipeline } from "@/types";
 import type { ExportFormat } from "@/types/pipeline-debug";
 
@@ -24,6 +25,9 @@ export function usePipelineReportActions({
   activePipelineId,
   pipelines,
 }: UsePipelineReportActionsInput) {
+  const { theme, resolvedTheme } = useTheme();
+  const activeTheme = resolvedTheme ?? theme ?? "light";
+
   const setGeneratingReport = usePipelineDebugStore((state) => state.setGeneratingReport);
   const setExportingPDF = usePipelineDebugStore((state) => state.setExportingPDF);
   const saveReport = usePipelineDebugStore((state) => state.saveReport);
@@ -110,6 +114,7 @@ export function usePipelineReportActions({
             pipelineName: pipeline?.name ?? "Pipeline",
             report: savedReport.report,
             generatedAt: savedReport.generatedAt,
+            theme: activeTheme as "light" | "dark",
           },
           format,
         );

@@ -1,6 +1,6 @@
 "use client";
 
-import { File, Files, FileText } from "lucide-react";
+import { File, FileText, Files } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReportLength } from "@/types/pipeline-report";
 

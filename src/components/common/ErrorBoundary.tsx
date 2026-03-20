@@ -4,8 +4,8 @@ import { AlertTriangle, ChevronDown, ClipboardCopy, RefreshCw } from "lucide-rea
 import type { ErrorInfo, ReactNode } from "react";
 import {
   type FallbackProps,
-  getErrorMessage,
   ErrorBoundary as ReactErrorBoundary,
+  getErrorMessage,
 } from "react-error-boundary";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

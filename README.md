@@ -57,6 +57,10 @@ Design complex API chains where data flows seamlessly between steps. Luzo uses a
 **Code-level control over every request.**
 Execute logic before or after any call in a sandboxed Node `vm` environment. Use `lz.test()` and `lz.expect()` for assertions that actually matter.
 
+### 📄 High-Fidelity PDF Export
+**Pixel-perfect reports for your workflows.**
+Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered by a server-side Playwright rendering engine.
+
 ---
 
 ## Getting Started
@@ -65,6 +69,7 @@ Execute logic before or after any call in a sandboxed Node `vm` environment. Use
 
 - [Node.js](https://nodejs.org/) (v18+)
 - [pnpm](https://pnpm.io/) (v8+)
+- [Playwright Chromium](https://playwright.dev/) (`npx playwright install chromium`)
 
 ### Configuration
 
@@ -134,6 +139,8 @@ Luzo uses a dual-layer architecture: a high-interaction frontend for orchestrati
 - **Styling**: Tailwind CSS 4
 - **State**: Zustand (+ persist)
 - **Database**: Drizzle ORM + PostgreSQL
+- **PDF Engine**: Playwright (via @sparticuz/chromium)
+- **Tooling**: Oxc (Oxlint, Oxfmt)
 - **Sandbox**: Node `vm` for Interceptors
 
 ---
@@ -155,13 +162,13 @@ src/
 
 ## Scripts
 
-| Command      | Description              |
-| ------------ | ------------------------ |
-| `pnpm dev`   | Start development server |
-| `pnpm build` | Production build         |
-| `pnpm test`  | Run test suite           |
-| `pnpm lint`  | Lint with Oxlint        |
-| `pnpm format`| Format with Oxfmt        |
+| Command       | Description              |
+| ------------- | ------------------------ |
+| `pnpm dev`    | Start development server |
+| `pnpm build`  | Production build         |
+| `pnpm test`   | Run test suite           |
+| `pnpm lint`   | Lint with Oxlint         |
+| `pnpm format` | Format with Oxfmt        |
 
 ---
 
