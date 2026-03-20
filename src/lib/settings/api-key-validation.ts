@@ -12,7 +12,7 @@ interface ValidationResult {
 
 export async function validateApiKey(
   provider: AiProvider,
-  apiKey: string
+  apiKey: string,
 ): Promise<ValidationResult> {
   try {
     const res = await fetch(`/api/providers/${provider}/validate`, {

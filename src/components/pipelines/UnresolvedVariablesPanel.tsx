@@ -27,7 +27,7 @@ function collectTemplateStrings(step: PipelineStep): string[] {
 function getUnresolvedPaths(
   step: PipelineStep,
   runtimeVariables: Record<string, unknown>,
-  envVariables: Record<string, string>
+  envVariables: Record<string, string>,
 ): string[] {
   const allRefs = new Set<string>();
   for (const s of collectTemplateStrings(step)) {

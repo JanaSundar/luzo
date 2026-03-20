@@ -16,14 +16,14 @@ interface AIProviderConfig {
 export async function generatePipelineNarrative(
   result: PipelineExecutionResult,
   config: AINarrativeConfig,
-  provider?: AIProviderConfig
+  provider?: AIProviderConfig,
 ): Promise<string> {
   const successCount = result.results.filter((r) => r.status >= 200 && r.status < 300).length;
   const failCount = result.results.length - successCount;
   const avgLatency = Math.round(
-    result.results.reduce((acc, r) => acc + r.time, 0) / result.results.length
+    result.results.reduce((acc, r) => acc + r.time, 0) / result.results.length,
   );
-  const sortedLatencies = [...result.results.map((r) => r.time)].sort((a, b) => a - b);
+  const sortedLatencies = result.results.map((r) => r.time).sort((a, b) => a - b);
   const p95Index = Math.ceil(sortedLatencies.length * 0.95) - 1;
   const p95Latency = sortedLatencies[Math.max(0, p95Index)] ?? 0;
 
@@ -40,7 +40,7 @@ export async function generatePipelineNarrative(
   // Interpolate user prompt with context
   const interpolatedPrompt = config.prompt.replace(
     /\{\{([^}]+)\}\}/g,
-    (match, path) => context[path.trim()] ?? match
+    (match, path) => context[path.trim()] ?? match,
   );
 
   // If provider has an API key, call the real LLM
@@ -77,7 +77,7 @@ export async function generatePipelineNarrative(
         return generateTemplateNarrative(
           config.tone,
           { successCount, failCount, avgLatency, p95Latency, totalSteps: result.results.length },
-          config.prompt
+          config.prompt,
         );
       }
 
@@ -92,7 +92,7 @@ export async function generatePipelineNarrative(
       return generateTemplateNarrative(
         config.tone,
         { successCount, failCount, avgLatency, p95Latency, totalSteps: result.results.length },
-        config.prompt
+        config.prompt,
       );
     } catch (error) {
       console.error("AI API call failed:", error);
@@ -100,7 +100,7 @@ export async function generatePipelineNarrative(
       return generateTemplateNarrative(
         config.tone,
         { successCount, failCount, avgLatency, p95Latency, totalSteps: result.results.length },
-        config.prompt
+        config.prompt,
       );
     }
   }
@@ -109,19 +109,19 @@ export async function generatePipelineNarrative(
   return generateTemplateNarrative(
     config.tone,
     { successCount, failCount, avgLatency, p95Latency, totalSteps: result.results.length },
-    config.prompt
+    config.prompt,
   );
 }
 
 function buildSystemPrompt(
   tone: string,
   result: PipelineExecutionResult,
-  metrics: { successCount: number; failCount: number; avgLatency: number; p95Latency: number }
+  metrics: { successCount: number; failCount: number; avgLatency: number; p95Latency: number },
 ) {
   const stepSummaries = result.results
     .map(
       (r) =>
-        `- ${r.method} ${r.url}: ${r.status} ${r.statusText} (${r.time}ms, ${(r.size / 1024).toFixed(1)}kb)`
+        `- ${r.method} ${r.url}: ${r.status} ${r.statusText} (${r.time}ms, ${(r.size / 1024).toFixed(1)}kb)`,
     )
     .join("\n");
 
@@ -159,7 +159,7 @@ function generateTemplateNarrative(
     p95Latency: number;
     totalSteps: number;
   },
-  _prompt: string
+  _prompt: string,
 ): string {
   const { successCount, failCount, avgLatency, p95Latency, totalSteps } = metrics;
 

@@ -21,12 +21,12 @@ describe("SettingsPage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^providers$/i }));
     expect(
-      await screen.findByRole("heading", { name: /configure openrouter/i }, { timeout: 3000 })
+      await screen.findByRole("heading", { name: /configure openrouter/i }, { timeout: 3000 }),
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /^database$/i }));
     expect(
-      await screen.findByRole("heading", { name: /configure postgresql/i }, { timeout: 3000 })
+      await screen.findByRole("heading", { name: /configure postgresql/i }, { timeout: 3000 }),
     ).toBeInTheDocument();
   });
 });

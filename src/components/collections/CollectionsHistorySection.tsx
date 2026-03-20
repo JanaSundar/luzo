@@ -27,7 +27,7 @@ export function CollectionsHistorySection({
           const hideUrlLine = isStrippedRequestNameEqualToUrl(
             entry.name,
             entry.request.method,
-            entry.request.url
+            entry.request.url,
           );
           return (
             <div
@@ -40,7 +40,7 @@ export function CollectionsHistorySection({
                     <Badge
                       className={cn(
                         "font-mono text-[10px] font-semibold",
-                        METHOD_BG_COLORS[entry.request.method]
+                        METHOD_BG_COLORS[entry.request.method],
                       )}
                     >
                       {entry.request.method}

@@ -71,7 +71,7 @@ export function DebuggerShell({
   const hasPersistedExecution = usePipelineExecutionStore((state) => state.hasPersistedExecution);
   const activePipelineId = usePipelineStore((state) => state.activePipelineId);
   const savedDebugger = usePipelineArtifactsStore((state) =>
-    activePipelineId ? (state.debuggerByPipelineId[activePipelineId] ?? null) : null
+    activePipelineId ? (state.debuggerByPipelineId[activePipelineId] ?? null) : null,
   );
   const saveDebuggerArtifact = usePipelineArtifactsStore((state) => state.saveDebuggerArtifact);
 
@@ -105,7 +105,7 @@ export function DebuggerShell({
         .map((snapshot) => snapshot.reducedResponse?.latencyMs ?? 0)
         .filter((latency) => latency > 0)
         .reduce((sum, latency) => sum + latency, 0),
-    [snapshots]
+    [snapshots],
   );
   const cookies = useMemo(() => getCookies(selectedSnapshot), [selectedSnapshot]);
 

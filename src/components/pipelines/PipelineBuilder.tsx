@@ -14,7 +14,7 @@ export function PipelineBuilder({
 }: {
   onRunFromStep?: (
     stepId: string,
-    mode: "partial-previous" | "partial-fresh"
+    mode: "partial-previous" | "partial-fresh",
   ) => void | Promise<void>;
 }) {
   const {
@@ -38,10 +38,10 @@ export function PipelineBuilder({
       if (!activePipelineId) return;
       reorderSteps(
         activePipelineId,
-        newSteps.map((s) => s.id)
+        newSteps.map((s) => s.id),
       );
     },
-    [activePipelineId, reorderSteps]
+    [activePipelineId, reorderSteps],
   );
 
   const handleAddRequest = () => {
@@ -120,7 +120,7 @@ export function PipelineBuilder({
                       if (!activePipelineId) return;
                       setExpandedStepId(
                         activePipelineId,
-                        expandedStepId === step.id ? null : step.id
+                        expandedStepId === step.id ? null : step.id,
                       );
                     }}
                     onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}

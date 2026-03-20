@@ -46,7 +46,7 @@ export function createDbClient(dbUrl: string): DbClient {
  * Test database connection with SELECT 1.
  */
 export async function testConnection(
-  dbUrl: string
+  dbUrl: string,
 ): Promise<{ ok: boolean; error?: string; latencyMs: number }> {
   const start = Date.now();
   try {
@@ -73,7 +73,7 @@ export async function testConnection(
  * Initialize schema — runs CREATE TABLE IF NOT EXISTS.
  */
 export async function initSchema(
-  dbUrl: string
+  dbUrl: string,
 ): Promise<{ ok: boolean; error?: string } & RuntimeSchemaStatus> {
   try {
     const { sql: sqlClient } = createDbClient(dbUrl);

@@ -12,7 +12,7 @@ export interface ProviderModel {
 
 export async function fetchProviderModels(
   provider: AiProvider,
-  apiKey: string
+  apiKey: string,
 ): Promise<ProviderModel[]> {
   const res = await fetch(`/api/providers/${provider}/models`, {
     method: "POST",

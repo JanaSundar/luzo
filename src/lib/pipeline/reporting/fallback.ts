@@ -9,7 +9,7 @@ import { toEndpointMetrics } from "./shared";
 export function buildFallbackStructuredReport(
   context: ReducedContext,
   config: AIReportConfig,
-  derivedTitle?: string
+  derivedTitle?: string,
 ): NarrativeReport {
   const endpointMetrics = toEndpointMetrics(context);
   const failedEndpoints = endpointMetrics.filter((e) => e.outcome === "error");
@@ -29,13 +29,13 @@ export function buildFallbackStructuredReport(
   if (slowEndpoints.length > 0) {
     const slowest = [...slowEndpoints].sort((a, b) => (b.latencyMs ?? 0) - (a.latencyMs ?? 0))[0];
     baseInsights.push(
-      `${slowEndpoints.length} request(s) exceeded 1000ms. Slowest: ${slowest.stepName} at ${slowest.latencyMs}ms.`
+      `${slowEndpoints.length} request(s) exceeded 1000ms. Slowest: ${slowest.stepName} at ${slowest.latencyMs}ms.`,
     );
   }
 
   if (failedEndpoints.length > 0) {
     baseInsights.push(
-      `Failed endpoints: ${failedEndpoints.map((e) => `${e.stepName} (${e.statusCode ?? "N/A"})`).join(", ")}.`
+      `Failed endpoints: ${failedEndpoints.map((e) => `${e.stepName} (${e.statusCode ?? "N/A"})`).join(", ")}.`,
     );
   }
 
@@ -44,13 +44,13 @@ export function buildFallbackStructuredReport(
     baseRisks.push(
       ...failedEndpoints.map(
         (e) =>
-          `${e.stepName} returned HTTP ${e.statusCode ?? "error"} — pipeline health is compromised.`
-      )
+          `${e.stepName} returned HTTP ${e.statusCode ?? "error"} — pipeline health is compromised.`,
+      ),
     );
   }
   if (verySlowEndpoints.length > 0) {
     baseRisks.push(
-      `${verySlowEndpoints.length} request(s) exceeded 3000ms — potential backend bottleneck or network issue.`
+      `${verySlowEndpoints.length} request(s) exceeded 3000ms — potential backend bottleneck or network issue.`,
     );
   }
   if (failedEndpoints.length === 0 && verySlowEndpoints.length === 0) {
@@ -60,38 +60,38 @@ export function buildFallbackStructuredReport(
   const baseRecommendations: string[] = [];
   if (failedEndpoints.length > 0) {
     baseRecommendations.push(
-      `Investigate and resolve failures in: ${failedEndpoints.map((e) => e.stepName).join(", ")} before treating this pipeline as healthy.`
+      `Investigate and resolve failures in: ${failedEndpoints.map((e) => e.stepName).join(", ")} before treating this pipeline as healthy.`,
     );
     baseRecommendations.push(
-      "Check server logs for each failed endpoint to identify root cause (4xx client errors, 5xx server errors, timeouts)."
+      "Check server logs for each failed endpoint to identify root cause (4xx client errors, 5xx server errors, timeouts).",
     );
   }
   if (slowEndpoints.length > 0) {
     baseRecommendations.push(
-      "Review high-latency requests for optimization opportunities: query parameter tuning, pagination, caching, or async processing."
+      "Review high-latency requests for optimization opportunities: query parameter tuning, pagination, caching, or async processing.",
     );
   }
   if (failedEndpoints.length === 0 && slowEndpoints.length > 0) {
     baseRecommendations.push(
-      "Establish latency baselines and set up alerts for p95 > 1000ms to catch regressions early."
+      "Establish latency baselines and set up alerts for p95 > 1000ms to catch regressions early.",
     );
   }
   if (failedEndpoints.length === 0 && slowEndpoints.length === 0) {
     baseRecommendations.push(
-      "Use this execution as a performance baseline for future regression comparisons."
+      "Use this execution as a performance baseline for future regression comparisons.",
     );
     baseRecommendations.push(
-      "Monitor latency trends over time to detect gradual performance degradation."
+      "Monitor latency trends over time to detect gradual performance degradation.",
     );
   }
   baseRecommendations.push(
-    "Enable request-level logging to correlate errors with specific request traces."
+    "Enable request-level logging to correlate errors with specific request traces.",
   );
   baseRecommendations.push(
-    "Consider adding retry logic with exponential backoff for transient failures."
+    "Consider adding retry logic with exponential backoff for transient failures.",
   );
   baseRecommendations.push(
-    "Document timeout configurations and ensure they align with backend SLA expectations."
+    "Document timeout configurations and ensure they align with backend SLA expectations.",
   );
 
   const output: NarrativeAiOutput = {
@@ -128,7 +128,7 @@ function createFallbackNarrativeReport(
   context: ReducedContext,
   config: AIReportConfig,
   output: NarrativeAiOutput,
-  title: string
+  title: string,
 ): NarrativeReport {
   const endpointMetrics = toEndpointMetrics(context);
 

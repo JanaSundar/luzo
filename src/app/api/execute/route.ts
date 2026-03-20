@@ -38,7 +38,7 @@ function getClientIp(request: NextRequest): string {
 function applyAuth(
   auth: AuthConfig,
   headers: Record<string, string>,
-  envVariables: Record<string, string>
+  envVariables: Record<string, string>,
 ): void {
   switch (auth.type) {
     case "bearer":
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: rateLimit.retryAfter ? { "Retry-After": String(rateLimit.retryAfter) } : undefined,
-      }
+      },
     );
   }
 
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     .filter((p) => p.enabled && p.key)
     .map(
       (p) =>
-        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`
+        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`,
     )
     .join("&");
   const targetUrl = queryParams ? `${fullUrl}?${queryParams}` : fullUrl;
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     if (k === "content-type") continue;
     headers[interpolateVariables(h.key, envVariables)] = interpolateVariables(
       h.value,
-      envVariables
+      envVariables,
     );
   }
   applyAuth(auth, headers, envVariables);
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
           {
             error: `File "${value.name}" exceeds maximum size of ${LIMITS.MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
           },
-          { status: 413 }
+          { status: 413 },
         );
       }
       totalSize += value.size;
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     if (totalSize > LIMITS.MAX_FORMDATA_BYTES) {
       return Response.json(
         { error: `FormData exceeds maximum size of ${LIMITS.MAX_FORMDATA_BYTES / 1024 / 1024}MB` },
-        { status: 413 }
+        { status: 413 },
       );
     }
   }
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
   });
 
   const contentType = (responseHeaders["content-type"] ?? "").toLowerCase().split(";")[0].trim();
-  const isImage = /^image\//.test(contentType);
+  const isImage = contentType.startsWith("image/");
   const isPdf = contentType === "application/pdf";
   const isBinaryPreview = isImage || isPdf;
 

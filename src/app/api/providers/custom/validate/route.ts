@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { valid: false, error: errorMessage },
-      { status: status >= 400 && status < 600 ? status : 500 }
+      { status: status >= 400 && status < 600 ? status : 500 },
     );
   }
 }

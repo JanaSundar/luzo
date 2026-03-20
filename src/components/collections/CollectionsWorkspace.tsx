@@ -61,7 +61,7 @@ export function CollectionsWorkspace() {
         const haystack = `${collection.name} ${collection.description ?? ""}`.toLowerCase();
         return haystack.includes(search.toLowerCase());
       }),
-    [collections, search]
+    [collections, search],
   );
 
   const filteredRequests = useMemo(() => {
@@ -75,7 +75,7 @@ export function CollectionsWorkspace() {
   const historySortedByDate = useMemo(() => sortSavedRequestsByRecencyDesc(history), [history]);
   const totalSavedRequests = collections.reduce(
     (count, collection) => count + collection.requests.length,
-    0
+    0,
   );
 
   const handleSaveCollection = async (payload: {
@@ -185,7 +185,7 @@ export function CollectionsWorkspace() {
                       "w-full py-3 text-left transition-all px-3 relative",
                       collection.id === selectedCollectionId
                         ? "text-primary"
-                        : "text-muted-foreground/70 hover:text-foreground"
+                        : "text-muted-foreground/70 hover:text-foreground",
                     )}
                   >
                     {collection.id === selectedCollectionId && (

@@ -57,7 +57,7 @@ export function buildReducedContext(
   signalGroups: SignalGroup[],
   selectedSignals: string[],
   snapshots: StepSnapshot[],
-  options: { maskSensitive?: boolean } = {}
+  options: { maskSensitive?: boolean } = {},
 ): ReducedContext {
   const selectedSet = new Set(selectedSignals);
   const snapshotMap = new Map<string, StepSnapshot>();

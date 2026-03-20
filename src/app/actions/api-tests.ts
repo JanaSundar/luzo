@@ -5,7 +5,7 @@ import type { ApiRequest, ApiResponse } from "@/types";
 
 export async function executeRequest(
   request: ApiRequest,
-  envVariables: Record<string, string> = {}
+  envVariables: Record<string, string> = {},
 ): Promise<
   ApiResponse & {
     preRequestResult?: { logs: string[]; error: string | null; durationMs: number };

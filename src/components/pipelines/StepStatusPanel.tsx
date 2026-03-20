@@ -32,7 +32,7 @@ function ExecutionBadge({ status }: { status: string }) {
     <span
       className={cn(
         "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-        variants[status] ?? "bg-muted text-muted-foreground"
+        variants[status] ?? "bg-muted text-muted-foreground",
       )}
     >
       {status}
@@ -77,7 +77,7 @@ export function StepStatusPanel({ snapshot, executionStatus, cookies }: StepStat
           <span
             className={cn(
               "text-2xl font-bold tracking-tight",
-              isSuccess ? getStatusColor(response?.status ?? 0) : "text-destructive"
+              isSuccess ? getStatusColor(response?.status ?? 0) : "text-destructive",
             )}
           >
             {response ? `${response.status} ${response.statusText}` : snapshot.status.toUpperCase()}
@@ -116,7 +116,7 @@ export function StepStatusPanel({ snapshot, executionStatus, cookies }: StepStat
                 "px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all border-b-2",
                 activeTab === tab
                   ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               {tab}

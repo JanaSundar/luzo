@@ -43,7 +43,7 @@ export function ResponseTabBar({
         aria-label="Response panels"
         className={cn(
           "inline-flex w-fit min-w-0 max-w-full items-stretch overflow-x-auto",
-          segmentedTabListClassName
+          segmentedTabListClassName,
         )}
       >
         {RESPONSE_TABS.map((tab) => {
@@ -57,7 +57,7 @@ export function ResponseTabBar({
               onClick={() => onTabChange(tab.id)}
               className={segmentedTabTriggerClassName(
                 active,
-                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
               )}
             >
               {tab.label}

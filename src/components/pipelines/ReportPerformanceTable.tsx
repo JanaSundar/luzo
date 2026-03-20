@@ -52,7 +52,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                   key={r.stepId}
                   className={cn(
                     "group transition-colors h-20",
-                    isOutlier ? "bg-red-500/[0.03]" : "hover:bg-muted/10"
+                    isOutlier ? "bg-red-500/[0.03]" : "hover:bg-muted/10",
                   )}
                 >
                   <td className="px-8 py-4">
@@ -66,7 +66,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                               ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
                               : r.method === "DELETE"
                                 ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                                : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                : "bg-amber-500/10 text-amber-600 border-amber-500/20",
                         )}
                       >
                         {r.method}
@@ -84,7 +84,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                           ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                           : r.outcome === "warning"
                             ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                            : "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                            : "bg-rose-500/10 text-rose-600 border-rose-500/20",
                       )}
                     >
                       {r.statusCode ?? "---"}
@@ -98,7 +98,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                           ? "text-rose-600"
                           : (r.latencyMs ?? 0) > 500
                             ? "text-amber-600"
-                            : "text-foreground"
+                            : "text-foreground",
                       )}
                     >
                       {r.latencyMs ?? 0}

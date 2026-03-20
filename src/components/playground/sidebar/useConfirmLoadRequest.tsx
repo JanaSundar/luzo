@@ -26,7 +26,7 @@ export function useConfirmLoadRequest() {
       setLoadedRequest(request);
       toast.success(`Loaded: ${name}`);
     },
-    [currentRequest, originalRequest, setLoadedRequest]
+    [currentRequest, originalRequest, setLoadedRequest],
   );
 
   const handleConfirmPending = useCallback(() => {

@@ -21,12 +21,12 @@ import { ReportPerformanceTable } from "./ReportPerformanceTable";
 export function ReportPreview() {
   const { pipelines, activePipelineId, executionResult } = usePipelineStore();
   const reportCache = usePipelineDebugStore((state) =>
-    activePipelineId ? (state.reportsByPipelineId[activePipelineId] ?? null) : null
+    activePipelineId ? (state.reportsByPipelineId[activePipelineId] ?? null) : null,
   );
 
   const pipeline = useMemo(
     () => pipelines.find((item) => item.id === activePipelineId),
-    [pipelines, activePipelineId]
+    [pipelines, activePipelineId],
   );
 
   const reportModel = reportCache
@@ -120,7 +120,7 @@ export function ReportPreview() {
                         "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0",
                         req.method === "GET"
                           ? "bg-emerald-500/10 text-emerald-600"
-                          : "bg-blue-500/10 text-blue-600"
+                          : "bg-blue-500/10 text-blue-600",
                       )}
                     >
                       {req.method}
@@ -133,7 +133,7 @@ export function ReportPreview() {
                         className={cn(
                           req.statusCode && req.statusCode < 400
                             ? "text-emerald-500"
-                            : "text-rose-500"
+                            : "text-rose-500",
                         )}
                       >
                         {req.statusCode ?? "N/A"}

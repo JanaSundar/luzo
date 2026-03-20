@@ -111,7 +111,7 @@ function PlaygroundContent() {
             <nav
               className={cn(
                 "inline-flex w-full items-stretch justify-around",
-                segmentedTabListClassName
+                segmentedTabListClassName,
               )}
             >
               {[
@@ -126,7 +126,7 @@ function PlaygroundContent() {
                     onClick={() => setMobileTab(tab.id as "request" | "response")}
                     className={segmentedTabTriggerClassName(
                       isActive,
-                      "h-7 flex-1 items-center justify-center px-4"
+                      "h-7 flex-1 items-center justify-center px-4",
                     )}
                   >
                     {tab.label}
@@ -189,7 +189,7 @@ function PlaygroundContent() {
                     "h-7 w-7 p-0 rounded-md transition-all",
                     responseLayout === "vertical"
                       ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
                   )}
                   onClick={() => setResponseLayout("vertical")}
                   title="Vertical Layout"
@@ -203,7 +203,7 @@ function PlaygroundContent() {
                     "h-7 w-7 p-0 rounded-md transition-all",
                     responseLayout === "horizontal"
                       ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
                   )}
                   onClick={() => setResponseLayout("horizontal")}
                   title="Horizontal Layout"

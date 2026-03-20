@@ -81,7 +81,7 @@ export function ResponseViewer() {
     const key = Object.keys(response.headers).find((k) => k.toLowerCase() === "content-type");
     return key ? response.headers[key].toLowerCase().split(";")[0].trim() : "";
   })();
-  const isImageResponse = /^image\//.test(contentType);
+  const isImageResponse = contentType.startsWith("image/");
   const isPdfResponse = contentType === "application/pdf";
   const isBinaryPreview = isImageResponse || isPdfResponse;
 
@@ -110,7 +110,7 @@ export function ResponseViewer() {
         blob = new Blob([binary], { type: contentType });
         const ext = isImageResponse ? contentType.replace("image/", "") : "pdf";
         filename = `response.${ext === "jpeg" ? "jpg" : ext}`;
-      } catch (_err) {
+      } catch {
         toast.error("Failed to decode large response body");
         return;
       }
@@ -234,7 +234,7 @@ export function ResponseViewer() {
           role="tablist"
           className={cn(
             "inline-flex w-fit max-w-full min-w-0 flex-wrap items-stretch",
-            segmentedTabListClassName
+            segmentedTabListClassName,
           )}
         >
           {[
@@ -290,7 +290,7 @@ export function ResponseViewer() {
                     aria-label="Body view"
                     className={cn(
                       "inline-flex w-fit min-w-0 items-stretch",
-                      segmentedTabListClassName
+                      segmentedTabListClassName,
                     )}
                   >
                     <button
@@ -299,7 +299,7 @@ export function ResponseViewer() {
                       aria-selected={bodyView === "preview"}
                       className={segmentedTabTriggerClassName(
                         bodyView === "preview",
-                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
                       )}
                       onClick={() => setBodyView("preview")}
                     >
@@ -311,7 +311,7 @@ export function ResponseViewer() {
                       aria-selected={bodyView === "raw"}
                       className={segmentedTabTriggerClassName(
                         bodyView === "raw",
-                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap"
+                        "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
                       )}
                       onClick={() => setBodyView("raw")}
                     >
@@ -324,7 +324,7 @@ export function ResponseViewer() {
                   <div
                     className={cn(
                       "flex min-h-0 min-w-0 flex-1 custom-scrollbar",
-                      bodyView === "raw" ? "overflow-y-auto overflow-x-hidden" : "overflow-auto"
+                      bodyView === "raw" ? "overflow-y-auto overflow-x-hidden" : "overflow-auto",
                     )}
                   >
                     {bodyView === "raw" ? (

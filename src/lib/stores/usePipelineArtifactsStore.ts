@@ -15,7 +15,7 @@ interface PipelineArtifactsState {
   debuggerByPipelineId: Record<string, PersistedDebuggerArtifact>;
   saveExecutionArtifact: (
     pipelineId: string,
-    artifact: PersistedExecutionArtifact | CheckpointArtifact
+    artifact: PersistedExecutionArtifact | CheckpointArtifact,
   ) => void;
   saveReportArtifact: (pipelineId: string, report: AIReportCache) => void;
   saveDebuggerArtifact: (pipelineId: string, debuggerArtifact: PersistedDebuggerArtifact) => void;
@@ -23,7 +23,7 @@ interface PipelineArtifactsState {
   deleteArtifacts: (pipelineId: string) => void;
   deleteArtifactsBatch: (pipelineIds: string[]) => void;
   getExecutionArtifact: (
-    pipelineId: string | null
+    pipelineId: string | null,
   ) => (PersistedExecutionArtifact | CheckpointArtifact) | null;
   getReportArtifact: (pipelineId: string | null) => AIReportCache | null;
 }
@@ -90,8 +90,8 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
         reportsByPipelineId: state.reportsByPipelineId,
         debuggerByPipelineId: state.debuggerByPipelineId,
       }),
-    }
-  )
+    },
+  ),
 );
 
 function omit<T>(record: Record<string, T>, key: string) {

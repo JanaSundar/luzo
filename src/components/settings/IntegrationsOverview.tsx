@@ -40,7 +40,7 @@ export function IntegrationsOverview({
   const dbActiveCount = status === "connected" ? 1 : 0;
 
   const allProvidersOk = AI_PROVIDERS.every(
-    (p) => !providers[p]?.apiKey || providers[p].validationStatus !== "invalid"
+    (p) => !providers[p]?.apiKey || providers[p].validationStatus !== "invalid",
   );
   const dbOk = status !== "error";
   const allSystemsOk = allProvidersOk && dbOk;
@@ -59,13 +59,13 @@ export function IntegrationsOverview({
             "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider",
             allSystemsOk
               ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-              : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+              : "bg-amber-500/10 text-amber-600 border-amber-500/20",
           )}
         >
           <div
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              allSystemsOk ? "bg-emerald-500" : "bg-amber-500"
+              allSystemsOk ? "bg-emerald-500" : "bg-amber-500",
             )}
           />
           {allSystemsOk ? "All systems operational" : "Issues detected"}

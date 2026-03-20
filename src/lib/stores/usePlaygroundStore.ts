@@ -119,6 +119,6 @@ export const usePlaygroundStore = create<PlaygroundState>()(
           responseLayout: s.responseLayout,
         };
       },
-    }
-  )
+    },
+  ),
 );

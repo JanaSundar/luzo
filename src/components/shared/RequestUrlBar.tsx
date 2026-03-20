@@ -40,7 +40,7 @@ export function RequestUrlBar({
     <div
       className={cn(
         "flex items-center gap-3 p-1.5 bg-muted/20 rounded-xl relative overflow-visible",
-        className
+        className,
       )}
     >
       <Select

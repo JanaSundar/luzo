@@ -146,7 +146,7 @@ export function validateVariableRefsInTemplate(
   template: string,
   aliases: StepAlias[],
   currentStepIndex: number,
-  availableFields: Map<string, Set<string>>
+  availableFields: Map<string, Set<string>>,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 

@@ -41,7 +41,7 @@ function getScriptBadge(
     error: string | null;
     durationMs: number;
     testResults?: Array<{ name: string; passed: boolean }>;
-  }
+  },
 ) {
   if (!result) return null;
 
@@ -58,7 +58,7 @@ function getScriptBadge(
         "font-mono text-[9px] shrink-0 border",
         passed
           ? segmentedSurfaceChipClassName
-          : "border-destructive/20 bg-destructive/10 text-destructive"
+          : "border-destructive/20 bg-destructive/10 text-destructive",
       )}
     >
       {label} {hasTests ? (allPassed ? "✓" : "✗") : passed ? "✓" : "✗"}
@@ -97,7 +97,7 @@ export function TimelinePanel({
               "w-full text-left p-3 rounded-lg flex flex-col gap-1.5 transition-all border",
               selectedIndex === i
                 ? "bg-primary/5 border-primary/30 shadow-sm"
-                : "bg-transparent border-transparent hover:bg-muted/30"
+                : "bg-transparent border-transparent hover:bg-muted/30",
             )}
           >
             <div className="flex items-center justify-between gap-2">
@@ -106,7 +106,7 @@ export function TimelinePanel({
                 <span
                   className={cn(
                     "font-mono font-bold text-[10px] shrink-0",
-                    METHOD_COLORS[snapshot.method] || "text-foreground"
+                    METHOD_COLORS[snapshot.method] || "text-foreground",
                   )}
                 >
                   {snapshot.method}
@@ -123,7 +123,7 @@ export function TimelinePanel({
                       "font-mono text-[10px] shrink-0 border",
                       snapshot.status === "success"
                         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                        : "bg-destructive/10 text-destructive border-destructive/20"
+                        : "bg-destructive/10 text-destructive border-destructive/20",
                     )}
                   >
                     {snapshot.reducedResponse.status}

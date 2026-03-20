@@ -30,7 +30,7 @@ export function PromptEditor({
       label: v.label,
       stepId: g.stepId,
       type: "body" as const,
-    }))
+    })),
   );
 
   const { selectedSignals } = usePipelineDebugStore();

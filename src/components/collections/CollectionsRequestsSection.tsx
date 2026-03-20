@@ -41,12 +41,12 @@ export function CollectionsRequestsSection({
           {requests.map((savedRequest) => {
             const title = stripMethodPrefixFromRequestName(
               savedRequest.name,
-              savedRequest.request.method
+              savedRequest.request.method,
             );
             const hideUrlLine = isStrippedRequestNameEqualToUrl(
               savedRequest.name,
               savedRequest.request.method,
-              savedRequest.request.url
+              savedRequest.request.url,
             );
             return (
               <div
@@ -59,7 +59,7 @@ export function CollectionsRequestsSection({
                       <Badge
                         className={cn(
                           "font-mono text-[10px] font-semibold",
-                          METHOD_BG_COLORS[savedRequest.request.method]
+                          METHOD_BG_COLORS[savedRequest.request.method],
                         )}
                       >
                         {savedRequest.request.method}

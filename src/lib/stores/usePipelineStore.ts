@@ -165,8 +165,8 @@ export const usePipelineStore = create<PipelineState>()(
         pipelines: state.pipelines,
         activePipelineId: state.activePipelineId,
       }),
-    }
-  )
+    },
+  ),
 );
 
 function createPipeline(name: string): Pipeline {

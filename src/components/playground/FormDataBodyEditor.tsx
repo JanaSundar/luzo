@@ -113,7 +113,7 @@ function FileDropzone({
     (acceptedFiles: File[]) => {
       onFileChange(acceptedFiles[0]);
     },
-    [onFileChange]
+    [onFileChange],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -140,7 +140,7 @@ function FileDropzone({
         isDragActive
           ? "border-primary bg-primary/10"
           : "border-muted-foreground/40 hover:border-muted-foreground/60 hover:bg-muted/50",
-        field.file && "border-primary/50 bg-primary/5"
+        field.file && "border-primary/50 bg-primary/5",
       )}
     >
       <input {...getInputProps()} />

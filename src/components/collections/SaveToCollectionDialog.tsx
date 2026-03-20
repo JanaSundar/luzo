@@ -80,7 +80,7 @@ export function SaveToCollectionDialog({
 
     const collection = collections.find((c) => c.id === selectedCollectionId);
     const isDuplicate = collection?.requests.some(
-      (r) => r.request.url === request.url && r.request.method === request.method
+      (r) => r.request.url === request.url && r.request.method === request.method,
     );
 
     if (isDuplicate) {

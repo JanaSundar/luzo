@@ -59,13 +59,13 @@ export async function POST(request: Request) {
       if (response.status === 401 || response.status === 403) {
         return NextResponse.json(
           { error: "Invalid API key. Please check and try again.", models: [] },
-          { status: 401 }
+          { status: 401 },
         );
       }
       if (response.status === 429) {
         return NextResponse.json(
           { error: "Rate limited. Please wait a moment and try again.", models: [] },
-          { status: 429 }
+          { status: 429 },
         );
       }
       const errData = await response.json().catch(() => ({}));

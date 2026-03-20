@@ -108,7 +108,7 @@ export function RequestBuilder() {
       } else {
         const resp = await executeRequest(
           { ...request, preRequestScript: finalPreRequestScript, testScript: finalTestScript },
-          envVars
+          envVars,
         );
         setResponse({
           ...resp,
@@ -143,7 +143,7 @@ export function RequestBuilder() {
         },
       });
     },
-    [addStep, request, setActivePipeline, setView, router]
+    [addStep, request, setActivePipeline, setView, router],
   );
 
   const handleCreateAndAdd = useCallback(() => {

@@ -9,8 +9,10 @@ import type { VariableSuggestion } from "@/types/pipeline-debug";
 const TRIGGER = "{{";
 const CLOSE = "}}";
 
-interface TemplateTextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> {
+interface TemplateTextareaProps extends Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "onChange" | "value"
+> {
   value: string;
   onChange: (value: string) => void;
   suggestions: VariableSuggestion[];
@@ -87,12 +89,12 @@ export function TemplateTextarea({
       const query = active.token.toLowerCase();
       const filtered = suggestions
         .filter(
-          (s) => s.path.toLowerCase().includes(query) || s.label.toLowerCase().includes(query)
+          (s) => s.path.toLowerCase().includes(query) || s.label.toLowerCase().includes(query),
         )
         .slice(0, 10);
       setItems(filtered);
     },
-    [suggestions]
+    [suggestions],
   );
 
   const { isOpen, getMenuProps, getInputProps, getItemProps, highlightedIndex, closeMenu } =
@@ -153,7 +155,7 @@ export function TemplateTextarea({
         (downshiftRef as React.MutableRefObject<HTMLInputElement | null>).current = inputEl;
       }
     },
-    [downshiftRef]
+    [downshiftRef],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -194,7 +196,7 @@ export function TemplateTextarea({
         "min-w-[240px] max-w-sm",
         "bg-popover text-popover-foreground border rounded-lg shadow-lg overflow-hidden",
         "max-h-64 overflow-y-auto",
-        (!isOpen || items.length === 0) && "hidden"
+        (!isOpen || items.length === 0) && "hidden",
       )}
     >
       {isOpen && groups.length > 0 && (
@@ -216,7 +218,7 @@ export function TemplateTextarea({
                       "flex flex-col gap-0.5 px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors",
                       highlightedIndex === globalIdx
                         ? "bg-accent text-accent-foreground"
-                        : "hover:bg-muted/50"
+                        : "hover:bg-muted/50",
                     )}
                   >
                     <span className="font-mono text-[11px] leading-tight">{item.path}</span>
@@ -244,7 +246,7 @@ export function TemplateTextarea({
         onClick={handleClick}
         className={cn(
           "flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          textareaClassName
+          textareaClassName,
         )}
         {...props}
       />

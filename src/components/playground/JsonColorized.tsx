@@ -130,7 +130,7 @@ function highlightText(text: string, search: string): ReactNode[] {
       </mark>
     ) : (
       part
-    )
+    ),
   );
 }
 

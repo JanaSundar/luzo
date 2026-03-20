@@ -14,7 +14,7 @@ export function stripMethodPrefixFromRequestName(name: string, method: string): 
 export function isStrippedRequestNameEqualToUrl(
   name: string,
   method: string,
-  url: string
+  url: string,
 ): boolean {
   return stripMethodPrefixFromRequestName(name, method).trim() === url.trim();
 }

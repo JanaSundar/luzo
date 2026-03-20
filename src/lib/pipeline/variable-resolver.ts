@@ -39,7 +39,7 @@ export function resolveTemplate(
   template: string,
   runtimeVariables: Record<string, unknown>,
   envVariables: Record<string, string> = {},
-  variableOverrides: Record<string, string> = {}
+  variableOverrides: Record<string, string> = {},
 ): string {
   if (!template) return template;
 
@@ -110,7 +110,7 @@ export function getStepAliasFromPath(path: string): string | null {
 export function flattenObject(
   obj: unknown,
   prefix = "",
-  maxDepth = 5
+  maxDepth = 5,
 ): Array<{ path: string; value: unknown }> {
   const results: Array<{ path: string; value: unknown }> = [];
   if (obj == null) return results;

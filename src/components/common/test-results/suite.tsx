@@ -46,7 +46,7 @@ export const TestSuiteName: React.FC<React.ComponentProps<typeof CollapsibleTrig
     <CollapsibleTrigger
       className={cn(
         "group flex w-full items-center gap-2 rounded-t-lg bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50",
-        className
+        className,
       )}
       {...props}
     >

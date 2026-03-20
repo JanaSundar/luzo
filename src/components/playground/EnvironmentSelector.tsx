@@ -120,14 +120,14 @@ export function EnvironmentSelector() {
                       "flex items-center justify-between p-2 rounded-lg border transition-all",
                       activeEnvironmentId === env.id
                         ? "bg-primary/5 border-primary/20"
-                        : "bg-muted/30 border-border/40 hover:border-border/80"
+                        : "bg-muted/30 border-border/40 hover:border-border/80",
                     )}
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <div
                         className={cn(
                           "h-2 w-2 rounded-full shrink-0",
-                          activeEnvironmentId === env.id ? "bg-primary" : "bg-muted-foreground/30"
+                          activeEnvironmentId === env.id ? "bg-primary" : "bg-muted-foreground/30",
                         )}
                       />
                       <span className="text-sm font-medium truncate">{env.name}</span>

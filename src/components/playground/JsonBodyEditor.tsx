@@ -12,7 +12,7 @@ const TRIGGER = "{{";
 
 function variableCompletions(
   suggestions: VariableSuggestion[],
-  context: CompletionContext
+  context: CompletionContext,
 ): { from: number; options: { label: string; detail?: string; apply?: string }[] } | null {
   const line = context.state.doc.lineAt(context.pos);
   const textBefore = line.text.slice(0, context.pos - line.from);
@@ -78,7 +78,7 @@ export function JsonBodyEditor({
 
   const variableCompletion = useMemo(
     () => (ctx: CompletionContext) => variableCompletions(suggestions, ctx),
-    [suggestions]
+    [suggestions],
   );
 
   const extensions = useMemo(
@@ -88,7 +88,7 @@ export function JsonBodyEditor({
         override: [variableCompletion, ...(mode === "json" ? [jsonCompletions] : [])],
       }),
     ],
-    [mode, variableCompletion]
+    [mode, variableCompletion],
   );
 
   return (
@@ -97,7 +97,7 @@ export function JsonBodyEditor({
         "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border/40 bg-background",
         "[&_.cm-editor]:h-full [&_.cm-scroller]:h-full",
         "[&_.cm-content]:text-xs [&_.cm-content]:leading-relaxed",
-        className
+        className,
       )}
     >
       <CodeMirror

@@ -29,7 +29,7 @@ function createCapturingConsole(): {
     console: {
       log: (...args: unknown[]) => {
         logs.push(
-          args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")
+          args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" "),
         );
       },
     },
@@ -43,7 +43,7 @@ function createCapturingConsole(): {
  */
 export function runPreRequestScript(
   script: string,
-  ctx: RequestContext
+  ctx: RequestContext,
 ): {
   config: HttpRequestConfig;
   envVariables: Record<string, string>;
@@ -133,7 +133,7 @@ export function runPreRequestScript(
  */
 export function runTestScript(
   script: string,
-  ctx: ResponseContext
+  ctx: ResponseContext,
 ): { testResults: TestResult[]; execution: ScriptExecutionResult } {
   const testResults: TestResult[] = [];
   const execution: ScriptExecutionResult = { logs: [], error: null };

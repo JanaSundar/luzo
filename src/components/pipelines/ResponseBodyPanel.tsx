@@ -66,14 +66,14 @@ export function ResponseBodyPanel({
 
 function JsonSyntaxHighlight({ text }: { text: string }) {
   const parts = text.split(
-    /("(?:[^"\\]|\\.)*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g
+    /("(?:[^"\\]|\\.)*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
   );
 
   return (
     <>
       {parts.map((part, i) => {
         const key = `${i}-${part.slice(0, 8)}`;
-        if (/^"/.test(part)) {
+        if (part.startsWith('"')) {
           const nextPart = parts[i + 1];
           if (nextPart?.trim().startsWith(":")) {
             return (

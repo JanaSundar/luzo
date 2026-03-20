@@ -92,7 +92,7 @@ export const useEnvironmentStore = create<EnvironmentState>()(
         const env = environments.find((e) => e.id === activeEnvironmentId);
         if (!env) return {};
         return Object.fromEntries(
-          env.variables.filter((v) => v.enabled).map((v) => [v.key, v.value])
+          env.variables.filter((v) => v.enabled).map((v) => [v.key, v.value]),
         );
       },
     })),
@@ -103,6 +103,6 @@ export const useEnvironmentStore = create<EnvironmentState>()(
         environments: sanitizeEnvironmentsForPersistence(s.environments),
         activeEnvironmentId: s.activeEnvironmentId,
       }),
-    }
-  )
+    },
+  ),
 );

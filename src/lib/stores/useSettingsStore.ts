@@ -39,7 +39,7 @@ interface SettingsState {
         SettingsState,
         "dbStatus" | "dbError" | "dbLatencyMs" | "dbSchemaReady" | "dbWarnings" | "dbTables"
       >
-    >
+    >,
   ) => void;
 }
 
@@ -56,7 +56,7 @@ function createInitialProviders(): Record<AiProvider, ProviderConfig> {
       };
       return acc;
     },
-    {} as Record<AiProvider, ProviderConfig>
+    {} as Record<AiProvider, ProviderConfig>,
   );
 }
 
@@ -104,6 +104,6 @@ export const useSettingsStore = create<SettingsState>()(
           sessionStorage.removeItem(name);
         },
       },
-    }
-  )
+    },
+  ),
 );

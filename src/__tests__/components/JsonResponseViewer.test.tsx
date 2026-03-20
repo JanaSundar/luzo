@@ -5,7 +5,7 @@ import { JsonResponseViewer } from "@/components/playground/JsonResponseViewer";
 describe("JsonResponseViewer", () => {
   it("fills the available response body space", () => {
     const { container } = render(
-      <JsonResponseViewer text='{"name":"John"}' className="h-full w-full" />
+      <JsonResponseViewer text='{"name":"John"}' className="h-full w-full" />,
     );
 
     expect(container.firstElementChild).toHaveClass("h-full", "w-full");
@@ -16,7 +16,7 @@ describe("JsonResponseViewer", () => {
     const text = JSON.stringify({ name: "John", city: "New York", job: "John's assistant" });
 
     const { rerender } = render(
-      <JsonResponseViewer text={text} searchQuery="John" onMatchChange={onMatchChange} />
+      <JsonResponseViewer text={text} searchQuery="John" onMatchChange={onMatchChange} />,
     );
 
     // Initial render with searchQuery="John"
@@ -31,7 +31,7 @@ describe("JsonResponseViewer", () => {
     // Update text
     const newText = JSON.stringify({ name: "Jane" });
     rerender(
-      <JsonResponseViewer text={newText} searchQuery="John" onMatchChange={onMatchChange} />
+      <JsonResponseViewer text={newText} searchQuery="John" onMatchChange={onMatchChange} />,
     );
     // "John" not in {"name":"Jane"}
     expect(onMatchChange).toHaveBeenLastCalledWith(0, 0);

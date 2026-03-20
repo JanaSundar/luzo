@@ -98,7 +98,7 @@ export function CodeGenerator() {
       } catch (error) {
         console.error("Failed to generate code via server action:", error);
         setCode(
-          `// Error generating code: ${error instanceof Error ? error.message : "Internal error"}`
+          `// Error generating code: ${error instanceof Error ? error.message : "Internal error"}`,
         );
       } finally {
         setIsLoading(false);

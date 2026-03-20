@@ -6,7 +6,7 @@ export function UrlStartEllipsisText({ text, className }: { text: string; classN
     <div
       className={cn(
         "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left",
-        className
+        className,
       )}
       dir="rtl"
     >

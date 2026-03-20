@@ -102,7 +102,7 @@ export const usePipelineDebugStore = create<DebugStore>()(
           ? state.signalGroups.flatMap((group) =>
               group.variables
                 .filter((variable) => state.showSensitive || variable.sensitivity !== "high")
-                .map((variable) => variable.path)
+                .map((variable) => variable.path),
             )
           : [];
         state.reportConfig.selectedSignals = [...state.selectedSignals];
@@ -166,7 +166,7 @@ export const usePipelineDebugStore = create<DebugStore>()(
       set((state) => {
         Object.assign(state.aiProvider, config);
       }),
-  }))
+  })),
 );
 
 usePipelineArtifactsStore.subscribe((state) => {

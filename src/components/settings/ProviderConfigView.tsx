@@ -82,7 +82,7 @@ export function ProviderConfigView() {
         validationStatus: "idle",
       });
     },
-    [activeProvider, setProviderConfig]
+    [activeProvider, setProviderConfig],
   );
 
   const handleTestConnection = useCallback(async () => {
@@ -154,7 +154,7 @@ export function ProviderConfigView() {
                 onClick={() => setActiveProvider(p)}
                 className={segmentedTabTriggerClassName(
                   isActive,
-                  "h-7 gap-2 px-4 whitespace-nowrap"
+                  "h-7 gap-2 px-4 whitespace-nowrap",
                 )}
               >
                 {pMeta.name}
@@ -257,7 +257,7 @@ export function ProviderConfigView() {
             "h-9 px-6 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all outline-none flex items-center gap-2",
             !isSaving
               ? "bg-foreground text-background hover:bg-foreground/90"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
           )}
         >
           {isSaving ? (

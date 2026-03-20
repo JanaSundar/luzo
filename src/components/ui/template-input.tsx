@@ -9,8 +9,10 @@ import type { VariableSuggestion } from "@/types/pipeline-debug";
 const TRIGGER = "{{";
 const CLOSE = "}}";
 
-interface TemplateInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
+interface TemplateInputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "onChange" | "value"
+> {
   value: string;
   onChange: (value: string) => void;
   suggestions: VariableSuggestion[];
@@ -77,12 +79,12 @@ export function TemplateInput({
       const query = active.token.toLowerCase();
       const filtered = suggestions
         .filter(
-          (s) => s.path.toLowerCase().includes(query) || s.label.toLowerCase().includes(query)
+          (s) => s.path.toLowerCase().includes(query) || s.label.toLowerCase().includes(query),
         )
         .slice(0, 10);
       setItems(filtered);
     },
-    [suggestions]
+    [suggestions],
   );
 
   const { isOpen, getMenuProps, getInputProps, getItemProps, highlightedIndex, closeMenu } =
@@ -164,7 +166,7 @@ export function TemplateInput({
         "min-w-[240px] max-w-sm",
         "bg-popover text-popover-foreground border rounded-lg shadow-lg overflow-hidden",
         "max-h-64 overflow-y-auto",
-        (!isOpen || items.length === 0) && "hidden"
+        (!isOpen || items.length === 0) && "hidden",
       )}
     >
       {isOpen && groups.length > 0 && (
@@ -186,7 +188,7 @@ export function TemplateInput({
                       "flex flex-col gap-0.5 px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors",
                       highlightedIndex === globalIdx
                         ? "bg-accent text-accent-foreground"
-                        : "hover:bg-muted/50"
+                        : "hover:bg-muted/50",
                     )}
                   >
                     <span className="font-mono text-[11px] leading-tight">{item.path}</span>
@@ -211,7 +213,7 @@ export function TemplateInput({
           "flex h-9 w-full rounded-md bg-transparent px-3 py-1 text-sm font-mono transition-colors",
           "placeholder:text-muted-foreground",
           "focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-          inputClassName
+          inputClassName,
         )}
       />
       {mounted ? createPortal(menuContent, document.body) : menuContent}

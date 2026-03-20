@@ -63,7 +63,7 @@ export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponse
       ({ index, style }: RowComponentProps) => {
         return <JsonLine line={lines[index]} highlight={searchQuery} style={style} />;
       },
-      [lines, searchQuery]
+      [lines, searchQuery],
     );
 
     useEffect(() => {
@@ -84,14 +84,14 @@ export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponse
         goNext,
         goPrev,
       }),
-      [goNext, goPrev]
+      [goNext, goPrev],
     );
 
     return (
       <div
         className={cn(
           "h-full w-full min-h-0 min-w-0 overflow-hidden rounded-md border border-border/40 bg-background",
-          className
+          className,
         )}
       >
         <List
@@ -105,7 +105,7 @@ export const JsonResponseViewer = forwardRef<JsonResponseViewerRef, JsonResponse
         />
       </div>
     );
-  }
+  },
 );
 
 function escapeRegex(s: string): string {

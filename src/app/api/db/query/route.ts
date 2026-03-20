@@ -29,7 +29,7 @@ export async function POST(request: Request) {
           error:
             "Dangerous SQL keywords detected (DROP, TRUNCATE, ALTER, GRANT, REVOKE are not allowed)",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
           error:
             "Only SELECT queries are allowed in read-only mode. Enable write mode to run mutations.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Query failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

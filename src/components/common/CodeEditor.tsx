@@ -52,7 +52,7 @@ export function CodeEditor({
         "[&_.cm-editor]:h-full [&_.cm-scroller]:h-full",
         "[&_.cm-content]:text-xs [&_.cm-content]:leading-relaxed",
         !height && "h-full",
-        className
+        className,
       )}
     >
       <CodeMirror

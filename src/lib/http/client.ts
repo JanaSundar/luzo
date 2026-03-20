@@ -37,7 +37,7 @@ export interface HttpRequestConfig {
 export function buildRequestConfig(
   request: ApiRequest,
   envVariables: Record<string, string>,
-  fullUrl: string
+  fullUrl: string,
 ): HttpRequestConfig {
   const headers: Record<string, string> = {};
 
@@ -71,7 +71,7 @@ export function buildRequestConfig(
 function applyAuth(
   request: ApiRequest,
   headers: Record<string, string>,
-  envVariables: Record<string, string>
+  envVariables: Record<string, string>,
 ): void {
   const { auth } = request;
 
@@ -104,7 +104,7 @@ export async function executeApiRequest(
   options?: {
     preRequestScript?: string;
     testScript?: string;
-  }
+  },
 ): Promise<
   ApiResponse & {
     preRequestResult?: { logs: string[]; error: string | null; durationMs: number };
@@ -124,7 +124,7 @@ export async function executeApiRequest(
     .filter((p) => p.enabled && p.key)
     .map(
       (p) =>
-        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`
+        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`,
     )
     .join("&");
 
@@ -213,7 +213,7 @@ export async function executeApiRequest(
 
 function validateRequest(
   request: ApiRequest,
-  options?: { preRequestScript?: string; testScript?: string }
+  options?: { preRequestScript?: string; testScript?: string },
 ) {
   const checks = [
     () => validateHeaders(request.headers),
@@ -250,7 +250,7 @@ export async function* executeRequestStream(
     preRequestScript?: string;
     testScript?: string;
     abortSignal?: AbortSignal;
-  }
+  },
 ): AsyncGenerator<StreamChunk, StreamResult, undefined> {
   validateRequest(request, options);
 
@@ -258,7 +258,7 @@ export async function* executeRequestStream(
     .filter((p) => p.enabled && p.key)
     .map(
       (p) =>
-        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`
+        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`,
     )
     .join("&");
 

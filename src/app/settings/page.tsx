@@ -87,7 +87,7 @@ export default function SettingsPage() {
           <div
             className={cn(
               "flex w-fit shrink-0 items-stretch self-center",
-              segmentedTabListClassName
+              segmentedTabListClassName,
             )}
           >
             {TABS.map((tab) => (

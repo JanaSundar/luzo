@@ -14,7 +14,7 @@ export async function executePipeline(
   pipeline: Pipeline,
   envVariables: Record<string, string>,
   onUpdate?: (update: ExecutionUpdate) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<PipelineExecutionResult> {
   const startTime = new Date().toISOString();
   const results: StepExecutionResult[] = [];
@@ -110,7 +110,7 @@ export async function executePipeline(
 function interpolateStep(
   step: PipelineStep,
   envVariables: Record<string, string>,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): PipelineStep {
   const interpolate = (val: string) => interpolatePipelineVariables(val, envVariables, context);
 

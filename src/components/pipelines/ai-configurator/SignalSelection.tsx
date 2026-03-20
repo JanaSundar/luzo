@@ -51,7 +51,7 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
       .map((g) => ({
         ...g,
         variables: g.variables.filter(
-          (v) => v.path.toLowerCase().includes(q) || v.label.toLowerCase().includes(q)
+          (v) => v.path.toLowerCase().includes(q) || v.label.toLowerCase().includes(q),
         ),
       }))
       .filter((g) => g.variables.length > 0);
@@ -61,7 +61,7 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
   const totalCount = signalGroups.reduce((sum, g) => sum + g.variables.length, 0);
   const sensitiveCount = signalGroups.reduce(
     (sum, g) => sum + g.variables.filter((v) => v.sensitivity === "high").length,
-    0
+    0,
   );
 
   const hasSignals = signalGroups.length > 0;
@@ -200,7 +200,7 @@ function SignalGroupPanel({
                   ? "text-amber-500"
                   : group.method === "DELETE"
                     ? "text-red-500"
-                    : "text-foreground"
+                    : "text-foreground",
           )}
         >
           {group.method}
@@ -259,7 +259,7 @@ function SignalRow({
       className={cn(
         "w-full flex items-start gap-2 p-2 rounded-md text-left transition-all",
         selected ? "bg-primary/5" : "hover:bg-muted/20",
-        isHidden && "opacity-50 cursor-not-allowed"
+        isHidden && "opacity-50 cursor-not-allowed",
       )}
     >
       {selected ? (

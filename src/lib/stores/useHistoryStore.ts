@@ -23,7 +23,7 @@ export const useHistoryStore = create<HistoryState>()(
         set((state) => {
           const now = new Date().toISOString();
           const dupIndex = state.history.findIndex((h) =>
-            areRequestsHistoryEquivalent(h.request, request)
+            areRequestsHistoryEquivalent(h.request, request),
           );
 
           if (dupIndex !== -1) {
@@ -36,7 +36,7 @@ export const useHistoryStore = create<HistoryState>()(
             };
             state.history = [updated, ...state.history.filter((_, i) => i !== dupIndex)].slice(
               0,
-              MAX_HISTORY
+              MAX_HISTORY,
             );
             return;
           }
@@ -64,6 +64,6 @@ export const useHistoryStore = create<HistoryState>()(
     {
       name: "luzo-history-store",
       storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-history" })),
-    }
-  )
+    },
+  ),
 );

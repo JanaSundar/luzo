@@ -41,13 +41,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
         <Icon
           className={cn(
             "size-5 shrink-0",
-            isLoader ? "text-muted-foreground animate-spin" : `text-${config.color}-500`
+            isLoader ? "text-muted-foreground animate-spin" : `text-${config.color}-500`,
           )}
         />
       );
       return acc;
     },
-    {} as Record<string, React.ReactNode>
+    {} as Record<string, React.ReactNode>,
   );
 
   const statusClasses = Object.entries(TOAST_CONFIG).reduce(
@@ -56,7 +56,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       acc[key] = `!border-l-4 !border-l-${config.color}-500`;
       return acc;
     },
-    {} as Record<string, string>
+    {} as Record<string, string>,
   );
 
   return (
@@ -69,7 +69,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           toast: cn(
             "cn-toast group !p-4 !items-center !gap-3",
             "!bg-background !text-foreground !border-border",
-            "shadow-lg !rounded-lg transition-all duration-300"
+            "shadow-lg !rounded-lg transition-all duration-300",
           ),
           ...statusClasses,
           title: "!text-sm !font-semibold !text-foreground !mt-[1px]",
