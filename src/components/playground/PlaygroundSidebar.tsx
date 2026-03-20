@@ -3,7 +3,7 @@
 import { Settings } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PlaygroundSidebarCollections } from "@/components/playground/sidebar/PlaygroundSidebarCollections";
 import { PlaygroundSidebarHeader } from "@/components/playground/sidebar/PlaygroundSidebarHeader";
@@ -54,13 +54,18 @@ export function PlaygroundSidebar() {
 
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
-  const [tab, setTab] = useState<SidebarWorkspaceTab>(() => {
-    const { dbStatus, dbSchemaReady } = useSettingsStore.getState();
-    return dbStatus === "connected" && dbSchemaReady ? "collections" : "history";
-  });
+  const [tab, setTab] = useState<SidebarWorkspaceTab>("history");
   const [search, setSearch] = useState("");
 
   const canUseCollections = dbStatus === "connected" && dbSchemaReady;
+
+  // Fix hydration mismatch by setting the initial tab in useEffect
+  useEffect(() => {
+    const { dbStatus, dbSchemaReady } = useSettingsStore.getState();
+    if (dbStatus === "connected" && dbSchemaReady) {
+      setTab("collections");
+    }
+  }, []);
 
   const filteredCollections = useMemo(() => {
     if (!canUseCollections) return [];

@@ -2,27 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { executeRequest } from "@/app/actions/api-tests";
 import { executeRequestStream } from "@/lib/http/client";
 import {
-  createPipelineGenerator,
   type GeneratorExecutorModule,
+  createPipelineGenerator,
 } from "@/lib/pipeline/generator-executor";
 import type { Pipeline } from "@/types";
-import type {
-  DebugStatus,
-  GeneratorYield,
-  PipelineGenerator,
-  StepAbortControl,
-  StepSnapshot,
-} from "@/types/pipeline-runtime";
-
-interface DebugControllerTestInterface {
-  pipeline: Pipeline;
-  envVars: Record<string, string>;
-  snapshots: StepSnapshot[];
-  status: DebugStatus;
-  generator: PipelineGenerator | null;
-  runtimeVariables: Record<string, unknown>;
-  currentStepIndex: number;
-}
+import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";
 
 vi.mock("@/app/actions/api-tests", () => ({
   executeRequest: vi.fn(),
@@ -204,9 +188,10 @@ describe("Pipeline Execution Architecture", () => {
   });
 
   it("DebugController critical 8-step retry protocol", async () => {
-    const { DebugController } = await import("@/lib/pipeline/debug-controller");
-    const controller = new DebugController();
-    const controllerImpl = controller as unknown as DebugControllerTestInterface;
+    const { createDebugController } = await import("@/lib/pipeline/debug-controller");
+    const controller = createDebugController();
+    // In order for the test to work, we must manually mock or expose state
+    const controllerImpl = (controller as any).__state;
     controllerImpl.pipeline = mockPipeline;
     controllerImpl.envVars = {};
 

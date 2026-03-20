@@ -50,7 +50,7 @@ interface DebuggerShellProps {
   onStep?: () => void;
   onResume?: () => void;
   onRetry?: () => void;
-  onSkip?: () => void;
+
   onStop?: () => void;
   onRunAuto?: () => void;
 }
@@ -60,7 +60,6 @@ export function DebuggerShell({
   onStep,
   onResume,
   onRetry,
-  onSkip,
   onStop,
   onRunAuto,
 }: DebuggerShellProps) {
@@ -152,7 +151,6 @@ export function DebuggerShell({
         onStep={onStep}
         onResume={onResume}
         onRetry={onRetry}
-        onSkip={onSkip}
         onStop={onStop}
         onRunAuto={onRunAuto}
       />

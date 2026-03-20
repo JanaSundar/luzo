@@ -124,13 +124,14 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
           state.executionId === snap.executionId &&
           state.status === snap.state &&
           state.currentStepIndex === snap.currentStepIndex &&
-          state.snapshots.length === snap.snapshots.length &&
+          state.snapshots === snap.snapshots &&
           state.errorMessage === snap.errorMessage &&
           state.completedAt === snap.completedAt
         ) {
           return;
         }
 
+        // Direct assignment of references produced by the controller
         state.executionId = snap.executionId;
         state.status = snap.state;
         state.currentStepIndex = snap.currentStepIndex;

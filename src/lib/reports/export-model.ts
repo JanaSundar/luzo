@@ -5,6 +5,7 @@ interface BuildExportReportModelInput {
   pipelineName: string;
   report: StructuredReport;
   generatedAt?: string;
+  theme?: "light" | "dark";
 }
 
 function safeArray<T>(arr: T[] | undefined): T[] {
@@ -36,5 +37,6 @@ export function buildExportReportModel({
     risks: safeArray(report.risks),
     recommendations: safeArray(report.recommendations),
     conclusion: report.conclusion ?? "",
+    endpointMetrics: safeArray(report.endpointMetrics),
   };
 }

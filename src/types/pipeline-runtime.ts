@@ -1,13 +1,6 @@
 import type { HttpMethod } from ".";
 
-export type StepStatus =
-  | "idle"
-  | "step_ready"
-  | "running"
-  | "success"
-  | "error"
-  | "skipped"
-  | "done";
+export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error" | "done";
 
 export type StreamStatus = "idle" | "streaming" | "done" | "error";
 

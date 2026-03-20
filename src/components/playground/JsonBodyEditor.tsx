@@ -1,6 +1,6 @@
 "use client";
 
-import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
+import { type CompletionContext, autocompletion } from "@codemirror/autocomplete";
 import { json } from "@codemirror/lang-json";
 import CodeMirror from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";

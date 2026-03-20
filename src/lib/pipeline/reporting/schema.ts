@@ -37,7 +37,12 @@ const technicalOutputSchema = z.object({
       observations: z.array(z.string()),
     }),
   ),
+  insights: z.array(z.string()).default([]).describe("Key performance and architectural insights."),
   recommendations: z.array(z.string()),
+  risks: z.array(z.string()).describe("Engineering and technical risks found during execution."),
+  conclusion: z
+    .string()
+    .describe("A professional closing assessment and production-readiness statement."),
 });
 
 export function getReportSchema(tone: NarrativeTone) {
@@ -121,6 +126,7 @@ export function buildReportSystemPrompt(
             avgLatency: "number",
             p95Latency: "number",
           },
+          insights: "string[]",
           stepAnalysis: [
             {
               stepName: "string",
@@ -130,6 +136,8 @@ export function buildReportSystemPrompt(
             },
           ],
           recommendations: "string[]",
+          risks: "string[]",
+          conclusion: "string",
         },
         null,
         2,
