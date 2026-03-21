@@ -20,7 +20,6 @@ export default function PipelinesPage() {
     handleRunFromStep,
     handleStop,
     handleRetry,
-    handleSkip,
     handleStep,
     handleResume,
     handleGenerateReport,
@@ -57,7 +56,6 @@ export default function PipelinesPage() {
           onStep={handleStep}
           onResume={handleResume}
           onRetry={handleRetry}
-          onSkip={handleSkip}
           onStop={handleStop}
           onRunAuto={handleRun}
         />

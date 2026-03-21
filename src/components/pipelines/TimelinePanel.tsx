@@ -14,7 +14,6 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   running: <Circle className="h-3.5 w-3.5 text-primary animate-ping" />,
   pending: <Circle className="h-3.5 w-3.5 text-muted-foreground" />,
   aborted: <AlertCircle className="h-3.5 w-3.5 text-amber-500" />,
-  skipped: <Circle className="h-3.5 w-3.5 text-muted-foreground opacity-50" />,
 };
 
 function formatSize(bytes: number): string {
