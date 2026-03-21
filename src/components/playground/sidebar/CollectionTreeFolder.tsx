@@ -72,9 +72,9 @@ export function CollectionTreeFolder({
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 p-1">
+            <DropdownMenuContent align="end" className="w-fit p-1">
               <DropdownMenuItem
-                className="gap-2 text-[11px] text-red-600 focus:text-red-600"
+                className="gap-2 text-[11px] text-black"
                 onClick={() => onDeleteCollection(collection.id, collection.name)}
               >
                 <Trash2 className="h-3 w-3" /> Delete

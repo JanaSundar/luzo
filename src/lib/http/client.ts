@@ -96,26 +96,13 @@ function applyAuth(
 }
 
 /**
- * Execute request using native fetch with optional pre-request and test scripts.
+ * Internal helper to prepare URL, config, and pre-request scripts.
  */
-export async function executeApiRequest(
+async function prepareExecutionContext(
   request: ApiRequest,
   envVariables: Record<string, string>,
-  options?: {
-    preRequestScript?: string;
-    testScript?: string;
-  },
-): Promise<
-  ApiResponse & {
-    preRequestResult?: { logs: string[]; error: string | null; durationMs: number };
-    testResult?: {
-      logs: string[];
-      error: string | null;
-      durationMs: number;
-      testResults: Array<{ name: string; passed: boolean; error?: string }>;
-    };
-  }
-> {
+  options?: { preRequestScript?: string; testScript?: string },
+) {
   // 1. Validation
   validateRequest(request, options);
 
@@ -157,58 +144,29 @@ export async function executeApiRequest(
   const finalUrl = config.url ?? fullUrl;
   config.headers = sanitizeHeaders(config.headers as Record<string, string>);
 
-  // 4. Actual Execution
-  const startTime = Date.now();
-  const res = await fetch(finalUrl, {
-    method: config.method,
-    headers: config.headers as Record<string, string> | undefined,
-    body: config.data as BodyInit | null | undefined,
-  });
-  const time = Date.now() - startTime;
+  return { finalUrl, config, mutatedEnv, preRequestResult };
+}
 
-  // 5. Process Output
-  const responseHeaders: Record<string, string> = {};
-  res.headers.forEach((value, key) => {
-    responseHeaders[key] = value;
-  });
+/**
+ * Execute request using native fetch with optional pre-request and test scripts.
+ * Consolidates logic by internally using executeRequestStream.
+ */
+export async function executeApiRequest(
+  request: ApiRequest,
+  envVariables: Record<string, string>,
+  options?: {
+    preRequestScript?: string;
+    testScript?: string;
+  },
+): Promise<StreamResult> {
+  const generator = executeRequestStream(request, envVariables, options);
 
-  const rawData = await res.arrayBuffer();
-  const { body, size } = await processResponseBody(rawData, responseHeaders["content-type"] || "");
-
-  const apiResponse: ApiResponse = {
-    status: res.status,
-    statusText: res.statusText ?? "",
-    headers: responseHeaders,
-    body,
-    time,
-    size,
-  };
-
-  // 6. Test Results
-  let testResult:
-    | {
-        logs: string[];
-        error: string | null;
-        durationMs: number;
-        testResults: Array<{ name: string; passed: boolean; error?: string }>;
-      }
-    | undefined;
-  if (options?.testScript?.trim()) {
-    const testStartTime = Date.now();
-    const { testResults, execution } = runTestScript(options.testScript, {
-      request,
-      response: apiResponse,
-      envVariables: mutatedEnv,
-    });
-    testResult = {
-      logs: execution.logs,
-      error: execution.error,
-      durationMs: Date.now() - testStartTime,
-      testResults,
-    };
+  let result = await generator.next();
+  while (!result.done) {
+    result = await generator.next();
   }
 
-  return { ...apiResponse, preRequestResult, testResult };
+  return result.value as StreamResult;
 }
 
 function validateRequest(
@@ -252,43 +210,11 @@ export async function* executeRequestStream(
     abortSignal?: AbortSignal;
   },
 ): AsyncGenerator<StreamChunk, StreamResult, undefined> {
-  validateRequest(request, options);
-
-  const queryParams = request.params
-    .filter((p) => p.enabled && p.key)
-    .map(
-      (p) =>
-        `${encodeURIComponent(interpolateVariables(p.key, envVariables))}=${encodeURIComponent(interpolateVariables(p.value, envVariables))}`,
-    )
-    .join("&");
-
-  const url = interpolateVariables(request.url, envVariables);
-  const fullUrl = queryParams ? `${url}?${queryParams}` : url;
-
-  if (!validateUrl(fullUrl).valid) throw new Error(validateUrl(fullUrl).error);
-
-  let config = buildRequestConfig(request, envVariables, fullUrl);
-  let mutatedEnv = { ...envVariables };
-
-  let preRequestResult: { logs: string[]; error: string | null; durationMs: number } | undefined;
-  if (options?.preRequestScript?.trim()) {
-    const preStartTime = Date.now();
-    const result = runPreRequestScript(options.preRequestScript, {
-      request,
-      config,
-      envVariables: mutatedEnv,
-    });
-    config = result.config;
-    mutatedEnv = result.envVariables;
-    preRequestResult = {
-      logs: result.result.logs,
-      error: result.result.error,
-      durationMs: Date.now() - preStartTime,
-    };
-  }
-
-  const finalUrl = config.url ?? fullUrl;
-  config.headers = sanitizeHeaders(config.headers as Record<string, string>);
+  const { finalUrl, config, mutatedEnv, preRequestResult } = await prepareExecutionContext(
+    request,
+    envVariables,
+    options,
+  );
 
   const startTime = Date.now();
   const res = await fetch(finalUrl, {

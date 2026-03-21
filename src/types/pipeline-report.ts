@@ -119,4 +119,6 @@ export interface ExportReportModel {
   risks: string[];
   recommendations: string[];
   conclusion: string;
+  endpointMetrics: ReportEndpointMetric[];
+  theme?: "light" | "dark";
 }

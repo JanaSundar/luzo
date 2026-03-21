@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Circle, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { METHOD_COLORS } from "@/lib/utils/http";
@@ -14,7 +14,6 @@ function formatSize(bytes: number): string {
 function StatusIcon({ status }: { status: StepStatus }) {
   if (status === "success") return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
   if (status === "error") return <XCircle className="h-5 w-5 text-destructive" />;
-  if (status === "skipped") return <AlertCircle className="h-5 w-5 text-amber-500" />;
   return <Circle className="h-5 w-5 text-muted-foreground" />;
 }
 

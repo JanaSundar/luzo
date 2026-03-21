@@ -49,7 +49,7 @@ export function RequestListRow({
   const hasUrl = Boolean(url.trim());
 
   const methodLineExpanded = meta ? (
-    <div className="flex min-w-0 flex-wrap items-baseline gap-1">
+    <div className="flex min-w-0 flex-wrap items-baseline gap-2">
       <span
         className={cn(
           plainMethod ? httpMethodPlainExpandedClass(method) : httpMethodBadgeClass(method),

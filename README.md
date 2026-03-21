@@ -43,19 +43,23 @@ Design complex API chains where data flows seamlessly between steps. Luzo uses a
 
 - **Step-by-Step Execution**: Pause at any stage and inspect exactly what’s happening.
 - **Retry from failure, not from scratch**: If a step fails, fix it and resume from that specific point. Luzo automatically rewinds the state for you.
-- **Real-time Streaming**: Watch your variables resolve and your logs stream in live.
+- **Deterministic Yielding**: Powered by a robust AsyncGenerator engine that ensures synchronization between UI and execution.
 
 ### 🔐 BYOK & BYODB (Ownership)
 
 **Your keys. Your data. Always.**
 
 - **BYOK (AI Providers)**: Connect your own keys (OpenAI, Groq, OpenRouter). They stay local and are used only for generating your execution reports.
-- **BYODB (PostgreSQL)**: Connect your own database. Your collections, history, and secrets stay in your infrastructure.
+- **BYODB (PostgreSQL)**: Connect your own database using Drizzle ORM. Your collections, history, and secrets stay in your infrastructure.
 
 ### 🧪 Luzo Interceptors (Scripts)
 
 **Code-level control over every request.**
 Execute logic before or after any call in a sandboxed Node `vm` environment. Use `lz.test()` and `lz.expect()` for assertions that actually matter.
+
+### 📄 High-Fidelity PDF Export
+**Pixel-perfect reports for your workflows.**
+Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered by a server-side Playwright rendering engine.
 
 ---
 
@@ -63,8 +67,9 @@ Execute logic before or after any call in a sandboxed Node `vm` environment. Use
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
-- [pnpm](https://pnpm.io/) (v8+)
+- [Node.js](https://nodejs.org/) (v20+)
+- [pnpm](https://pnpm.io/) (v9+)
+- [Playwright Chromium](https://playwright.dev/) (`pnpm exec playwright install chromium`)
 
 ### Configuration
 
@@ -84,16 +89,6 @@ GROQ_API_KEY="..."
 
 Access any value from a previous step's response using the `{{stepAlias.path}}` syntax.
 _Example:_ `{{auth.response.body.token}}`
-
-### Interceptor Examples
-
-```javascript
-// Post-request assertion
-lz.test("User was created", () => {
-  lz.expect(lz.response.status).to.equal(201);
-  lz.expect(lz.response.json().user).to.have.property("id");
-});
-```
 
 ---
 
@@ -122,19 +117,21 @@ Luzo uses a dual-layer architecture: a high-interaction frontend for orchestrati
 ### Execution Flow
 
 ```
-[Validation] ──▶ [Generator Executor] ──▶ [State Management]
- (DAG Check)       (Step Yielding)         (Rewind/Retry)
+[Validation] ──▶ [Generator Executor] ──▶ [Debug Controller] ──▶ [Zustand Store]
+ (DAG Check)       (Async Generators)      (Loop Management)      (UI Sync)
 ```
 
 ---
 
 ## Technical Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Styling**: Tailwind CSS 4
-- **State**: Zustand (+ persist)
-- **Database**: Drizzle ORM + PostgreSQL
-- **Sandbox**: Node `vm` for Interceptors
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
+- **Core Strategy**: [React 19 (Server Components)](https://react.dev/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **State**: [Zustand](https://github.com/pmndrs/zustand)
+- **Database**: [Drizzle ORM](https://orm.drizzle.team/) + [PostgreSQL](https://www.postgresql.org/)
+- **PDF Engine**: [Playwright](https://playwright.dev/)
+- **Linting/Formatting**: [Oxc](https://oxc.rs/) (Oxlint, Oxfmt)
 
 ---
 
@@ -143,25 +140,25 @@ Luzo uses a dual-layer architecture: a high-interaction frontend for orchestrati
 ```
 src/
 ├── app/
-│   ├── actions/          # Server Actions
-│   └── api/              # Proxy & DB routes
+│   ├── actions/          # Server Actions (PDF, API proxy)
+│   └── api/              # API routes
 ├── lib/
-│   ├── pipeline/         # Core Execution Engine
-│   └── db/               # BYODB data layer
-└── components/           # Orchestration & Layout UI
+│   ├── pipeline/         # Core Engine (Controller, Executor)
+│   └── db/               # Persistence layer
+└── components/           # UI Component System
 ```
 
 ---
 
 ## Scripts
 
-| Command      | Description              |
-| ------------ | ------------------------ |
-| `pnpm dev`   | Start development server |
-| `pnpm build` | Production build         |
-| `pnpm test`  | Run test suite           |
-| `pnpm lint`  | Lint with Oxlint        |
-| `pnpm format`| Format with Oxfmt        |
+| Command       | Description              |
+| ------------- | ------------------------ |
+| `pnpm dev`    | Start dev server         |
+| `pnpm build`  | Build for production     |
+| `pnpm test`   | Run Vitest suite         |
+| `pnpm lint`   | Fast linting with Oxlint |
+| `pnpm format` | Formatting with Oxfmt    |
 
 ---
 
@@ -171,4 +168,4 @@ Luzo was built for developers who find existing tools too social and not enough 
 
 1. **Total Autonomy**: Your data lives in your DB. Your keys stay in your environment.
 2. **Execution Control**: No black boxes. Step through every byte of your pipeline.
-3. **Speed over Bloat**: A minimalist interface that stays out of your way.
+3. **Speed over Bloat**: A minimalist interface built on the fastest tooling available (Next.js Turbopack, Oxc).

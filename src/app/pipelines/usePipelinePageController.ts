@@ -99,10 +99,13 @@ export function usePipelinePageController() {
     }
   }, [activePipelineId, applyControllerSnapshot, setHasPersistedExecution]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - using snapshots.length to prevent excessive writes during streaming
+  // Stabilize derived state for checkpoint creation
+  const snapshotsLength = snapshots.length;
+  const isPipelineInProgress = status === "paused" || status === "running";
+  const activePipelineStepsLength = activePipeline?.steps.length ?? 0;
+
   useEffect(() => {
-    const isInProgress = status === "paused" || status === "running";
-    if (!activePipeline || !isInProgress || snapshots.length === 0 || !executionId) {
+    if (!activePipeline || !isPipelineInProgress || snapshotsLength === 0 || !executionId) {
       return;
     }
 
@@ -126,21 +129,23 @@ export function usePipelinePageController() {
     );
     saveExecutionArtifact(activePipeline.id, artifact);
   }, [
-    activePipeline?.id,
+    activePipeline,
+    activePipelineStepsLength, // Use derived primitive instead of deep object
     executionId,
-    status,
-    snapshots.length,
-    saveExecutionArtifact,
-    runtimeVariables,
+    isPipelineInProgress, // Primitive check
+    snapshotsLength, // Primitive check
     currentStepIndex,
     totalSteps,
-    activePipeline,
+    saveExecutionArtifact,
+    snapshots,
+    runtimeVariables,
   ]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - using snapshots.length to prevent excessive writes
+  // Check if pipeline has finished execution
+  const isPipelineDone = status === "completed" || status === "error" || status === "aborted";
+
   useEffect(() => {
-    const isDone = status === "completed" || status === "error" || status === "aborted";
-    if (!activePipeline || !isDone || snapshots.length === 0 || !executionId) {
+    if (!activePipeline || !isPipelineDone || snapshotsLength === 0 || !executionId) {
       return;
     }
 
@@ -171,10 +176,11 @@ export function usePipelinePageController() {
     refreshSignals(activePipeline.steps);
     lastPersistedIdRef.current = persistenceKey;
   }, [
-    activePipeline?.id,
+    activePipeline,
+    activePipelineStepsLength, // Dependency stabilization
     executionId,
-    status,
-    snapshots.length,
+    isPipelineDone, // Primitive toggle status
+    snapshotsLength, // Minimize deep watch dependencies
     completedAt,
     errorMessage,
     refreshSignals,
@@ -182,11 +188,7 @@ export function usePipelinePageController() {
     runtimeVariables,
     currentStepIndex,
     totalSteps,
-    activePipeline,
-    completedAt,
-    errorMessage,
-    refreshSignals,
-    saveExecutionArtifact,
+    snapshots,
   ]);
 
   const lastStatusRef = useRef(status);
@@ -332,10 +334,6 @@ export function usePipelinePageController() {
     await controller.retry();
   }, [controller]);
 
-  const handleSkip = useCallback(async () => {
-    await controller.skip();
-  }, [controller]);
-
   const handleStep = useCallback(async () => {
     await controller.step();
   }, [controller]);
@@ -350,7 +348,6 @@ export function usePipelinePageController() {
     handleRunFromStep,
     handleStop,
     handleRetry,
-    handleSkip,
     handleStep,
     handleResume,
     controller,

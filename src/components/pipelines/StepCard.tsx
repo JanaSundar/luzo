@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, Reorder, useDragControls } from "motion/react";
+import { AnimatePresence, Reorder, motion, useDragControls } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
@@ -42,8 +42,20 @@ export function StepCard({
   onDelete,
 }: StepCardProps) {
   const dragControls = useDragControls();
-  const { activePipelineId, pipelines } = usePipelineStore();
-  const { getActiveEnvironmentVariables } = useEnvironmentStore();
+  const pipeline = usePipelineStore((state) =>
+    state.activePipelineId ? state.pipelines.find((p) => p.id === state.activePipelineId) : null,
+  );
+
+  const activeEnvironment = useEnvironmentStore((s) =>
+    s.environments.find((e) => e.id === s.activeEnvironmentId),
+  );
+
+  const envVars = useMemo(() => {
+    if (!activeEnvironment) return {};
+    return Object.fromEntries(
+      activeEnvironment.variables.filter((v) => v.enabled).map((v) => [v.key, v.value]),
+    );
+  }, [activeEnvironment]);
   const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -51,20 +63,20 @@ export function StepCard({
   const [activeTab, setActiveTab] = useState<TabId>("params");
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  const pipeline = pipelines.find((p) => p.id === activePipelineId);
-
   useEffect(() => {
     if (renamingId && renameInputRef.current) {
       renameInputRef.current.focus();
     }
   }, [renamingId]);
 
-  const suggestions = getAutocompleteSuggestions(
-    pipeline,
-    step.id,
-    getActiveEnvironmentVariables(),
-    runtimeVariables as Record<string, unknown>,
-  );
+  const suggestions = useMemo(() => {
+    return getAutocompleteSuggestions(
+      pipeline ?? undefined,
+      step.id,
+      envVars,
+      runtimeVariables as Record<string, unknown>,
+    );
+  }, [pipeline, step.id, envVars, runtimeVariables]);
 
   const handleRenameStart = () => {
     setRenamingId(step.id);

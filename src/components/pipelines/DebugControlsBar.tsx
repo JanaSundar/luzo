@@ -1,6 +1,5 @@
 "use client";
-
-import { Play, RotateCcw, SkipForward, Square, Zap } from "lucide-react";
+import { Play, RotateCcw, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,6 @@ interface DebugControlsBarProps {
   onStep?: () => void;
   onResume?: () => void;
   onRetry?: () => void;
-  onSkip?: () => void;
   onStop?: () => void;
   onRunAuto?: () => void;
 }
@@ -39,7 +37,6 @@ export function DebugControlsBar({
   onStep,
   onResume,
   onRetry,
-  onSkip,
   onStop,
   onRunAuto,
 }: DebugControlsBarProps) {
@@ -87,7 +84,7 @@ export function DebugControlsBar({
               className="gap-1.5 h-7 text-[10px] font-bold"
               onClick={onStep}
             >
-              <SkipForward className="h-3 w-3" />
+              <Play className="h-3 w-3 fill-current" />
               Step
             </Button>
             <Button
@@ -110,16 +107,7 @@ export function DebugControlsBar({
               <RotateCcw className="h-3 w-3" />
               Retry
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-7 text-[10px] font-bold"
-              onClick={onSkip}
-            >
-              <SkipForward className="h-3 w-3" />
-              Skip
-            </Button>
+
             <Button
               type="button"
               variant="destructive"

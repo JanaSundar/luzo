@@ -12,328 +12,330 @@ import type {
 import { buildStepAliases, validatePipelineDag } from "./dag-validator";
 import { createPipelineGenerator } from "./generator-executor";
 
-export class DebugController {
-  private generator: PipelineGenerator | null = null;
-  private masterAbort: AbortController = new AbortController();
-  private abortControls: Map<string, StepAbortControl> = new Map();
-  private status: DebugStatus = "idle";
-  private executionMode: ExecutionMode = "auto";
-  private executionId: string | null = null;
-  private isAdvancing: boolean = false;
-  private snapshots: StepSnapshot[] = [];
-  private runtimeVariables: Record<string, unknown> = {};
-  private currentStepIndex: number = 0;
-  private totalSteps: number = 0;
-  private startedAt: number | null = null;
-  private pipeline: Pipeline | null = null;
-  private envVars: Record<string, string> = {};
-
-  private get isRunning(): boolean {
-    return this.status === "running";
-  }
-
+export interface DebugController {
   start(
     pipeline: Pipeline,
     envVars: Record<string, string>,
     options: ControllerOptions,
+  ): { valid: boolean; errors?: string[] };
+  step(): Promise<void>;
+  resume(): Promise<void>;
+  stop(): void;
+  retry(): Promise<void>;
+}
+
+interface ControllerState {
+  generator: PipelineGenerator | null;
+  masterAbort: AbortController;
+  abortControls: Map<string, StepAbortControl>;
+  status: DebugStatus;
+  executionMode: ExecutionMode;
+  executionId: string | null;
+  isAdvancing: boolean;
+  snapshots: StepSnapshot[];
+  runtimeVariables: Record<string, unknown>;
+  currentStepIndex: number;
+  totalSteps: number;
+  startedAt: number | null;
+  pipeline: Pipeline | null;
+  envVars: Record<string, string>;
+}
+
+function createInitialState(): ControllerState {
+  return {
+    generator: null,
+    masterAbort: new AbortController(),
+    abortControls: new Map(),
+    status: "idle",
+    executionMode: "auto",
+    executionId: null,
+    isAdvancing: false,
+    snapshots: [],
+    runtimeVariables: {},
+    currentStepIndex: 0,
+    totalSteps: 0,
+    startedAt: null,
+    pipeline: null,
+    envVars: {},
+  };
+}
+
+function pushToStore(
+  state: ControllerState,
+  extra: { errorMessage: string | null; completedAt: number | null },
+): void {
+  usePipelineExecutionStore.getState().applyControllerSnapshot({
+    executionId: state.executionId,
+    state: state.status,
+    currentStepIndex: state.currentStepIndex,
+    totalSteps: state.totalSteps,
+    snapshots: state.snapshots,
+    runtimeVariables: state.runtimeVariables,
+    variableOverrides: {},
+    errorMessage: extra.errorMessage,
+    startedAt: state.startedAt,
+    completedAt: extra.completedAt,
+  });
+}
+
+function applyYield(state: ControllerState, yieldValue: GeneratorYield): void {
+  switch (yieldValue.type) {
+    case "step_ready":
+      state.snapshots = yieldValue.allSnapshots;
+      state.currentStepIndex = yieldValue.snapshot.stepIndex;
+      if (state.executionMode === "debug") state.status = "paused";
+      pushToStore(state, { errorMessage: null, completedAt: null });
+      break;
+
+    case "stream_chunk":
+      state.snapshots = yieldValue.allSnapshots;
+      pushToStore(state, { errorMessage: null, completedAt: null });
+      break;
+
+    case "step_complete":
+      state.snapshots = yieldValue.allSnapshots;
+      state.runtimeVariables = yieldValue.snapshot.variables;
+      if (yieldValue.snapshot.status !== "error") {
+        state.currentStepIndex = yieldValue.snapshot.stepIndex + 1;
+      }
+      if (state.executionMode === "debug") state.status = "paused";
+      pushToStore(state, { errorMessage: null, completedAt: null });
+      break;
+
+    case "error":
+      state.snapshots = yieldValue.allSnapshots;
+      state.status = "error";
+      pushToStore(state, {
+        errorMessage: yieldValue.snapshot.error ?? "Step failed",
+        completedAt: null,
+      });
+      break;
+  }
+}
+
+type PausePredicate = (val: GeneratorYield) => boolean;
+
+async function runUntil(state: ControllerState, shouldPause: PausePredicate): Promise<void> {
+  if (state.isAdvancing) return;
+  state.isAdvancing = true;
+
+  try {
+    while (true) {
+      if (!state.generator || state.masterAbort.signal.aborted) break;
+
+      const overrides = usePipelineExecutionStore.getState().variableOverrides;
+      const result = await state.generator.next(overrides);
+      usePipelineExecutionStore.getState().clearVariableOverrides();
+
+      if (result.done) {
+        state.status = "completed";
+        pushToStore(state, { errorMessage: null, completedAt: Date.now() });
+        break;
+      }
+
+      applyYield(state, result.value);
+
+      if (shouldPause(result.value)) {
+        const isFullyComplete =
+          state.currentStepIndex >= state.totalSteps && result.value.type === "step_complete";
+
+        if (isFullyComplete) {
+          state.status = "completed";
+          pushToStore(state, { errorMessage: null, completedAt: Date.now() });
+        }
+        break;
+      }
+    }
+  } catch (err) {
+    if (!state.masterAbort.signal.aborted) {
+      state.status = "error";
+      pushToStore(state, { errorMessage: String(err), completedAt: null });
+    }
+  } finally {
+    state.isAdvancing = false;
+  }
+}
+
+function runLoop(state: ControllerState): Promise<void> {
+  return runUntil(state, (val) => state.executionMode === "debug" && val.type === "step_ready");
+}
+
+function tryParseJson(data: string): unknown {
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
+
+function rebuildRuntimeVariables(
+  pipeline: Pipeline,
+  snapshots: StepSnapshot[],
+  upToIndex: number,
+): Record<string, unknown> {
+  const aliases = buildStepAliases(pipeline.steps);
+  const aliasMap = new Map(aliases.map((a) => [a.stepId, a.alias]));
+  const runtimeVariables: Record<string, unknown> = {};
+
+  for (let i = 0; i < upToIndex; i++) {
+    const snap = snapshots[i];
+    if (snap.status !== "success" && snap.status !== "done") continue;
+
+    const alias = aliasMap.get(snap.stepId);
+    if (!alias) continue;
+
+    runtimeVariables[alias] = {
+      response: {
+        status: snap.reducedResponse?.status ?? 0,
+        statusText: snap.reducedResponse?.statusText ?? "",
+        headers: snap.fullHeaders ?? {},
+        body: tryParseJson(snap.fullBody ?? ""),
+        time: snap.reducedResponse?.latencyMs ?? 0,
+        size: snap.reducedResponse?.sizeBytes ?? 0,
+      },
+    };
+  }
+
+  return runtimeVariables;
+}
+
+function resolveRetryIndex(state: ControllerState): number | null {
+  const errorIndex = state.snapshots.findIndex((s) => s.status === "error");
+  if (errorIndex !== -1) return errorIndex;
+
+  if (state.status === "interrupted" || state.status === "aborted") {
+    const incompleteIndex = state.snapshots.findIndex(
+      (s) => s.status !== "success" && s.status !== "done",
+    );
+    if (incompleteIndex !== -1) return incompleteIndex;
+  }
+
+  if (state.status === "completed" || state.status === "interrupted") {
+    return Math.max(0, state.snapshots.length - 1);
+  }
+
+  return null;
+}
+
+function resetAbortControls(state: ControllerState): void {
+  state.abortControls.forEach((ctrl) => {
+    if (ctrl.timeoutId) clearTimeout(ctrl.timeoutId);
+    ctrl.controller.abort();
+  });
+  state.abortControls.clear();
+}
+
+async function startRetryAt(state: ControllerState, index: number): Promise<void> {
+  if (!state.pipeline || state.isAdvancing) return;
+
+  resetAbortControls(state);
+
+  const runtimeVariables = rebuildRuntimeVariables(state.pipeline, state.snapshots, index);
+  const startStepId = state.pipeline.steps[index]?.id;
+
+  state.snapshots = state.snapshots.slice(0, index);
+  state.currentStepIndex = index;
+  state.runtimeVariables = runtimeVariables;
+  state.status = "running";
+  state.masterAbort = new AbortController();
+
+  state.generator = createPipelineGenerator(state.pipeline, state.envVars, {
+    abortControls: state.abortControls,
+    masterAbort: state.masterAbort,
+    startStepId,
+    initialRuntimeVariables: runtimeVariables,
+    useStream: state.executionMode === "debug",
+  });
+
+  pushToStore(state, { errorMessage: null, completedAt: null });
+  void runLoop(state);
+}
+
+export function createDebugController(): DebugController {
+  const state = createInitialState();
+
+  function start(
+    pipeline: Pipeline,
+    envVars: Record<string, string>,
+    options: ControllerOptions,
   ): { valid: boolean; errors?: string[] } {
-    if (this.isRunning) return { valid: false, errors: ["Pipeline is already running"] };
+    if (state.status === "running") {
+      return { valid: false, errors: ["Pipeline is already running"] };
+    }
 
     const validation = validatePipelineDag(pipeline.steps);
     if (!validation.valid) {
       return { valid: false, errors: validation.errors.map((e) => e.message) };
     }
 
-    this.pipeline = pipeline;
-    this.envVars = envVars;
-    this.snapshots = [];
-    this.runtimeVariables = {};
-    this.currentStepIndex = 0;
-    this.startedAt = Date.now();
-    this.executionId = crypto.randomUUID();
-    this.executionMode = options.executionMode ?? "auto";
-    this.masterAbort = new AbortController();
-    this.abortControls = new Map();
-    this.status = "running";
-    this.totalSteps = pipeline.steps.length;
+    Object.assign(state, {
+      pipeline,
+      envVars,
+      snapshots: [],
+      runtimeVariables: {},
+      currentStepIndex: 0,
+      startedAt: Date.now(),
+      executionId: crypto.randomUUID(),
+      executionMode: options.executionMode ?? "auto",
+      masterAbort: new AbortController(),
+      abortControls: new Map(),
+      status: "running",
+      totalSteps: pipeline.steps.length,
+    } satisfies Partial<ControllerState>);
 
-    // FIX: Streaming is ONLY used in debug mode to ensure stable normal execution
-    const useStream = this.executionMode === "debug";
-    this.generator = createPipelineGenerator(pipeline, envVars, {
-      abortControls: this.abortControls,
-      masterAbort: this.masterAbort,
+    state.generator = createPipelineGenerator(pipeline, envVars, {
+      abortControls: state.abortControls,
+      masterAbort: state.masterAbort,
       startStepId: options.startStepId,
       initialRuntimeVariables: options.initialRuntimeVariables,
       stepTimeoutMs: options.stepTimeoutMs,
-      useStream,
+      useStream: state.executionMode === "debug",
     });
 
-    this.pushToStore({ errorMessage: null, completedAt: null });
-    void this.runLoop();
+    pushToStore(state, { errorMessage: null, completedAt: null });
+    void runLoop(state);
 
     return { valid: true };
   }
 
-  private async runLoop(): Promise<void> {
-    if (this.isAdvancing) return;
-    this.isAdvancing = true;
+  async function step(): Promise<void> {
+    if (state.status !== "paused" || state.isAdvancing || !state.generator) return;
 
-    try {
-      while (true) {
-        if (!this.generator || this.masterAbort.signal.aborted) break;
+    state.status = "running";
+    pushToStore(state, { errorMessage: null, completedAt: null });
 
-        const overrides = usePipelineExecutionStore.getState().variableOverrides;
-        const result = await this.generator.next(overrides);
-        usePipelineExecutionStore.getState().clearVariableOverrides();
-
-        if (result.done) {
-          this.handleCompletion();
-          break;
-        }
-
-        this.handleYield(result.value);
-
-        // Break loop if we are in debug mode and reached a point where we should pause
-        if (
-          this.executionMode === "debug" &&
-          (result.value.type === "step_ready" || result.value.type === "step_complete")
-        ) {
-          break;
-        }
-      }
-    } catch (err) {
-      if (!this.masterAbort.signal.aborted) {
-        this.status = "error";
-        this.pushToStore({ errorMessage: String(err), completedAt: null });
-      }
-    } finally {
-      this.isAdvancing = false;
-    }
+    await runUntil(state, (val) => val.type === "step_complete" || val.type === "error");
   }
 
-  private handleYield(yieldValue: GeneratorYield): void {
-    switch (yieldValue.type) {
-      case "step_ready":
-        this.snapshots = yieldValue.allSnapshots;
-        this.currentStepIndex = yieldValue.snapshot.stepIndex;
-        if (this.executionMode === "debug") this.status = "paused";
-        this.pushToStore({ errorMessage: null, completedAt: null });
-        break;
-      case "stream_chunk":
-        this.snapshots = yieldValue.allSnapshots;
-        this.pushToStore({ errorMessage: null, completedAt: null });
-        break;
-      case "step_complete":
-        this.snapshots = yieldValue.allSnapshots;
-        this.runtimeVariables = yieldValue.snapshot.variables;
-        if (yieldValue.snapshot.status !== "error") {
-          this.currentStepIndex = yieldValue.snapshot.stepIndex + 1;
-        }
-        if (this.executionMode === "debug") this.status = "paused";
-        this.pushToStore({ errorMessage: null, completedAt: null });
-        break;
-      case "error":
-        this.snapshots = yieldValue.allSnapshots;
-        this.status = "error";
-        this.pushToStore({
-          errorMessage: yieldValue.snapshot.error ?? "Step failed",
-          completedAt: null,
-        });
-        break;
-    }
+  async function resume(): Promise<void> {
+    if (state.status !== "paused" || state.isAdvancing) return;
+
+    state.status = "running";
+    state.executionMode = "auto";
+    pushToStore(state, { errorMessage: null, completedAt: null });
+
+    void runLoop(state);
   }
 
-  private handleCompletion(): void {
-    this.status = "completed";
-    this.pushToStore({ errorMessage: null, completedAt: Date.now() });
+  function stop(): void {
+    const terminalStatuses: DebugStatus[] = ["completed", "aborted", "interrupted"];
+    if (terminalStatuses.includes(state.status)) return;
+
+    state.masterAbort.abort();
+    state.generator = null;
+    state.status = "interrupted";
+    state.isAdvancing = false;
+    pushToStore(state, { errorMessage: null, completedAt: Date.now() });
   }
 
-  private pushToStore(extra: { errorMessage: string | null; completedAt: number | null }): void {
-    usePipelineExecutionStore.getState().applyControllerSnapshot({
-      executionId: this.executionId,
-      state: this.status,
-      currentStepIndex: this.currentStepIndex,
-      totalSteps: this.totalSteps,
-      snapshots: this.snapshots,
-      runtimeVariables: this.runtimeVariables,
-      variableOverrides: {},
-      errorMessage: extra.errorMessage,
-      startedAt: this.startedAt,
-      completedAt: extra.completedAt,
-    });
+  async function retry(): Promise<void> {
+    if (!state.pipeline) return;
+
+    const index = resolveRetryIndex(state);
+    if (index === null) return;
+
+    await startRetryAt(state, index);
   }
 
-  async step(): Promise<void> {
-    if (this.status !== "paused" || this.isAdvancing || !this.generator) {
-      console.warn(
-        "[DebugController] step() ignored. Status:",
-        this.status,
-        "advancing:",
-        this.isAdvancing,
-      );
-      return;
-    }
-
-    this.status = "running";
-    this.pushToStore({ errorMessage: null, completedAt: null });
-
-    // We don't call runLoop here because step() itself should be awaitable and handle exactly one step's worth of execution
-    this.isAdvancing = true;
-    try {
-      while (true) {
-        const overrides = usePipelineExecutionStore.getState().variableOverrides;
-        const result = await this.generator.next(overrides);
-        usePipelineExecutionStore.getState().clearVariableOverrides();
-
-        if (result.done) {
-          this.handleCompletion();
-          break;
-        }
-
-        this.handleYield(result.value);
-
-        // Step resolves when we hit step_complete or an error
-        if (result.value.type === "step_complete" || result.value.type === "error") {
-          break;
-        }
-      }
-    } catch (err) {
-      if (!this.masterAbort.signal.aborted) {
-        this.status = "error";
-        this.pushToStore({ errorMessage: String(err), completedAt: null });
-      }
-    } finally {
-      this.isAdvancing = false;
-    }
-  }
-
-  async resume(): Promise<void> {
-    if (this.status !== "paused" || this.isAdvancing) return;
-
-    this.status = "running";
-    this.pushToStore({ errorMessage: null, completedAt: null });
-    void this.runLoop();
-  }
-
-  stop(): void {
-    if (this.status === "completed" || this.status === "aborted" || this.status === "interrupted")
-      return;
-
-    this.masterAbort.abort();
-    this.generator = null;
-    this.status = "interrupted";
-    this.isAdvancing = false;
-    this.pushToStore({ errorMessage: null, completedAt: Date.now() });
-  }
-
-  async retry(): Promise<void> {
-    if (!this.pipeline) return;
-
-    // 1. Identify failure point - look for errors first
-    let failedIndex = this.snapshots.findIndex((s) => s.status === "error");
-
-    // 2. If no error but we were stopped/aborted, find the first unfinished step
-    if (failedIndex === -1 && (this.status === "interrupted" || this.status === "aborted")) {
-      failedIndex = this.snapshots.findIndex(
-        (s) => s.status !== "success" && s.status !== "done" && s.status !== "skipped",
-      );
-    }
-
-    // 3. Handle cases where no failure or special conditions
-    if (failedIndex === -1) {
-      if (this.status === "completed" || this.status === "interrupted") {
-        // Restart from the last step or beginning if empty
-        const lastIdx = Math.max(0, this.snapshots.length - 1);
-        return this.startRetryAt(lastIdx);
-      }
-      return;
-    }
-
-    await this.startRetryAt(failedIndex);
-  }
-
-  private async startRetryAt(index: number): Promise<void> {
-    if (!this.pipeline || this.isAdvancing) return;
-
-    // 1. FIX: Reset ALL previous abort controllers
-    this.abortControls.forEach((ctrl) => {
-      if (ctrl.timeoutId) clearTimeout(ctrl.timeoutId);
-      ctrl.controller.abort();
-    });
-    this.abortControls.clear();
-
-    // 2. FIX: Rewind snapshots (CREATE NEW ARRAY, DO NOT MUTATE)
-    const newSnapshots = this.snapshots.slice(0, index);
-
-    // 3. FIX: Rebuild runtime variables ONLY from successful predecessors
-    const runtimeVariables: Record<string, unknown> = {};
-    const aliases = buildStepAliases(this.pipeline.steps);
-    const aliasMap = new Map(aliases.map((a) => [a.stepId, a.alias]));
-
-    for (let i = 0; i < index; i++) {
-      const snap = this.snapshots[i];
-      if (snap.status === "success" || snap.status === "done") {
-        const alias = aliasMap.get(snap.stepId);
-        if (alias) {
-          // Reconstruct the runtime value from snapshot data
-          runtimeVariables[alias] = {
-            response: {
-              status: snap.reducedResponse?.status ?? 0,
-              statusText: snap.reducedResponse?.statusText ?? "",
-              headers: snap.fullHeaders ?? {},
-              body: this.tryParseJson(snap.fullBody ?? ""),
-              time: snap.reducedResponse?.latencyMs ?? 0,
-              size: snap.reducedResponse?.sizeBytes ?? 0,
-            },
-          };
-        }
-      }
-    }
-
-    const startStepId = this.pipeline.steps[index]?.id;
-
-    // 4. FIX: Store fresh state BEFORE starting
-    this.snapshots = newSnapshots;
-    this.currentStepIndex = index;
-    this.runtimeVariables = runtimeVariables;
-    this.status = "running";
-    this.masterAbort = new AbortController(); // FIX: Fresh master AbortController
-
-    // 5. FIX: NEVER reuse old generator instance
-    this.generator = createPipelineGenerator(this.pipeline, this.envVars, {
-      abortControls: this.abortControls,
-      masterAbort: this.masterAbort,
-      startStepId,
-      initialRuntimeVariables: runtimeVariables,
-      useStream: this.executionMode === "debug",
-    });
-
-    // 6. FIX: Update store before starting retry
-    this.pushToStore({ errorMessage: null, completedAt: null });
-
-    // 7. FIX: Trigger non-batched runLoop
-    void this.runLoop();
-  }
-
-  private tryParseJson(data: string): unknown {
-    try {
-      return JSON.parse(data);
-    } catch {
-      return data;
-    }
-  }
-
-  async skip(): Promise<void> {
-    if (this.status !== "paused" || this.isAdvancing || !this.generator) return;
-
-    // Mark current step as skipped if possible
-    if (this.snapshots.length > 0) {
-      const last = this.snapshots[this.snapshots.length - 1];
-      this.snapshots = [...this.snapshots.slice(0, -1), { ...last, status: "skipped" }];
-    }
-
-    this.status = "running";
-    this.pushToStore({ errorMessage: null, completedAt: null });
-    void this.runLoop();
-  }
+  return { start, step, resume, stop, retry, __state: state } as unknown as DebugController;
 }
