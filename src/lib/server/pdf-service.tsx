@@ -38,40 +38,63 @@ export async function generateReportPdf(
   );
   const risksHtml = await Promise.all(report.risks.map((r) => markdownToHtml(r)));
 
-  const requestCards = await Promise.all(
-    report.requests.map(async (req) => (
-      <RequestCard
-        key={req.stepId}
-        method={req.method}
-        name={req.name}
-        statusCode={req.statusCode}
-        latencyMs={req.latencyMs}
-        url={req.url}
-      >
-        <StaticHtml html={await markdownToHtml(req.analysis)} />
-      </RequestCard>
-    )),
+  const requestCardGroups = await Promise.all(
+    Array.from({ length: Math.ceil(report.requests.length / 1) }, (_, index) =>
+      Promise.all(
+        report.requests.slice(index, index + 1).map(async (req) => (
+          <RequestCard
+            key={req.stepId}
+            method={req.method}
+            name={req.name}
+            statusCode={req.statusCode}
+            latencyMs={req.latencyMs}
+            url={req.url}
+            mode="pdf"
+          >
+            <StaticHtml html={await markdownToHtml(req.analysis)} />
+          </RequestCard>
+        )),
+      ),
+    ),
   );
 
+  const requestSections = requestCardGroups.map((group, index) => (
+    <div key={`request-group-${index}`} className="break-inside-avoid request-group space-y-3">
+      {index === 0 ? (
+        <ReportSection
+          title="Per Request Breakdown"
+          icon={<ChevronRight className="h-4 w-4" />}
+          mode="pdf"
+        >
+          <div className="space-y-3">{group}</div>
+        </ReportSection>
+      ) : (
+        <section className="request-group-continued mb-8 border-b border-border/60 bg-transparent px-0 pb-6 last:mb-0 last:border-b-0 last:pb-0">
+          <div className="space-y-3">{group}</div>
+        </section>
+      )}
+    </div>
+  ));
+
   const componentOutput = renderToStaticMarkup(
-    <ReportLayoutContainer className="pdf-shield">
-      <ReportHeader title={report.title}>
-        <ReportStat label="Success Rate" value={`${report.metrics.successRate}%`} />
-        <ReportStat label="Avg Latency" value={`${report.metrics.avgLatencyMs}ms`} />
-        <ReportStat label="P95 Latency" value={`${report.metrics.p95LatencyMs}ms`} />
-        <ReportStat label="Failures" value={`${report.metrics.failedSteps}`} />
+    <ReportLayoutContainer className="pdf-root" mode="pdf">
+      <ReportHeader title={report.title} mode="pdf">
+        <ReportStat label="Success Rate" value={`${report.metrics.successRate}%`} mode="pdf" />
+        <ReportStat label="Avg Latency" value={`${report.metrics.avgLatencyMs}ms`} mode="pdf" />
+        <ReportStat label="P95 Latency" value={`${report.metrics.p95LatencyMs}ms`} mode="pdf" />
+        <ReportStat label="Failures" value={`${report.metrics.failedSteps}`} mode="pdf" />
       </ReportHeader>
 
       <div className="space-y-6">
-        <ReportSection title="Executive Summary" icon={<Target className="h-4 w-4" />}>
+        <ReportSection title="Executive Summary" icon={<Target className="h-4 w-4" />} mode="pdf">
           <StaticHtml html={summaryHtml} />
         </ReportSection>
 
-        <ReportSection title="Health Summary" icon={<Activity className="h-4 w-4" />}>
+        <ReportSection title="Health Summary" icon={<Activity className="h-4 w-4" />} mode="pdf">
           <StaticHtml html={healthHtml} />
         </ReportSection>
 
-        <ReportSection title="Key Insights" icon={<Lightbulb className="h-4 w-4" />}>
+        <ReportSection title="Key Insights" icon={<Lightbulb className="h-4 w-4" />} mode="pdf">
           <ReportList
             items={insightsHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -79,7 +102,7 @@ export async function generateReportPdf(
           />
         </ReportSection>
 
-        <ReportSection title="Recommendations" icon={<Info className="h-4 w-4" />}>
+        <ReportSection title="Recommendations" icon={<Info className="h-4 w-4" />} mode="pdf">
           <ReportList
             items={recommendationsHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -87,7 +110,7 @@ export async function generateReportPdf(
           />
         </ReportSection>
 
-        <ReportSection title="Risks" icon={<AlertTriangle className="h-4 w-4" />}>
+        <ReportSection title="Risks" icon={<AlertTriangle className="h-4 w-4" />} mode="pdf">
           <ReportList
             items={risksHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -95,16 +118,18 @@ export async function generateReportPdf(
           />
         </ReportSection>
 
-        <ReportSection title="Per Request Breakdown" icon={<ChevronRight className="h-4 w-4" />}>
-          <div className="space-y-3">{requestCards}</div>
-        </ReportSection>
+        {requestSections}
 
-        <ReportSection title="Conclusion" icon={<CheckCircle2 className="h-4 w-4" />}>
+        <ReportSection title="Conclusion" icon={<CheckCircle2 className="h-4 w-4" />} mode="pdf">
           <StaticHtml html={conclusionHtml} />
         </ReportSection>
 
-        <ReportSection title="Performance Appendix" icon={<ChevronRight className="h-4 w-4" />}>
-          <PerformanceAppendixTable metrics={report.endpointMetrics} />
+        <ReportSection
+          title="Performance Appendix"
+          icon={<ChevronRight className="h-4 w-4" />}
+          mode="pdf"
+        >
+          <PerformanceAppendixTable metrics={report.endpointMetrics} mode="pdf" />
         </ReportSection>
       </div>
 
@@ -152,7 +177,6 @@ export async function generateReportPdf(
 html, body {
   margin: 0;
   padding: 0;
-  width: 794px;
   background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
@@ -160,9 +184,11 @@ html, body {
   line-height: 1.6;
 }
 
-/* container */
-.pdf-shield {
-  padding: 48px 40px !important;
+body {
+  padding: 32px 28px !important;
+}
+
+.pdf-root {
   width: 100%;
 }
 
@@ -218,6 +244,7 @@ section:last-of-type { border-bottom: none !important; margin-bottom: 0 !importa
 .markdown-content { font-size: 13px !important; line-height: 1.7 !important; color: #404040 !important; font-weight: 500 !important; }
 .markdown-content p { margin: 0 0 16px 0 !important; }
 .markdown-content ul { padding-left: 20px; margin-bottom: 16px; list-style: none; }
+.markdown-content, .markdown-content * { overflow-wrap: anywhere !important; word-break: break-word !important; }
 .markdown-content li { margin-bottom: 10px; position: relative; }
 .markdown-content li::before { 
   content: "•"; 
@@ -229,9 +256,64 @@ section:last-of-type { border-bottom: none !important; margin-bottom: 0 !importa
   top: -2px;
 }
 
+table, tbody, thead, tr, td, th, div, p, span {
+  max-width: 100%;
+}
+
+table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+thead {
+  display: table-header-group !important;
+  break-after: avoid-page !important;
+  page-break-after: avoid !important;
+}
+
+tbody {
+  display: table-row-group !important;
+}
+
+tfoot {
+  display: table-footer-group !important;
+}
+
+tr {
+  break-inside: avoid-page !important;
+  page-break-inside: avoid !important;
+}
+
+th, td {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  vertical-align: top !important;
+}
+
+.markdown-content table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 6px 8px !important;
+  border: 1px solid #e5e5e5 !important;
+}
+
+.truncate {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
 @page {
   size: A4;
-  margin: 10mm 5mm;
+  margin: 10mm;
 }
 </style>
 
@@ -253,9 +335,7 @@ tailwind.config = {
 </head>
 
 <body class="${theme}">
-  <div class="pdf-shield">
-    ${componentOutput}
-  </div>
+  ${componentOutput}
 </body>
 </html>
 `;

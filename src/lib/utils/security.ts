@@ -138,6 +138,16 @@ export function validateBodySize(body: string | null, _bodyType: string): Valida
   return { valid: true };
 }
 
+export function validateJsonBody(body: string | null, bodyType: string): ValidationResult {
+  if (bodyType !== "json" || !body?.trim()) return { valid: true };
+  try {
+    JSON.parse(body);
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "Invalid JSON body" };
+  }
+}
+
 export function validateScript(script: string): ValidationResult {
   if (!script?.trim()) return { valid: true };
   if (script.length > MAX_SCRIPT_LENGTH) {

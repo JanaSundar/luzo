@@ -1,36 +1,32 @@
 "use client";
 
-import { GitBranch, Send } from "lucide-react";
-import { motion } from "motion/react";
+import { FolderPlus, GitBranch, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { executeRequest } from "@/app/actions/api-tests";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
+import { AddToPipelineDialog } from "@/components/playground/request/AddToPipelineDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
 import { useExecutionStore } from "@/lib/stores/useExecutionStore";
 import { useHistoryStore } from "@/lib/stores/useHistoryStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { buildEnvironmentVariableSuggestions } from "@/lib/utils/variableMetadata";
 import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
-import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function RequestBuilder() {
   const { request, setMethod, setUrl, setRequest } = usePlaygroundStore();
+  const environmentVariables = useEnvironmentStore((state) => {
+    const activeEnvironment = state.environments.find(
+      (environment) => environment.id === state.activeEnvironmentId,
+    );
+    return activeEnvironment?.variables ?? [];
+  });
   const {
     activeRawResponse: response,
     isLoading,
@@ -42,19 +38,15 @@ export function RequestBuilder() {
   const { pipelines, addStep, addPipeline, setActivePipeline, setView } = usePipelineStore();
   const router = useRouter();
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newPipelineName, setNewPipelineName] = useState("");
-
   // Build env variable suggestions for {{}} autocomplete in the URL bar
-  const urlSuggestions = useMemo<VariableSuggestion[]>(() => {
-    const envVars = getActiveEnvironmentVariables();
-    return Object.keys(envVars).map((key) => ({
-      path: key,
-      label: `env: ${key}`,
-      type: "env" as const,
-      stepId: "",
-    }));
-  }, [getActiveEnvironmentVariables]);
+  const urlSuggestions = useMemo(() => {
+    const values = Object.fromEntries(
+      environmentVariables
+        .filter((variable) => variable.enabled)
+        .map((variable) => [variable.key, variable.value]),
+    );
+    return buildEnvironmentVariableSuggestions(values);
+  }, [environmentVariables]);
 
   // Disable body tab for GET and HEAD requests (per HTTP standards - these methods should not have request body)
   const disabledTabs: TabId[] =
@@ -131,7 +123,6 @@ export function RequestBuilder() {
         ...request,
         name: "", // Fallback to Request N in UI
       });
-      setIsAddDialogOpen(false);
       toast.success(`Request added to ${pipelineName}`, {
         action: {
           label: "Open Pipeline",
@@ -146,138 +137,77 @@ export function RequestBuilder() {
     [addStep, request, setActivePipeline, setView, router],
   );
 
-  const handleCreateAndAdd = useCallback(() => {
-    const name = newPipelineName.trim() || `New Pipeline ${pipelines.length + 1}`;
-    addPipeline(name);
-    setTimeout(() => {
-      const newId = usePipelineStore.getState().activePipelineId;
-      if (newId) {
-        handleAddToPipeline(newId, name);
-        setNewPipelineName("");
-      }
-    }, 0);
-  }, [newPipelineName, pipelines.length, addPipeline, handleAddToPipeline]);
+  const handleCreateAndAdd = useCallback(
+    (pipelineName: string) => {
+      const name = pipelineName.trim() || `New Pipeline ${pipelines.length + 1}`;
+      addPipeline(name);
+      setTimeout(() => {
+        const newId = usePipelineStore.getState().activePipelineId;
+        if (newId) {
+          handleAddToPipeline(newId, name);
+        }
+      }, 0);
+    },
+    [pipelines.length, addPipeline, handleAddToPipeline],
+  );
 
   return (
-    <div className="flex flex-col gap-6 w-full min-h-0 pb-10">
-      {/* URL Bar */}
-      <div className="bg-background border rounded-xl shadow-sm">
-        <div className="flex items-center gap-3 p-4 bg-muted/10">
-          <RequestUrlBar
-            method={request.method}
-            url={request.url}
-            suggestions={urlSuggestions}
-            onMethodChange={setMethod}
-            onUrlChange={setUrl}
-            onSend={send}
-            placeholder="Enter URL or {{variable}}/path"
-            className="flex-1 bg-transparent p-0"
+    <div className="flex h-full min-h-0 w-full flex-col gap-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <RequestUrlBar
+          method={request.method}
+          url={request.url}
+          suggestions={urlSuggestions}
+          onMethodChange={setMethod}
+          onUrlChange={setUrl}
+          onSend={send}
+          placeholder="Enter URL or {{variable}}/path"
+          className="min-w-[min(100%,30rem)] flex-[999_1_42rem] bg-transparent p-0"
+        />
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <AddToPipelineDialog
+            pipelines={pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name }))}
+            onAddToPipeline={handleAddToPipeline}
+            onCreateAndAdd={handleCreateAndAdd}
+            trigger={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 rounded-lg border-border/40 bg-background px-2.5 text-sm font-medium"
+              >
+                <GitBranch className="h-3.5 w-3.5" />
+                <span>Pipeline</span>
+              </Button>
+            }
           />
-
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="shrink-0 pl-4 border-l border-muted/30 flex items-center gap-2"
+          <SaveToCollectionDialog
+            request={request}
+            defaultName={`${request.method} ${request.url || "Request"}`}
+            trigger={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 rounded-lg border-border/40 bg-background px-2.5 text-sm font-medium"
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                <span>Save</span>
+              </Button>
+            }
+          />
+          <Button
+            type="button"
+            onClick={send}
+            disabled={isLoading || !request.url}
+            className="h-9 min-w-[110px] gap-2 rounded-lg bg-foreground text-background hover:bg-foreground/90"
           >
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 border-muted/30 hover:bg-muted text-muted-foreground"
-                    title="Add to Pipeline"
-                  >
-                    <GitBranch className="h-3.5 w-3.5" />
-                  </Button>
-                }
-              />
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add to Pipeline</DialogTitle>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      Existing Pipelines
-                    </label>
-                    <div className="max-h-[200px] overflow-y-auto border rounded-md divide-y custom-scrollbar">
-                      {pipelines.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          No pipelines found
-                        </div>
-                      ) : (
-                        pipelines.map((p) => (
-                          <div
-                            key={p.id}
-                            className="flex items-center justify-between p-2 hover:bg-muted/50"
-                          >
-                            <span className="text-sm font-medium truncate flex-1 pr-2">
-                              {p.name}
-                            </span>
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              onClick={() => handleAddToPipeline(p.id, p.name)}
-                              className="text-[10px] font-bold uppercase"
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      Create New Pipeline
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Pipeline name..."
-                        value={newPipelineName}
-                        onChange={(e) => setNewPipelineName(e.target.value)}
-                        className="h-9 text-sm"
-                        onKeyDown={(e) => e.key === "Enter" && handleCreateAndAdd()}
-                      />
-                      <Button size="sm" onClick={handleCreateAndAdd} className="h-9 font-bold">
-                        Create & Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose
-                    render={
-                      <Button type="button" variant="outline">
-                        Close
-                      </Button>
-                    }
-                  />
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <SaveToCollectionDialog
-              request={request}
-              defaultName={`${request.method} ${request.url || "Request"}`}
-            />
-
-            <Button
-              type="button"
-              onClick={send}
-              disabled={isLoading || !request.url}
-              className="gap-2 min-w-[100px] h-9 bg-foreground text-background hover:bg-foreground/90 font-bold"
-            >
-              <Send className="h-3.5 w-3.5" />
-              {isLoading ? "Sending..." : "Send"}
-            </Button>
-          </motion.div>
+            <Send className="h-3.5 w-3.5" />
+            {isLoading ? "Sending..." : "Send"}
+          </Button>
         </div>
       </div>
 
-      {/* Request Form Tabs */}
       <RequestForm
         headers={request.headers}
         params={request.params}
@@ -296,6 +226,7 @@ export function RequestBuilder() {
         onChange={(partial) => setRequest(partial)}
         defaultTab="params"
         disabledTabs={disabledTabs}
+        className="min-h-0 flex-1"
       />
     </div>
   );

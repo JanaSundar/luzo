@@ -2,6 +2,7 @@
 
 import { Bug, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import type { PipelineView } from "@/types";
 import type { ExportFormat } from "@/types/pipeline-debug";
@@ -60,17 +61,15 @@ export function PipelineHeader({
         <h1 className="shrink-0 text-sm font-bold tracking-tight whitespace-nowrap sm:text-lg">
           {activePipelineName || "Select a Pipeline"}
         </h1>
-        <nav className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 p-0.5 sm:p-1 rounded-lg shrink-0">
+        <nav className={cn("max-w-full shrink-0 overflow-x-auto", segmentedTabListClassName)}>
           {VIEWS.map((v) => (
             <button
               type="button"
               key={v.id}
               onClick={() => onSetView(v.id)}
-              className={cn(
-                "px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] font-semibold rounded-md transition-all whitespace-nowrap",
-                currentView === v.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+              className={segmentedTabTriggerClassName(
+                currentView === v.id,
+                "h-8 shrink-0 whitespace-nowrap px-2.5 text-[10px] sm:px-3.5 sm:text-[11px]",
               )}
             >
               {v.label}

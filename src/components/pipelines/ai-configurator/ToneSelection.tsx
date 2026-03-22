@@ -4,23 +4,20 @@ import { Shield, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NarrativeTone } from "@/types";
 
-export const TONES: { id: NarrativeTone; label: string; desc: string; icon: React.ReactNode }[] = [
+export const TONES: { id: NarrativeTone; label: string; icon: React.ReactNode }[] = [
   {
     id: "technical",
     label: "Technical",
-    desc: "Detailed technical breakdown with metrics, headers, and performance analysis.",
     icon: <Zap className="h-4 w-4" />,
   },
   {
     id: "executive",
     label: "Executive",
-    desc: "High-level business overview focused on SLA compliance and operational health.",
     icon: <Sparkles className="h-4 w-4" />,
   },
   {
     id: "compliance",
     label: "Compliance",
-    desc: "Audit-ready report covering data handling, PII, and endpoint security.",
     icon: <Shield className="h-4 w-4" />,
   },
 ];
@@ -32,45 +29,40 @@ interface ToneSelectionProps {
 
 export function ToneSelection({ currentTone, onToneChange }: ToneSelectionProps) {
   return (
-    <div className="space-y-4">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        Output Tone
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <section className="space-y-1.5 rounded-none border-0 bg-transparent p-0 shadow-none">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Tone
+        </h3>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
         {TONES.map((tone) => (
           <button
             type="button"
             key={tone.id}
             onClick={() => onToneChange(tone.id)}
             className={cn(
-              "flex flex-col gap-2 p-4 rounded-xl border-2 transition-all text-left group",
+              "group flex h-9 min-w-0 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors",
               currentTone === tone.id
-                ? "border-primary bg-primary/5 shadow-md"
-                : "border-muted hover:border-border hover:bg-muted/5",
+                ? "border-foreground/15 bg-muted/25"
+                : "border-border/45 bg-background hover:bg-muted/15",
             )}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {tone.icon}
-                <span className="font-bold text-sm tracking-tight">{tone.label}</span>
-              </div>
-              <div
-                className={cn(
-                  "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
-                  currentTone === tone.id
-                    ? "border-primary bg-primary"
-                    : "border-muted group-hover:border-border",
-                )}
-              >
-                {currentTone === tone.id && (
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-                )}
-              </div>
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/20">
+              {tone.icon}
             </div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">{tone.desc}</p>
+            <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">
+              {tone.label}
+            </span>
+            <div
+              className={cn(
+                "h-2.5 w-2.5 shrink-0 rounded-full transition-colors",
+                currentTone === tone.id ? "bg-foreground" : "bg-muted-foreground/25",
+              )}
+            />
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

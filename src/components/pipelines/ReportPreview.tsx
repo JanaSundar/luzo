@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
+  FileSearch,
   Info,
   Lightbulb,
   Play,
@@ -28,10 +29,8 @@ import {
 
 export function ReportPreview() {
   const { pipelines, activePipelineId, executionResult } = usePipelineStore();
-  const { theme, resolvedTheme } = useTheme();
-
-  // Use a stable theme value that works after mounting
-  const activeTheme = resolvedTheme ?? theme ?? "light";
+  const { resolvedTheme } = useTheme();
+  const activeTheme = resolvedTheme === "light" ? "light" : "dark";
 
   const reportCache = usePipelineDebugStore((state) =>
     activePipelineId ? (state.reportsByPipelineId[activePipelineId] ?? null) : null,
@@ -76,8 +75,8 @@ export function ReportPreview() {
   }
 
   return (
-    <div className="flex-1 w-full overflow-auto bg-neutral-50/50 custom-scrollbar">
-      <div className="max-w-4xl mx-auto py-12 px-6">
+    <div className="custom-scrollbar flex-1 w-full overflow-auto bg-background/50">
+      <div className="mx-auto max-w-5xl px-6 py-10">
         <ReportLayoutContainer>
           <ReportHeader title={reportModel.title}>
             <ReportStat label="Success Rate" value={`${reportModel.metrics.successRate}%`} />
@@ -177,12 +176,16 @@ function ActivityIcon(props: SVGProps<SVGSVGElement>) {
 
 function ReportEmptyState({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
-    <div className="h-full flex items-center justify-center p-8">
-      <div className="max-w-md text-center space-y-3">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted/30 text-muted-foreground/60">
+    <div className="flex h-full items-center justify-center p-8">
+      <div className="max-w-md space-y-4 rounded-[1.6rem] border border-border/50 bg-background/80 p-8 text-center shadow-sm backdrop-blur">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border/50 bg-muted/20 text-muted-foreground/70">
           {icon}
         </div>
-        <h3 className="text-lg font-bold">{title}</h3>
+        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-muted/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          <FileSearch className="h-3.5 w-3.5" />
+          Report Preview
+        </div>
+        <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
         <p className="text-sm text-muted-foreground">{body}</p>
       </div>
     </div>

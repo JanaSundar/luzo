@@ -2,6 +2,11 @@
 
 import { CheckCircle2, Circle, XCircle } from "lucide-react";
 import { useState } from "react";
+import {
+  segmentedTabBadgeClassName,
+  segmentedTabListClassName,
+  segmentedTabTriggerClassName,
+} from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 import { METHOD_COLORS } from "@/lib/utils/http";
 import type { StepSnapshot, StepStatus } from "@/types/pipeline-debug";
@@ -104,24 +109,35 @@ export function StepStatusPanel({ snapshot, executionStatus, cookies }: StepStat
         )}
       </div>
 
-      <div className="border-b">
-        <nav className="flex items-center gap-0 px-4">
+      <div className="border-b border-border/40 bg-muted/10 px-4 py-2.5">
+        <nav
+          role="tablist"
+          aria-label="Step details"
+          className={cn(
+            "inline-flex min-w-0 max-w-full items-center overflow-x-auto",
+            segmentedTabListClassName,
+          )}
+        >
           {(["details", "request", "cookies"] as const).map((tab) => (
             <button
               type="button"
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={cn(
-                "px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all border-b-2",
-                activeTab === tab
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+              className={segmentedTabTriggerClassName(
+                activeTab === tab,
+                "h-8 shrink-0 whitespace-nowrap px-3 text-xs uppercase tracking-wider",
               )}
             >
-              {tab}
-              {tab === "cookies" && cookies.length > 0 && (
-                <span className="ml-1 text-[10px] bg-muted px-1 rounded">{cookies.length}</span>
-              )}
+              <span className="flex items-center gap-1.5">
+                {tab}
+                {tab === "cookies" && cookies.length > 0 && (
+                  <span className={segmentedTabBadgeClassName(activeTab === tab)}>
+                    {cookies.length}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </nav>

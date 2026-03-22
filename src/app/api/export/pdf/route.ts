@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
     const pdfBuffer = await generateReportPdf(reportModel, reportModel.theme);
 
-    return new Response(pdfBuffer as any, {
+    return new Response(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

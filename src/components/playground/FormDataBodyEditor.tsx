@@ -31,12 +31,12 @@ export function FormDataBodyEditor({
   const remove = (index: number) => onChange(fields.filter((_, i) => i !== index));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 h-8"
+          className="h-8 gap-1.5 rounded-lg border-border/40 bg-background"
           onClick={() => addField("text")}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -45,7 +45,7 @@ export function FormDataBodyEditor({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 h-8"
+          className="h-8 gap-1.5 rounded-lg border-border/40 bg-background"
           onClick={() => addField("file")}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -55,7 +55,10 @@ export function FormDataBodyEditor({
 
       <div className="space-y-2">
         {fields.map((field, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div
+            key={i}
+            className="grid items-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[auto_160px_minmax(0,1fr)_auto]"
+          >
             <Switch
               checked={field.enabled}
               onCheckedChange={(v) => update(i, { enabled: v })}
@@ -66,7 +69,7 @@ export function FormDataBodyEditor({
               onChange={(v) => update(i, { key: v })}
               suggestions={suggestions}
               placeholder="Field name"
-              inputClassName="h-8 text-sm w-40 shrink-0"
+              inputClassName="h-9 w-full shrink-0 rounded-md border border-border/40 bg-background px-3 text-sm"
             />
             {field.type === "text" ? (
               <TemplateInput
@@ -74,7 +77,7 @@ export function FormDataBodyEditor({
                 onChange={(v) => update(i, { value: v })}
                 suggestions={suggestions}
                 placeholder="Value"
-                inputClassName="h-8 text-sm flex-1 min-w-0 border border-input rounded-md bg-background px-3"
+                inputClassName="h-9 min-w-0 flex-1 rounded-md border border-border/40 bg-background px-3 text-sm"
               />
             ) : (
               <FileDropzone
@@ -90,7 +93,7 @@ export function FormDataBodyEditor({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:bg-background hover:text-foreground"
               onClick={() => remove(i)}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -136,7 +139,7 @@ function FileDropzone({
     <div
       {...getRootProps()}
       className={cn(
-        "flex flex-1 items-center gap-2 h-8 min-w-0 rounded-md border border-dashed px-2 cursor-pointer transition-colors",
+        "flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 transition-colors",
         isDragActive
           ? "border-primary bg-primary/10"
           : "border-muted-foreground/40 hover:border-muted-foreground/60 hover:bg-muted/50",

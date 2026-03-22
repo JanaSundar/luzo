@@ -39,7 +39,7 @@ export function Header() {
                 href={item.href}
                 className={segmentedTabTriggerClassName(
                   isActive,
-                  "h-7 shrink-0 whitespace-nowrap px-2.5 sm:px-4",
+                  "h-8 shrink-0 whitespace-nowrap px-2.5 sm:px-4",
                 )}
               >
                 {item.label}

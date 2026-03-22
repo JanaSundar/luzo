@@ -61,6 +61,20 @@ Execute logic before or after any call in a sandboxed Node `vm` environment. Use
 **Pixel-perfect reports for your workflows.**
 Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered by a server-side Playwright rendering engine.
 
+### 🎨 Polished Playground Experience
+**A cleaner request/response workflow without losing power.**
+
+- Shared JSON viewer with syntax highlighting, line numbers, exact-match search, and smoother response navigation
+- Refined request composer, URL bar, tabs, and response stream surfaces inspired by modern API tools
+- Variable value previews, better truncation tooltips, and tighter editor behavior across playground inputs
+
+### 🤖 AI Report Configuration
+**Guide report generation with less friction and fewer tokens.**
+
+- Compact configurator flow for tone, depth, prompt, and signal selection
+- Modern report preview layout with improved per-request breakdown styling
+- More reliable PDF pagination for request breakdowns and export tables
+
 ---
 
 ## Getting Started
@@ -159,8 +173,6 @@ src/
 | `pnpm test`   | Run Vitest suite         |
 | `pnpm lint`   | Fast linting with Oxlint |
 | `pnpm format` | Formatting with Oxfmt    |
-
----
 
 ## Philosophy: Why Luzo?
 
