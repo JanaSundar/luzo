@@ -1,21 +1,15 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { isSensitiveVariableKey } from "@/lib/utils/variableMetadata";
 import type { Environment, KeyValuePair } from "@/types";
 
 export const ENVIRONMENT_STORAGE_KEY = "luzo-environment-store";
 
-const SENSITIVE_KEY_PATTERN =
-  /^(password|token|secret|api[_-]?key|bearer|credential|private[_-]?key|access[_-]?key|secret[_-]?key|auth|authorization)$/i;
-
-function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEY_PATTERN.test(key?.trim() ?? "");
-}
-
 function sanitizeEnvironmentsForPersistence(environments: Environment[]): Environment[] {
   return environments.map((env) => ({
     ...env,
-    variables: env.variables.map((v) => (isSensitiveKey(v.key) ? { ...v, value: "" } : v)),
+    variables: env.variables.map((v) => (isSensitiveVariableKey(v.key) ? { ...v, value: "" } : v)),
   }));
 }
 

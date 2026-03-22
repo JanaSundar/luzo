@@ -1,6 +1,10 @@
 "use client";
 
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
+import {
+  segmentedTabBadgeClassName,
+  segmentedTabListClassName,
+  segmentedTabTriggerClassName,
+} from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 
 export type TabId = "params" | "headers" | "body" | "auth" | "scripts";
@@ -33,7 +37,7 @@ export function RequestFormTabs({
   ];
 
   return (
-    <div className="flex min-h-[32px] shrink-0 items-center">
+    <div className="flex min-h-[36px] shrink-0 items-center">
       <div
         role="tablist"
         className={cn("min-w-0 max-w-full overflow-x-auto", segmentedTabListClassName)}
@@ -52,26 +56,14 @@ export function RequestFormTabs({
               disabled={isDisabled}
               onClick={() => !isDisabled && onTabChange(tab.id)}
               className={cn(
-                segmentedTabTriggerClassName(
-                  isActive,
-                  "h-7 shrink-0 gap-1.5 px-3 sm:px-4 whitespace-nowrap",
-                ),
+                segmentedTabTriggerClassName(isActive, "h-8 shrink-0 whitespace-nowrap text-xs"),
                 isDisabled && "cursor-not-allowed opacity-50 grayscale-[0.5]",
               )}
             >
               <span className="flex items-center gap-1.5">
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span
-                    className={cn(
-                      "flex h-[14px] min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold leading-none",
-                      isActive
-                        ? "bg-white text-black dark:bg-black dark:text-white"
-                        : "bg-black/12 text-black/55 dark:bg-white/12 dark:text-white/55",
-                    )}
-                  >
-                    {tab.count}
-                  </span>
+                  <span className={segmentedTabBadgeClassName(isActive)}>{tab.count}</span>
                 )}
               </span>
             </button>

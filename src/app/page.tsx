@@ -2,6 +2,7 @@
 
 import { Activity, PanelLeft, PanelTop, Terminal } from "lucide-react";
 import { AnimatePresence } from "motion/react";
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { CodeGenerator } from "@/components/playground/CodeGenerator";
 import { EnvironmentSelector } from "@/components/playground/EnvironmentSelector";
@@ -16,20 +17,24 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
 import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { getPersistedLayout, usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
 
 function RequestPane() {
   return (
-    <WorkspacePane>
-      <WorkspaceHeader title="Request Pipeline" icon={Terminal}>
+    <WorkspacePane className="overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/80 shadow-sm backdrop-blur">
+      <WorkspaceHeader
+        title="Request Pipeline"
+        icon={Terminal}
+        className="border-border/40 bg-transparent px-5 py-3"
+      >
         <div className="flex items-center gap-1.5 opacity-50">
           <div className="h-1.5 w-1.5 rounded-full bg-foreground/20" />
           <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
         </div>
       </WorkspaceHeader>
-      <div className="flex-1 min-h-0 overflow-auto p-5 custom-scrollbar">
+      <div className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-hidden px-5 pt-4 pb-5">
         <RequestBuilder />
       </div>
     </WorkspacePane>
@@ -53,8 +58,12 @@ function ResponsePane() {
       : "bg-muted-foreground";
 
   return (
-    <WorkspacePane>
-      <WorkspaceHeader title="Response Stream" icon={Activity}>
+    <WorkspacePane className="overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/80 shadow-sm backdrop-blur">
+      <WorkspaceHeader
+        title="Response Stream"
+        icon={Activity}
+        className="border-border/40 bg-transparent px-5 py-3"
+      >
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             {status}
@@ -62,7 +71,7 @@ function ResponsePane() {
           <div className={cn("h-2 w-2 rounded-full", dotColor)} />
         </div>
       </WorkspaceHeader>
-      <div className="flex-1 min-h-0 overflow-hidden p-5 flex flex-col bg-background/40">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pt-4 pb-5">
         <ResponseViewer />
       </div>
     </WorkspacePane>
@@ -72,7 +81,9 @@ function ResponsePane() {
 function PlaygroundContent() {
   const storeLayout = usePlaygroundStore((s) => s.responseLayout);
   const setResponseLayout = usePlaygroundStore((s) => s.setResponseLayout);
-  const [responseLayout, setResponseLayoutLocal] = useState(getPersistedLayout);
+  const [responseLayout, setResponseLayoutLocal] = useState<"horizontal" | "vertical">(
+    "horizontal",
+  );
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"request" | "response">("request");
 
@@ -126,7 +137,7 @@ function PlaygroundContent() {
                     onClick={() => setMobileTab(tab.id as "request" | "response")}
                     className={segmentedTabTriggerClassName(
                       isActive,
-                      "h-7 flex-1 items-center justify-center px-4",
+                      "h-8 flex-1 items-center justify-center px-4",
                     )}
                   >
                     {tab.label}
@@ -166,11 +177,11 @@ function PlaygroundContent() {
 
   return (
     <SidebarProvider defaultOpen={!isSmallScreen}>
-      <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
+      <div className="flex h-full min-h-0 w-full overflow-hidden bg-background/70">
         <PlaygroundSidebar />
 
-        <SidebarInset className="flex flex-col flex-1 p-3 pt-2 gap-3 min-h-0 overflow-hidden bg-transparent">
-          <WorkspacePane className="h-auto flex-row items-center gap-3 px-6 py-2 rounded-2xl shrink-0">
+        <SidebarInset className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden bg-transparent p-3 pt-2">
+          <WorkspacePane className="h-auto shrink-0 flex-row items-center gap-3 rounded-[1.6rem] border border-border/45 bg-background/75 px-5 py-2.5 shadow-sm backdrop-blur">
             <div className="flex items-center gap-3">
               <EnvironmentSelector />
               <div className="h-4 w-[1px] bg-border/40 mx-2" />
@@ -214,18 +225,18 @@ function PlaygroundContent() {
             </div>
           </WorkspacePane>
 
-          <div className="flex-1 min-h-0 flex gap-3">
+          <div className="flex min-h-0 flex-1 gap-3">
             <ResizablePanelGroup
               orientation={effectiveOrientation}
               className="flex-1 min-h-0 gap-3"
             >
-              <ResizablePanel defaultSize={55} minSize={30} className="min-h-0">
+              <ResizablePanel defaultSize={50} minSize={30} className="min-h-0">
                 <RequestPane />
               </ResizablePanel>
 
-              <ResizableHandle className="bg-transparent w-1.5 hover:bg-muted/50 transition-colors rounded-full" />
+              <ResizableHandle className="w-1.5 rounded-full bg-transparent transition-colors hover:bg-muted/60" />
 
-              <ResizablePanel defaultSize={45} minSize={25} className="min-h-0">
+              <ResizablePanel defaultSize={50} minSize={25} className="min-h-0">
                 <ResponsePane />
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -236,10 +247,14 @@ function PlaygroundContent() {
   );
 }
 
-export default function PlaygroundPage() {
+function PlaygroundPage() {
   return (
     <Suspense fallback={null}>
       <PlaygroundContent />
     </Suspense>
   );
 }
+
+export default dynamic(async () => PlaygroundPage, {
+  ssr: false,
+});

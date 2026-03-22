@@ -154,7 +154,7 @@ export function ProviderConfigView() {
                 onClick={() => setActiveProvider(p)}
                 className={segmentedTabTriggerClassName(
                   isActive,
-                  "h-7 gap-2 px-4 whitespace-nowrap",
+                  "h-8 gap-2 px-4 whitespace-nowrap",
                 )}
               >
                 {pMeta.name}

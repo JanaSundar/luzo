@@ -190,8 +190,18 @@ describe("Pipeline Execution Architecture", () => {
   it("DebugController critical 8-step retry protocol", async () => {
     const { createDebugController } = await import("@/lib/pipeline/debug-controller");
     const controller = createDebugController();
-    // In order for the test to work, we must manually mock or expose state
-    const controllerImpl = (controller as any).__state;
+    type ControllerWithState = typeof controller & {
+      __state: {
+        currentStepIndex: number;
+        pipeline: Pipeline | null;
+        envVars: Record<string, string>;
+        generator: AsyncGenerator<GeneratorYield> | null;
+        runtimeVariables: Record<string, unknown>;
+        snapshots: StepSnapshot[];
+        status: string;
+      };
+    };
+    const controllerImpl = (controller as ControllerWithState).__state;
     controllerImpl.pipeline = mockPipeline;
     controllerImpl.envVars = {};
 

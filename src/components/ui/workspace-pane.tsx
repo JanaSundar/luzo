@@ -14,7 +14,7 @@ export function WorkspacePane({ children, className, border, ...props }: Workspa
   return (
     <motion.div
       className={cn(
-        "h-full flex flex-col min-h-0 glass rounded-xl overflow-hidden shadow-premium transition-all duration-300",
+        "h-full flex flex-col min-h-0 glass rounded-xl overflow-hidden shadow-premium",
         border ? "border border-border" : "border-0",
         className,
       )}

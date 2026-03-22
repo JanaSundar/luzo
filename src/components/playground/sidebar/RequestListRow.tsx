@@ -1,6 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
+import { useRef } from "react";
 import {
   httpMethodBadgeClass,
   httpMethodLetter,
@@ -11,6 +12,7 @@ import {
 import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEllipsisText";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsTruncated } from "@/lib/hooks/useIsTruncated";
 import { cn } from "@/lib/utils";
 import { stripMethodPrefixFromRequestName } from "@/lib/utils/requestDisplayName";
 
@@ -47,6 +49,8 @@ export function RequestListRow({
   const displayName = stripMethodPrefixFromRequestName(name, method);
   const useBareLetter = plainMethod || plain;
   const hasUrl = Boolean(url.trim());
+  const urlRef = useRef<HTMLDivElement>(null);
+  const isTruncated = useIsTruncated(urlRef);
 
   const methodLineExpanded = meta ? (
     <div className="flex min-w-0 flex-wrap items-baseline gap-2">
@@ -70,7 +74,11 @@ export function RequestListRow({
 
   const expandedBody = (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <UrlStartEllipsisText text={displayName} className="font-mono text-[11px] text-foreground" />
+      <UrlStartEllipsisText
+        ref={urlRef}
+        text={displayName}
+        className="font-mono text-[11px] text-foreground"
+      />
       {methodLineExpanded}
     </div>
   );
@@ -124,7 +132,9 @@ export function RequestListRow({
     </TooltipContent>
   );
 
-  const mainWithTooltip = hasUrl ? (
+  const shouldShowTooltip = hasUrl && (collapsed || isTruncated);
+
+  const mainWithTooltip = shouldShowTooltip ? (
     <Tooltip>
       <TooltipTrigger render={mainButton} />
       {tooltipContent}

@@ -1,9 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { Header } from "./Header";
+
+const Header = dynamic(() => import("./Header").then((mod) => mod.Header), {
+  ssr: false,
+});
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (

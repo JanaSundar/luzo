@@ -1,8 +1,10 @@
 "use client";
 
-import { Type } from "lucide-react";
+import { RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { TemplateTextarea } from "@/components/ui/template-textarea";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
+import { createVariableSuggestion } from "@/lib/utils/variableMetadata";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 interface PromptEditorProps {
@@ -24,78 +26,112 @@ export function PromptEditor({
 }: PromptEditorProps) {
   const { signalGroups } = usePipelineDebugStore();
 
-  const suggestions: VariableSuggestion[] = signalGroups.flatMap((g) =>
-    g.variables.map((v) => ({
-      path: v.path,
-      label: v.label,
-      stepId: g.stepId,
-      type: "body" as const,
-    })),
+  const suggestions: VariableSuggestion[] = useMemo(
+    () =>
+      signalGroups.flatMap((g) =>
+        g.variables.map((v) => ({
+          ...createVariableSuggestion({
+            path: v.path,
+            label: v.label,
+            resolvedValue: v.value,
+            stepId: g.stepId,
+            type: "body" as const,
+          }),
+        })),
+      ),
+    [signalGroups],
   );
 
   const { selectedSignals } = usePipelineDebugStore();
-  const selectedPaths = suggestions
-    .filter((s) => selectedSignals.includes(s.path))
-    .map((s) => s.path);
+  const selectedPaths = useMemo(
+    () => suggestions.filter((s) => selectedSignals.includes(s.path)).map((s) => s.path),
+    [selectedSignals, suggestions],
+  );
+  const visiblePaths = selectedPaths.slice(0, 6);
+  const hiddenCount = Math.max(0, selectedPaths.length - visiblePaths.length);
 
   return (
-    <div className="space-y-4 bg-background border rounded-xl shadow-sm border-muted/50">
-      <div className="p-4 bg-muted/10 border-b flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Type className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Narrative Prompt
-          </span>
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.4rem] border border-border/50 bg-background/80 shadow-sm backdrop-blur">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border/40 px-5 py-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5" />
+            Step 2
+          </div>
+          <p className="max-w-2xl text-sm font-medium">
+            Write one clear instruction for the model.
+          </p>
+          <p className="max-w-2xl text-xs text-muted-foreground">
+            Good prompts are short and specific. Ask for outcome, evidence, risks, and actions.
+          </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-border/50 bg-muted/30 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+            {selectedCount} signal{selectedCount !== 1 ? "s" : ""}
+          </div>
+          {estimatedTokens > 0 ? (
+            <div className="rounded-full border border-border/50 bg-muted/30 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+              ~{estimatedTokens} tokens
+            </div>
+          ) : null}
           <button
             type="button"
-            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
             onClick={onRevert}
           >
-            ↺ Revert
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset
           </button>
           <button
             type="button"
-            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
             onClick={onClear}
           >
-            ✕ Clear
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear
           </button>
         </div>
       </div>
-      <TemplateTextarea
-        value={prompt}
-        onChange={onChange}
-        suggestions={suggestions}
-        className="w-full"
-        textareaClassName="h-[300px] font-mono text-sm leading-relaxed p-6 border-none focus-visible:ring-0 resize-none bg-background/50"
-        placeholder="Describe what the AI should analyze... Use {{}} for variables."
-      />
-      <div className="p-3 px-4 flex flex-col gap-2 bg-muted/5 border-t">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-mono text-muted-foreground">
-            {selectedCount} signal{selectedCount !== 1 ? "s" : ""} selected
-          </span>
-          {estimatedTokens > 0 && (
-            <span className="text-[10px] text-muted-foreground">
-              ~{estimatedTokens} tokens estimated
-            </span>
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
+        <TemplateTextarea
+          value={prompt}
+          onChange={onChange}
+          suggestions={suggestions}
+          className="w-full"
+          textareaClassName="h-[260px] border-0 bg-transparent px-5 py-4 font-mono text-[13px] leading-6 focus-visible:ring-0 resize-none"
+          placeholder="Example: Summarize the run, highlight failures and latency outliers, and give the top 3 actions. Use {{variables}} when needed."
+        />
+        <div className="space-y-2 border-t border-border/40 bg-muted/10 px-5 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Selected Variables
+            </p>
+            <span className="text-[10px] text-muted-foreground">{prompt.length} chars</span>
+          </div>
+          {selectedPaths.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {visiblePaths.map((path) => (
+                <span
+                  key={path}
+                  className="rounded-md border border-border/50 bg-background px-2 py-1 font-mono text-[10px] text-foreground/80"
+                >
+                  {path}
+                </span>
+              ))}
+              {hiddenCount > 0 && (
+                <span className="rounded-md border border-border/50 bg-background px-2 py-1 text-[10px] text-muted-foreground">
+                  +{hiddenCount} more
+                </span>
+              )}
+            </div>
+          )}
+          {!selectedPaths.length && (
+            <p className="text-xs text-muted-foreground">
+              Select signals to reference them in the prompt.
+            </p>
           )}
         </div>
-        {selectedPaths.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-muted/20 mt-1">
-            {selectedPaths.map((path) => (
-              <span
-                key={path}
-                className="text-[9px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20"
-              >
-                {path}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
-    </div>
+    </section>
   );
 }

@@ -39,7 +39,7 @@ export function RequestUrlBar({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 p-1.5 bg-muted/20 rounded-xl relative overflow-visible",
+        "relative flex min-w-0 items-center gap-0 overflow-visible rounded-lg border border-border/50 bg-background p-1 transition-colors focus-within:border-foreground/20",
         className,
       )}
     >
@@ -51,7 +51,7 @@ export function RequestUrlBar({
         <SelectTrigger
           type="button"
           aria-label="HTTP Method"
-          className="w-[110px] h-9 border-none bg-transparent font-bold shrink-0 focus-visible:ring-0"
+          className="h-10 w-[90px] shrink-0 rounded-md border-0 bg-transparent px-3 font-mono text-[12px] font-semibold tracking-[0.08em] hover:bg-transparent focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent"
         >
           <SelectValue>
             <span className={cn(METHOD_COLORS[method])}>{method}</span>
@@ -66,17 +66,23 @@ export function RequestUrlBar({
         </SelectContent>
       </Select>
 
-      <TemplateInput
-        value={url}
-        onChange={onUrlChange}
-        suggestions={suggestions}
-        placeholder={placeholder}
-        disabled={disabled}
-        inputClassName="h-9 border-none bg-transparent text-sm focus-visible:ring-0 px-0 font-medium"
-        onKeyDown={(e) => {
-          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") onSend?.();
-        }}
-      />
+      <div className="hidden h-6 w-px shrink-0 bg-border/45 sm:block" />
+
+      <div className="min-w-0 flex-1 rounded-md bg-transparent">
+        <TemplateInput
+          value={url}
+          onChange={onUrlChange}
+          suggestions={suggestions}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="min-w-0"
+          overlayClassName="px-3 text-sm font-medium"
+          inputClassName="h-10 border-0 bg-transparent px-3 text-sm font-medium placeholder:text-muted-foreground/70 focus-visible:ring-0"
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") onSend?.();
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -123,9 +123,14 @@ export function RequestForm({
   const hasTestResults = useMemo(() => !!(testResults && testResults.length > 0), [testResults]);
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/45 bg-background",
+        className,
+      )}
+    >
       {!showContentOnly && (
-        <div className="h-10 flex items-center shrink-0">
+        <div className="flex h-12 shrink-0 items-center border-b border-border/40 bg-muted/10 px-3">
           <RequestFormTabs
             activeTab={activeTab}
             onTabChange={handleTabChange}
@@ -139,7 +144,7 @@ export function RequestForm({
       )}
 
       {!showTabsOnly && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background px-4 py-4">
           <AnimatePresence mode="wait">
             {activeTab === "params" && (
               <RequestFormTabPanel key="params" animate={animateTabContent}>
@@ -170,7 +175,10 @@ export function RequestForm({
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
               >
                 <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-                  <div className="flex shrink-0 items-center justify-between gap-2">
+                  <div className="flex shrink-0 items-center gap-3 rounded-lg border border-border/40 bg-muted/10 px-3 py-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Body
+                    </span>
                     <Select
                       value={bodyType}
                       onValueChange={(v) => {
@@ -185,7 +193,7 @@ export function RequestForm({
                         });
                       }}
                     >
-                      <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectTrigger className="h-8 w-40 border-border/40 bg-background text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -196,24 +204,6 @@ export function RequestForm({
                         <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
                       </SelectContent>
                     </Select>
-                    {bodyType === "json" && (
-                      <button
-                        type="button"
-                        className="text-xs text-primary hover:underline"
-                        onClick={() => {
-                          const current = body ?? "";
-                          if (!current.trim()) return;
-                          try {
-                            const parsed = JSON.parse(current);
-                            onChange({ body: JSON.stringify(parsed, null, 2) });
-                          } catch {
-                            // ignore parse errors
-                          }
-                        }}
-                      >
-                        Prettify
-                      </button>
-                    )}
                   </div>
 
                   {bodyType === "form-data" && (
@@ -226,7 +216,7 @@ export function RequestForm({
 
                   {bodyType !== "none" && bodyType !== "form-data" && (
                     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                      <div className="mb-1 shrink-0 text-xs text-muted-foreground">
+                      <div className="mb-2 shrink-0 text-[11px] font-medium text-muted-foreground">
                         {bodyType === "json" ? "JSON body" : "Raw body"}
                       </div>
                       <JsonBodyEditor
@@ -236,7 +226,7 @@ export function RequestForm({
                         placeholder={
                           bodyType === "json" ? '{\n  "key": "value"\n}' : "Request body..."
                         }
-                        className="min-h-[200px]"
+                        className="h-full"
                         mode={bodyType === "json" ? "json" : "text"}
                       />
                     </div>

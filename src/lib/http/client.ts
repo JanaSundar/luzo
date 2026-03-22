@@ -3,6 +3,7 @@ import {
   sanitizeHeader,
   sanitizeHeaders,
   validateBodySize,
+  validateJsonBody,
   validateHeaders,
   validateParams,
   validateScript,
@@ -179,6 +180,7 @@ function validateRequest(
     () => validateScript(options?.preRequestScript ?? ""),
     () => validateScript(options?.testScript ?? ""),
     () => validateBodySize(request.body, request.bodyType),
+    () => validateJsonBody(request.body, request.bodyType),
   ];
 
   for (const check of checks) {

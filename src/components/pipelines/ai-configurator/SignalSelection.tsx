@@ -12,7 +12,7 @@ import {
   Search,
   Square,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { maskSensitiveValue } from "@/lib/pipeline/sensitivity";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,16 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
       .filter((g) => g.variables.length > 0);
   }, [signalGroups, searchQuery]);
 
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setExpandedGroups(new Set(filteredGroups.map((group) => group.stepId)));
+      return;
+    }
+    if (signalGroups.length > 0 && expandedGroups.size === 0) {
+      setExpandedGroups(new Set(signalGroups.slice(0, 2).map((group) => group.stepId)));
+    }
+  }, [expandedGroups.size, filteredGroups, searchQuery, signalGroups]);
+
   const selectedCount = selectedSignals.length;
   const totalCount = signalGroups.reduce((sum, g) => sum + g.variables.length, 0);
   const sensitiveCount = signalGroups.reduce(
@@ -67,14 +77,17 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
   const hasSignals = signalGroups.length > 0;
 
   return (
-    <div className="bg-background border rounded-xl shadow-sm">
-      <div className="p-4 border-b bg-muted/10">
+    <section className="overflow-hidden rounded-[1.4rem] border border-border/50 bg-background/80 shadow-sm backdrop-blur">
+      <div className="border-b border-border/40 bg-muted/10 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
             Context Signals
           </h3>
           <Info className="h-3.5 w-3.5 text-muted-foreground opacity-50" />
         </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Keep only signals that help explain failures, latency, or risk.
+        </p>
 
         <div className="flex items-center justify-between text-[10px]">
           <span className="text-muted-foreground">
@@ -130,8 +143,8 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
           <input
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Filter signals..."
-            className="flex h-8 w-full rounded-lg border border-input bg-muted/20 pl-9 pr-3 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Search by request, label, or path..."
+            className="flex h-9 w-full rounded-xl border border-border/50 bg-background pl-9 pr-3 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
       </div>
@@ -156,7 +169,7 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
           ))
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -178,11 +191,11 @@ function SignalGroupPanel({
   const selectedInGroup = group.variables.filter((v) => selectedSignals.includes(v.path)).length;
 
   return (
-    <div className="border-b border-muted/30 last:border-0">
+    <div className="border-b border-border/35 last:border-0">
       <button
         type="button"
         onClick={onToggleExpand}
-        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/10 transition-colors text-left"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/10"
       >
         {expanded ? (
           <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -212,7 +225,7 @@ function SignalGroupPanel({
       </button>
 
       {expanded && (
-        <div className="px-4 pb-3 space-y-0.5">
+        <div className="space-y-1 px-3 pb-3">
           {group.variables.map((variable) => (
             <SignalRow
               key={variable.path}
@@ -257,8 +270,8 @@ function SignalRow({
       onClick={onToggle}
       disabled={isHidden}
       className={cn(
-        "w-full flex items-start gap-2 p-2 rounded-md text-left transition-all",
-        selected ? "bg-primary/5" : "hover:bg-muted/20",
+        "flex w-full items-start gap-2 rounded-xl p-2.5 text-left transition-colors",
+        selected ? "bg-foreground/[0.04]" : "hover:bg-muted/20",
         isHidden && "opacity-50 cursor-not-allowed",
       )}
     >

@@ -20,11 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
+import { isSensitiveVariableKey } from "@/lib/utils/variableMetadata";
 import { cn } from "@/lib/utils";
-
-function isSensitiveKey(key: string): boolean {
-  return /secret|token|key|password|auth|api/i.test(key);
-}
 
 export function EnvironmentSelector() {
   const {
@@ -54,7 +51,8 @@ export function EnvironmentSelector() {
   const toggleMask = (key: string) => {
     setMaskedKeys((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -166,7 +164,7 @@ export function EnvironmentSelector() {
                 </p>
 
                 {activeEnv.variables.map((v) => {
-                  const isMasked = maskedKeys.has(v.key) || isSensitiveKey(v.key);
+                  const isMasked = maskedKeys.has(v.key) || isSensitiveVariableKey(v.key);
                   return (
                     <div key={v.key} className="flex items-center gap-2">
                       <span className="text-sm font-mono w-32 truncate text-muted-foreground">

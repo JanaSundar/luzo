@@ -150,6 +150,9 @@ export interface VariableSuggestion {
   label: string;
   stepId: string;
   type: "body" | "header" | "status" | "meta" | "env";
+  resolvedValue?: string;
+  displayValue?: string;
+  isSensitive?: boolean;
 }
 
 export type GeneratorYield =

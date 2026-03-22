@@ -35,9 +35,11 @@ export function ScriptEditor<TRule>({
   placeholder,
 }: ScriptEditorProps<TRule>) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-2 flex shrink-0 items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border/40 bg-muted/10 p-3">
+      <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {label}
+        </span>
         <div
           role="tablist"
           aria-label="Editor mode"
@@ -49,7 +51,7 @@ export function ScriptEditor<TRule>({
             aria-selected={editorType === "visual"}
             className={segmentedTabTriggerClassName(
               editorType === "visual",
-              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
+              "h-8 shrink-0 whitespace-nowrap px-3",
             )}
             onClick={() => onEditorTypeChange("visual")}
           >
@@ -61,7 +63,7 @@ export function ScriptEditor<TRule>({
             aria-selected={editorType === "raw"}
             className={segmentedTabTriggerClassName(
               editorType === "raw",
-              "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
+              "h-8 shrink-0 whitespace-nowrap px-3",
             )}
             onClick={() => onEditorTypeChange("raw")}
           >
@@ -81,7 +83,7 @@ export function ScriptEditor<TRule>({
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          <p className="text-xs text-muted-foreground mb-2 shrink-0">{description}</p>
+          <p className="mb-2 shrink-0 text-xs text-muted-foreground">{description}</p>
           <Textarea
             value={script ?? ""}
             onChange={(e) => {
@@ -89,7 +91,7 @@ export function ScriptEditor<TRule>({
               onScriptChange(newScript, parseScript(newScript));
             }}
             placeholder={placeholder}
-            className="font-mono text-xs flex-1 min-h-32"
+            className="min-h-32 flex-1 border-border/40 bg-background font-mono text-xs"
           />
         </div>
       )}

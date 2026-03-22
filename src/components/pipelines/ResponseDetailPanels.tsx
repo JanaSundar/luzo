@@ -57,7 +57,7 @@ export function ResponseTabBar({
               onClick={() => onTabChange(tab.id)}
               className={segmentedTabTriggerClassName(
                 active,
-                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
+                "h-8 shrink-0 px-3 whitespace-nowrap",
               )}
             >
               {tab.label}

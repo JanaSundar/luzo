@@ -27,12 +27,17 @@ function formatSize(bytes: number): string {
 
 export function ResponseStats({ status, statusText, time, size }: ResponseStatsProps) {
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <Badge className={cn("font-mono font-semibold text-sm", getStatusColor(status))}>
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge
+        className={cn(
+          "h-6 rounded-md px-2 font-mono text-[11px] font-semibold",
+          getStatusColor(status),
+        )}
+      >
         {`${status} ${statusText}`}
       </Badge>
-      <span className="text-sm text-muted-foreground">{time}ms</span>
-      <span className="text-sm text-muted-foreground">{formatSize(size)}</span>
+      <span className="text-[11px] text-muted-foreground">{time}ms</span>
+      <span className="text-[11px] text-muted-foreground">{formatSize(size)}</span>
     </div>
   );
 }

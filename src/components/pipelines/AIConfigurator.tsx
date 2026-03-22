@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { BrainCircuit, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
 import { buildReducedContext } from "@/lib/pipeline/context-reducer";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { cn } from "@/lib/utils";
 import type { NarrativeTone } from "@/types";
 import { LengthSelection } from "./ai-configurator/LengthSelection";
 import { PromptEditor } from "./ai-configurator/PromptEditor";
@@ -97,54 +99,117 @@ export function AIConfigurator() {
   }, [selectedSignals, snapshots, signalGroups, setEstimatedTokens]);
 
   const selectedCount = selectedSignals.length;
+  const totalSignals = useMemo(
+    () => signalGroups.reduce((sum, group) => sum + group.variables.length, 0),
+    [signalGroups],
+  );
+  const promptHealth = useMemo(() => {
+    if (!currentPrompt.trim()) return "Add a short prompt";
+    if (currentPrompt.length > 220) return "Prompt is getting long";
+    if (selectedCount === 0) return "Select context signals";
+    if (estimatedTokens > 6000) return "Trim signals or prompt";
+    return "Ready to generate";
+  }, [currentPrompt, estimatedTokens, selectedCount]);
+  const summaryItems = [
+    { label: "Tone", value: narrativeConfig.tone },
+    { label: "Length", value: currentLength },
+    { label: "Signals", value: `${selectedCount}/${totalSignals}` },
+    { label: "Input", value: `${estimatedTokens || 0} tokens` },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-4">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">AI Report Configurator</h2>
-        <p className="text-muted-foreground text-sm">
-          Select signals from your pipeline execution, choose a tone, and customize the prompt. AI
-          reports are generated only when you explicitly trigger them.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Tone + Length + Prompt */}
-        <div className="lg:col-span-2 space-y-8">
-          <ToneSelection currentTone={narrativeConfig.tone} onToneChange={handleToneChange} />
-          <LengthSelection currentLength={currentLength} onLengthChange={handleLengthChange} />
-
-          <PromptEditor
-            prompt={currentPrompt}
-            onChange={handlePromptChange}
-            onRevert={() => {
-              const prompt = DEFAULT_PROMPTS[narrativeConfig.tone];
-              handleUpdate({
-                prompt,
-                promptOverrides: {
-                  ...narrativeConfig.promptOverrides,
-                  [narrativeConfig.tone]: prompt,
-                },
-              });
-              setReportConfig({ prompt });
-            }}
-            onClear={() => {
-              handleUpdate({
-                prompt: "",
-                promptOverrides: { ...narrativeConfig.promptOverrides, [narrativeConfig.tone]: "" },
-              });
-              setReportConfig({ prompt: "" });
-            }}
-            selectedCount={selectedCount}
-            estimatedTokens={estimatedTokens}
-          />
+    <div className="grid h-full min-h-0 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/80 shadow-sm backdrop-blur">
+        <div className="border-b border-border/40 px-5 py-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-muted/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+            <BrainCircuit className="h-3.5 w-3.5" />
+            AI Configurator
+          </div>
+          <div className="mt-3 space-y-1.5">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Shape the report before generation
+            </h2>
+            <p className="max-w-2xl text-xs text-muted-foreground">
+              Pick the style, add one clear instruction, and keep only useful context.
+            </p>
+          </div>
         </div>
 
-        {/* Right Column: Signal Selection */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <ToneSelection currentTone={narrativeConfig.tone} onToneChange={handleToneChange} />
+            <LengthSelection currentLength={currentLength} onLengthChange={handleLengthChange} />
+          </div>
+
+          <div className="min-h-0 flex-1">
+            <PromptEditor
+              prompt={currentPrompt}
+              onChange={handlePromptChange}
+              onRevert={() => {
+                const prompt = DEFAULT_PROMPTS[narrativeConfig.tone];
+                handleUpdate({
+                  prompt,
+                  promptOverrides: {
+                    ...narrativeConfig.promptOverrides,
+                    [narrativeConfig.tone]: prompt,
+                  },
+                });
+                setReportConfig({ prompt });
+              }}
+              onClear={() => {
+                handleUpdate({
+                  prompt: "",
+                  promptOverrides: {
+                    ...narrativeConfig.promptOverrides,
+                    [narrativeConfig.tone]: "",
+                  },
+                });
+                setReportConfig({ prompt: "" });
+              }}
+              selectedCount={selectedCount}
+              estimatedTokens={estimatedTokens}
+            />
+          </div>
+        </div>
+      </section>
+
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-border/50 bg-muted/20 shadow-sm">
+        <div className="border-b border-border/40 px-4 py-3">
+          <div
+            className={cn(
+              "rounded-xl border px-3 py-2.5",
+              promptHealth === "Ready to generate"
+                ? "border-emerald-500/25 bg-emerald-500/10"
+                : "border-border/50 bg-background/60",
+            )}
+          >
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Current Plan
+            </div>
+            <div className="mt-1 text-xs font-medium">{promptHealth}</div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {summaryItems.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5"
+              >
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  {item.label}
+                </div>
+                <div className="mt-1 text-sm font-semibold capitalize tabular-nums">
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
           <SignalSelection searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
         value={auth.type}
         onValueChange={(v) => onChange({ ...auth, type: v as AuthConfig["type"] })}
       >
-        <SelectTrigger className="w-40 h-8 text-xs">
+        <SelectTrigger className="h-8 w-40 border-border/40 bg-background text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -37,17 +37,19 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
       </Select>
 
       {auth.type === "bearer" && (
-        <TemplateInput
-          value={auth.bearer?.token ?? ""}
-          onChange={(token) => onChange({ ...auth, bearer: { token } })}
-          suggestions={suggestions}
-          placeholder="Bearer token"
-          inputClassName="h-9 text-sm font-mono border border-input rounded-md bg-background px-3"
-        />
+        <div className="rounded-lg border border-border/40 bg-muted/10 p-3">
+          <TemplateInput
+            value={auth.bearer?.token ?? ""}
+            onChange={(token) => onChange({ ...auth, bearer: { token } })}
+            suggestions={suggestions}
+            placeholder="Bearer token"
+            inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 font-mono text-sm"
+          />
+        </div>
       )}
 
       {auth.type === "basic" && (
-        <div className="flex gap-2">
+        <div className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-2">
           <TemplateInput
             value={auth.basic?.username ?? ""}
             onChange={(val) =>
@@ -58,7 +60,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             }
             suggestions={suggestions}
             placeholder="Username"
-            inputClassName="text-sm h-9 border border-input rounded-md bg-background px-3"
+            inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 text-sm"
           />
           <Input
             type="password"
@@ -70,13 +72,13 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
               })
             }
             placeholder="Password"
-            className="text-sm"
+            className="h-9 border-border/40 bg-background text-sm"
           />
         </div>
       )}
 
       {auth.type === "api-key" && (
-        <div className="flex gap-2">
+        <div className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-2">
           <TemplateInput
             value={auth.apiKey?.key ?? ""}
             onChange={(val) =>
@@ -91,7 +93,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             }
             suggestions={suggestions}
             placeholder="Header name"
-            inputClassName="text-sm h-9 border border-input rounded-md bg-background px-3"
+            inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 text-sm"
           />
           <TemplateInput
             value={auth.apiKey?.value ?? ""}
@@ -107,7 +109,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             }
             suggestions={suggestions}
             placeholder="API key value"
-            inputClassName="h-9 text-sm font-mono border border-input rounded-md bg-background px-3"
+            inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 font-mono text-sm"
           />
         </div>
       )}

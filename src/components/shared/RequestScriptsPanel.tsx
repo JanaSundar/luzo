@@ -50,7 +50,7 @@ export function RequestScriptsPanel({
               onClick={() => setScriptTab(t)}
               className={segmentedTabTriggerClassName(
                 active,
-                "h-7 shrink-0 px-3 py-1.5 whitespace-nowrap",
+                "h-8 shrink-0 whitespace-nowrap px-3",
               )}
             >
               {t === "pre-request" ? "Pre-request" : "Tests"}

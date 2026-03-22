@@ -140,7 +140,7 @@ export function StepCard({
 
         <motion.div
           layout="position"
-          className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap"
+          className="flex min-w-0 flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 sm:flex-nowrap"
         >
           <div className="min-w-0 w-full flex-1 sm:w-auto">
             <RequestUrlBar
@@ -149,7 +149,7 @@ export function StepCard({
               suggestions={suggestions}
               onMethodChange={(method) => onUpdate({ method })}
               onUrlChange={(url) => onUpdate({ url })}
-              className="bg-muted/30"
+              className="bg-transparent"
             />
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -174,18 +174,17 @@ export function StepCard({
               animate={{ opacity: 1, height: "auto", y: 0 }}
               exit={{ opacity: 0, height: 0, y: -10 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden"
+              className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden px-4 pb-4 pt-3"
             >
-              <motion.div layout="position" className="shrink-0 bg-background px-4 pt-3">
-                <RequestForm {...commonFormProps} showTabsOnly />
-              </motion.div>
               <motion.div
                 layout="position"
-                className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 [scrollbar-gutter:stable]"
+                className="min-h-0 min-w-0 flex-1 overflow-hidden [scrollbar-gutter:stable]"
               >
-                <motion.div layout="position" className="max-h-[400px] min-h-0 pt-2">
-                  <RequestForm {...commonFormProps} showContentOnly animateTabContent={false} />
-                </motion.div>
+                <RequestForm
+                  {...commonFormProps}
+                  animateTabContent={false}
+                  className="max-h-[430px]"
+                />
               </motion.div>
             </motion.div>
           ) : null}

@@ -1,7 +1,8 @@
 import type { Pipeline, PipelineStep } from "@/types";
 import type { ValidationError, VariableSuggestion } from "@/types/pipeline-debug";
+import { createVariableSuggestion } from "@/lib/utils/variableMetadata";
 import { buildStepAliases } from "./dag-validator";
-import { flattenObject } from "./variable-resolver";
+import { flattenObject, getByPath } from "./variable-resolver";
 
 /**
  * Generate autocomplete suggestions for a step based on prior steps and environment.
@@ -16,12 +17,15 @@ export function getAutocompleteSuggestions(
 
   // 1. Add Environment Variables
   Object.keys(envVars).forEach((key) => {
-    suggestions.push({
-      path: key,
-      label: `env: ${key}`,
-      type: "env",
-      stepId: "",
-    });
+    suggestions.push(
+      createVariableSuggestion({
+        path: key,
+        label: `env: ${key}`,
+        resolvedValue: envVars[key],
+        type: "env",
+        stepId: "",
+      }),
+    );
   });
 
   if (!pipeline) return suggestions;
@@ -38,12 +42,15 @@ export function getAutocompleteSuggestions(
     if (!alias) continue;
 
     // Standard paths available for every step
-    suggestions.push({
-      path: `${alias.alias}.response.status`,
-      label: `${alias.alias} → Status Code`,
-      stepId: alias.stepId,
-      type: "status",
-    });
+    suggestions.push(
+      createVariableSuggestion({
+        path: `${alias.alias}.response.status`,
+        label: `${alias.alias} → Status Code`,
+        resolvedValue: getByPath(executionContext, `${alias.alias}.response.status`),
+        stepId: alias.stepId,
+        type: "status",
+      }),
+    );
 
     const stepContext = executionContext[alias.alias] as Record<string, unknown> | undefined;
 
@@ -53,43 +60,49 @@ export function getAutocompleteSuggestions(
 
       if (resp.headers && typeof resp.headers === "object") {
         Object.keys(resp.headers as Record<string, unknown>).forEach((key) => {
-          suggestions.push({
-            path: `${alias.alias}.response.headers.${key}`,
-            label: `${alias.alias} → Header: ${key}`,
-            stepId: alias.stepId,
-            type: "header",
-          });
+          suggestions.push(
+            createVariableSuggestion({
+              path: `${alias.alias}.response.headers.${key}`,
+              label: `${alias.alias} → Header: ${key}`,
+              resolvedValue: (resp.headers as Record<string, unknown>)[key],
+              stepId: alias.stepId,
+              type: "header",
+            }),
+          );
         });
       }
 
       if (resp.body !== undefined) {
         const bodyFlat = flattenObject(resp.body, `${alias.alias}.response.body`, 6);
-        bodyFlat.forEach(({ path }) => {
+        bodyFlat.forEach(({ path, value }) => {
           const shortLabel = path.replace(`${alias.alias}.response.body.`, "");
-          suggestions.push({
-            path,
-            label: `${alias.alias} → body.${shortLabel}`,
-            stepId: alias.stepId,
-            type: "body",
-          });
+          suggestions.push(
+            createVariableSuggestion({
+              path,
+              label: `${alias.alias} → body.${shortLabel}`,
+              resolvedValue: value,
+              stepId: alias.stepId,
+              type: "body",
+            }),
+          );
         });
       }
     } else {
       // Fallback: provide granular placeholders when no execution data exists
       // so users can type req1.response.data.name and get partial matches
       suggestions.push(
-        {
+        createVariableSuggestion({
           path: `${alias.alias}.response.headers`,
           label: `${alias.alias} → Response Headers`,
           stepId: alias.stepId,
           type: "header",
-        },
-        {
+        }),
+        createVariableSuggestion({
           path: `${alias.alias}.response.body`,
           label: `${alias.alias} → Response Body`,
           stepId: alias.stepId,
           type: "body",
-        },
+        }),
       );
     }
   }

@@ -20,22 +20,6 @@ function sanitizeRequestForPersistence(req: ApiRequest): ApiRequest {
   return req;
 }
 
-/** Read persisted layout synchronously to avoid hydration flicker */
-export function getPersistedLayout(): ResponseLayout {
-  if (typeof window === "undefined") return "horizontal";
-  try {
-    const raw = localStorage.getItem(PLAYGROUND_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { state?: { responseLayout?: ResponseLayout } };
-      const layout = parsed?.state?.responseLayout;
-      if (layout === "vertical" || layout === "horizontal") return layout;
-    }
-  } catch {
-    /* ignore */
-  }
-  return "horizontal";
-}
-
 const DEFAULT_REQUEST: ApiRequest = {
   method: "GET",
   url: "",
@@ -106,6 +90,14 @@ export const usePlaygroundStore = create<PlaygroundState>()(
     {
       name: PLAYGROUND_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<PlaygroundState> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          responseLayout: "horizontal",
+        };
+      },
       partialize: (s) => {
         const req = s.request;
         const formDataFields = req.formDataFields?.map((f) => ({
@@ -116,7 +108,6 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         return {
           request: sanitizedReq,
           originalRequest: s.originalRequest,
-          responseLayout: s.responseLayout,
         };
       },
     },
