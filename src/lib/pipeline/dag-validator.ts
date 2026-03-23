@@ -1,13 +1,35 @@
 import type { PipelineStep } from "@/types";
 import type { StepAlias, ValidationError, ValidationResult } from "@/types/pipeline-debug";
 import { collectStepDependencies } from "./template-dependencies";
-import { extractVariableRefs, getStepAliasFromPath } from "./variable-resolver";
+import { extractVariableRefs, resolveStepAlias } from "./variable-resolver";
+
+function slugifyStepName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
 
 export function buildStepAliases(steps: PipelineStep[]): StepAlias[] {
+  const slugCounts = new Map<string, number>();
+  const stepSlugs = steps.map((step) => {
+    const slug = slugifyStepName(step.name || "");
+    if (slug) {
+      slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
+    }
+    return slug;
+  });
+
   return steps.map((step, index) => ({
     stepId: step.id,
     alias: `req${index + 1}`,
     index,
+    refs: [
+      `req${index + 1}`,
+      step.id,
+      ...(stepSlugs[index] && slugCounts.get(stepSlugs[index]) === 1 ? [stepSlugs[index]] : []),
+    ],
   }));
 }
 
@@ -24,7 +46,7 @@ export function validatePipelineDag(steps: PipelineStep[]): ValidationResult & {
 
   /* Build adjacency */
   for (const step of steps) {
-    const deps = collectStepDependencies(step);
+    const deps = collectStepDependencies(step, aliases);
     const uniqueDeps = new Set<string>();
 
     for (const dep of deps) {
@@ -154,16 +176,16 @@ export function validateVariableRefsInTemplate(
   const aliasToIndex = new Map(aliases.map((a) => [a.alias, a.index]));
 
   for (const ref of refs) {
-    const refAlias = getStepAliasFromPath(ref);
+    const refAlias = resolveStepAlias(ref, aliases);
     if (!refAlias) continue;
 
-    const refIndex = aliasToIndex.get(refAlias);
+    const refIndex = aliasToIndex.get(refAlias.alias);
 
     if (refIndex === undefined) {
       errors.push({
         stepId: "",
         field: "",
-        message: `"${refAlias}" does not refer to any existing step`,
+        message: `"${refAlias.alias}" does not refer to any existing step`,
         severity: "error",
       });
       continue;
@@ -173,21 +195,21 @@ export function validateVariableRefsInTemplate(
       errors.push({
         stepId: "",
         field: "",
-        message: `"${refAlias}" appears after this step (forward reference)`,
+        message: `"${refAlias.alias}" appears after this step (forward reference)`,
         severity: "warning",
       });
     }
 
-    const stepFields = availableFields.get(refAlias);
+    const stepFields = availableFields.get(refAlias.alias);
 
     if (stepFields) {
-      const fieldPath = ref.includes(".") ? ref.substring(refAlias.length + 1) : null;
+      const fieldPath = ref.includes(".") ? ref.substring(ref.indexOf(".") + 1) : null;
 
       if (fieldPath && !stepFields.has(fieldPath)) {
         errors.push({
           stepId: "",
           field: "",
-          message: `Unknown field "${fieldPath}" in ${refAlias}`,
+          message: `Unknown field "${fieldPath}" in ${refAlias.alias}`,
           severity: "warning",
         });
       }

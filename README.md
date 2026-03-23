@@ -37,6 +37,19 @@ _Minimalist interface for API development and orchestration._
 **Build workflows, not just calls.**
 Design complex API chains where data flows seamlessly between steps. Luzo uses a DAG (Directed Acyclic Graph) approach to ensure your execution logic is always sound.
 
+- Pipeline builder with dependency-aware step references like `{{req1.response.body.token}}`
+- Stage-aware execution planning that distinguishes sequential dependencies from independent parallel work
+- Response stream and timeline views that stay coupled to the currently selected pipeline
+
+### 🔄 Collections to Pipelines
+
+**Turn saved requests into runnable workflows.**
+
+- Generate pipelines from Postman JSON, Luzo collections, or stored collections
+- Infer step names, dependencies, unresolved variables, and execution order before creation
+- Preview and adjust the generated flow before opening it in the pipeline builder
+- Convert pipelines back into collections when DB-backed collections are enabled
+
 ### 🛠️ The Debug Controller (Core Engine)
 
 **Debug like a timeline.**
@@ -44,6 +57,7 @@ Design complex API chains where data flows seamlessly between steps. Luzo uses a
 - **Step-by-Step Execution**: Pause at any stage and inspect exactly what’s happening.
 - **Retry from failure, not from scratch**: If a step fails, fix it and resume from that specific point. Luzo automatically rewinds the state for you.
 - **Deterministic Yielding**: Powered by a robust AsyncGenerator engine that ensures synchronization between UI and execution.
+- **Parallel stage execution**: Independent requests in the same stage can execute together without breaking variable dependency flow.
 
 ### 🔐 BYOK & BYODB (Ownership)
 
@@ -67,6 +81,7 @@ Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered 
 - Shared JSON viewer with syntax highlighting, line numbers, exact-match search, and smoother response navigation
 - Refined request composer, URL bar, tabs, and response stream surfaces inspired by modern API tools
 - Variable value previews, better truncation tooltips, and tighter editor behavior across playground inputs
+- Postman-style cURL import plus collection import from Postman/OpenAPI with bulk writes for faster saves
 
 ### 🤖 AI Report Configuration
 **Guide report generation with less friction and fewer tokens.**
@@ -74,6 +89,13 @@ Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered 
 - Compact configurator flow for tone, depth, prompt, and signal selection
 - Modern report preview layout with improved per-request breakdown styling
 - More reliable PDF pagination for request breakdowns and export tables
+
+### 🌱 Collections and Environments
+**Import context once, reuse it everywhere.**
+
+- Save requests and latest responses into DB-backed collections when connected
+- Import collection variables from Postman and server variables from OpenAPI as reusable environments
+- Auto-save collection-linked requests efficiently with debounced writes and local cache updates
 
 ---
 
@@ -103,6 +125,11 @@ GROQ_API_KEY="..."
 
 Access any value from a previous step's response using the `{{stepAlias.path}}` syntax.
 _Example:_ `{{auth.response.body.token}}`
+
+Common step aliases:
+- `req1`, `req2`, ...
+- step ids
+- unique step-name aliases like `login.response.body.access_token`
 
 ---
 

@@ -31,6 +31,7 @@ interface DebugStore {
   saveReport: (pipelineId: string, cache: AIReportCache) => void;
   getReport: (pipelineId: string | null) => AIReportCache | null;
   clearReport: (pipelineId: string) => void;
+  clearExecutionContext: () => void;
   setGeneratingReport: (generating: boolean) => void;
   setExportingPDF: (exporting: boolean) => void;
   markReportDirty: () => void;
@@ -141,6 +142,14 @@ export const usePipelineDebugStore = create<DebugStore>()(
     clearReport: (pipelineId) => {
       usePipelineArtifactsStore.getState().deleteReportArtifact(pipelineId);
     },
+
+    clearExecutionContext: () =>
+      set((state) => {
+        state.signalGroups = [];
+        state.selectedSignals = [];
+        state.reportConfig.selectedSignals = [];
+        state.estimatedTokens = 0;
+      }),
 
     setGeneratingReport: (generating) =>
       set((state) => {

@@ -1,3 +1,5 @@
+import type { PipelineGenerationMetadata } from "./pipeline-generation";
+
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
 export type AiProvider = "openai" | "groq" | "openrouter";
@@ -17,6 +19,11 @@ export interface KeyValuePair {
   key: string;
   value: string;
   enabled: boolean;
+}
+
+export interface EnvironmentVariable extends KeyValuePair {
+  description?: string;
+  secret?: boolean;
 }
 
 /** Form data field - text or file. File ref is not persisted. */
@@ -105,17 +112,27 @@ export interface ApiResponse {
   preRequestResult?: PreRequestResult;
 }
 
+export interface EnvironmentSource {
+  collectionId?: string;
+  kind: "manual" | "openapi" | "postman";
+  ref?: string;
+}
+
 export interface Environment {
   id: string;
   name: string;
-  variables: KeyValuePair[];
+  source?: EnvironmentSource;
+  variables: EnvironmentVariable[];
 }
 
 export interface SavedRequest {
   id: string;
   name: string;
   request: ApiRequest;
+  response?: ApiResponse | null;
   collectionId?: string;
+  persistResponse?: boolean;
+  autoSave?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -147,6 +164,7 @@ export interface PipelineStep extends ApiRequest {
 
 export interface Pipeline {
   id: string;
+  generationMetadata?: PipelineGenerationMetadata;
   name: string;
   description?: string;
   steps: PipelineStep[];
@@ -226,3 +244,5 @@ export interface CodeGenerationOptions {
     | "swift"
     | "wget";
 }
+
+export * from "./pipeline-generation";

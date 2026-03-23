@@ -51,11 +51,8 @@ export function planPartialPipelineRun({
   artifact,
 }: PartialRunPlanInput): PartialRunPlan {
   const stepAliases = buildStepAliases(pipeline.steps);
-  const requiredAliases = getRequiredPreviousAliases(
-    pipeline,
-    startStepId,
-    stepAliases,
-    collectStepDependencies,
+  const requiredAliases = getRequiredPreviousAliases(pipeline, startStepId, stepAliases, (step) =>
+    collectStepDependencies(step, stepAliases),
   );
 
   if (mode === "partial-fresh") {

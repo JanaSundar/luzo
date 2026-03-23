@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   deleteCollection,
   deleteRequest,
+  insertRequestsBulk,
   listCollections,
   upsertCollection,
   upsertRequest,
@@ -38,13 +39,31 @@ export async function POST(request: Request) {
       }
 
       case "save-request": {
-        const { id, name, collectionId, request: requestPayload } = payload;
+        const { id, name, collectionId, request: requestPayload, response, autoSave } = payload;
         await upsertRequest(createDbClient(dbUrl), {
           id,
           name,
           collectionId,
           request: requestPayload,
+          response,
+          autoSave,
         });
+        return NextResponse.json({ ok: true });
+      }
+
+      case "save-requests-bulk": {
+        const { requests: requestPayloads = [] } = payload;
+        await insertRequestsBulk(
+          createDbClient(dbUrl),
+          requestPayloads.map((entry: Record<string, unknown>) => ({
+            autoSave: entry.autoSave as boolean | undefined,
+            collectionId: entry.collectionId as string,
+            id: entry.id as string,
+            name: entry.name as string,
+            request: entry.request,
+            response: entry.response,
+          })),
+        );
         return NextResponse.json({ ok: true });
       }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Folder, Plus } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
 import { CollapsedCollectionItem } from "@/components/playground/sidebar/CollapsedCollectionItem";
 import { CollectionTreeFolder } from "@/components/playground/sidebar/CollectionTreeFolder";
@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { ApiRequest, Collection } from "@/types";
+import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
 type PlaygroundSidebarCollectionsProps = {
   collections: Collection[];
@@ -27,7 +27,7 @@ type PlaygroundSidebarCollectionsProps = {
   }) => Promise<void>;
   onDeleteCollection: (id: string, name: string) => void;
   onDeleteRequest?: (requestId: string) => void | Promise<void>;
-  onLoadRequest: (request: ApiRequest, name: string) => void;
+  onLoadRequest: (request: SavedRequest, name: string) => void;
   isRequestActive: (request: ApiRequest) => boolean;
 };
 
@@ -43,10 +43,26 @@ export function PlaygroundSidebarCollections({
 }: PlaygroundSidebarCollectionsProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (collapsed) return;
+    const activeCollectionId =
+      collections.find((collection) =>
+        collection.requests.some((request) => isRequestActive(request.request)),
+      )?.id ??
+      collections[0]?.id ??
+      null;
+    setOpenCollectionId((current) =>
+      current && collections.some((collection) => collection.id === current)
+        ? current
+        : activeCollectionId,
+    );
+  }, [collapsed, collections, isRequestActive]);
 
   return (
-    <SidebarGroup className="w-full min-w-0 px-1.5 py-0 group-data-[collapsible=icon]:px-1">
-      <div className="mb-2 flex items-center justify-between px-1 group-data-[collapsible=icon]:hidden">
+    <SidebarGroup className="flex h-full min-h-0 w-full min-w-0 flex-col px-1.5 py-0 group-data-[collapsible=icon]:px-1">
+      <div className="mb-2 flex shrink-0 items-center justify-between px-1 group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="px-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Your collections
         </SidebarGroupLabel>
@@ -64,8 +80,8 @@ export function PlaygroundSidebarCollections({
         />
       </div>
 
-      <SidebarGroupContent className="w-full min-w-0">
-        <SidebarMenu className="w-full min-w-0 flex flex-col gap-0">
+      <SidebarGroupContent className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto">
+        <SidebarMenu className="flex w-full min-w-0 flex-col gap-0">
           {isLoading && collections.length === 0 ? (
             <SidebarMenuItem className="list-none">
               <div className="flex justify-center py-8">
@@ -106,9 +122,13 @@ export function PlaygroundSidebarCollections({
                   <CollectionTreeFolder
                     collection={collection}
                     hasActiveRequest={hasActiveRequest}
+                    isOpen={openCollectionId === collection.id}
                     onDeleteCollection={onDeleteCollection}
                     onDeleteRequest={onDeleteRequest}
                     onLoadRequest={onLoadRequest}
+                    onOpenChange={(open) => {
+                      setOpenCollectionId(open ? collection.id : null);
+                    }}
                     isRequestActive={isRequestActive}
                   />
                 </Fragment>

@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/select";
 import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
 import { isSensitiveVariableKey } from "@/lib/utils/variableMetadata";
-import { cn } from "@/lib/utils";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
+
+function getEnvironmentLabel(kind: "manual" | "openapi" | "postman" | undefined) {
+  if (kind === "postman") return "Postman";
+  if (kind === "openapi") return "OpenAPI";
+  return "Manual";
+}
 
 export function EnvironmentSelector() {
   const {
@@ -129,6 +135,9 @@ export function EnvironmentSelector() {
                         )}
                       />
                       <span className="text-sm font-medium truncate">{env.name}</span>
+                      <span className="rounded-full border border-border/50 bg-background/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {getEnvironmentLabel(env.source?.kind)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
@@ -144,7 +153,7 @@ export function EnvironmentSelector() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          className={cn("h-7 w-7", DESTRUCTIVE_ICON_BUTTON_CLASSES)}
                           onClick={() => deleteEnvironment(env.id)}
                           title="Delete environment"
                         >
@@ -188,7 +197,7 @@ export function EnvironmentSelector() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className={cn("h-7 w-7", DESTRUCTIVE_ICON_BUTTON_CLASSES)}
                         onClick={() =>
                           activeEnvironmentId &&
                           deleteEnvironmentVariable(activeEnvironmentId, v.key)

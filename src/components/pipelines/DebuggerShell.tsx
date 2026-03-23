@@ -106,6 +106,16 @@ export function DebuggerShell({
         .reduce((sum, latency) => sum + latency, 0),
     [snapshots],
   );
+  const runningCount = useMemo(
+    () => snapshots.filter((snapshot) => snapshot.status === "running").length,
+    [snapshots],
+  );
+  const completedCount = useMemo(
+    () =>
+      snapshots.filter((snapshot) => snapshot.status === "success" || snapshot.status === "done")
+        .length,
+    [snapshots],
+  );
   const cookies = useMemo(() => getCookies(selectedSnapshot), [selectedSnapshot]);
 
   const isActive = status === "running" || status === "paused";
@@ -146,6 +156,8 @@ export function DebuggerShell({
         currentStepIndex={currentStepIndex}
         totalSteps={totalSteps}
         totalTime={totalTime}
+        runningCount={runningCount}
+        completedCount={completedCount}
         isActive={isActive}
         isDone={isDone}
         onStep={onStep}

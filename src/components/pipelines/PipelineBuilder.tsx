@@ -2,20 +2,28 @@
 
 import { Plus, Workflow } from "lucide-react";
 import { LayoutGroup, Reorder } from "motion/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { CollectionPipelineDialog } from "@/components/pipelines/collection-generator/CollectionPipelineDialog";
+import { PipelineToCollectionDialog } from "@/components/pipelines/PipelineToCollectionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getPipelineExecutionHints } from "@/lib/pipeline/execution-plan";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
 import { StepCard } from "./StepCard";
 
 export function PipelineBuilder({
+  onClearRequestedCollection,
   onRunFromStep,
+  requestedCollectionId,
 }: {
+  onClearRequestedCollection?: () => void;
   onRunFromStep?: (
     stepId: string,
     mode: "partial-previous" | "partial-fresh",
   ) => void | Promise<void>;
+  requestedCollectionId?: string | null;
 }) {
   const {
     pipelines,
@@ -29,9 +37,23 @@ export function PipelineBuilder({
     expandedStepIds,
     setExpandedStepId,
   } = usePipelineStore();
+  const { dbStatus, dbSchemaReady } = useSettingsStore();
+  const canUseCollections = dbStatus === "connected" && dbSchemaReady;
 
   const pipeline = pipelines.find((p) => p.id === activePipelineId);
   const expandedStepId = activePipelineId ? (expandedStepIds[activePipelineId] ?? null) : null;
+  const executionHints = useMemo(
+    () => (pipeline ? getPipelineExecutionHints(pipeline.steps) : new Map()),
+    [pipeline],
+  );
+  const generatedStepMeta = useMemo(
+    () =>
+      new Map(
+        pipeline?.generationMetadata?.stepMappings.map((mapping) => [mapping.stepId, mapping]) ??
+          [],
+      ),
+    [pipeline],
+  );
 
   const handleReorder = useCallback(
     (newSteps: PipelineStep[]) => {
@@ -63,14 +85,25 @@ export function PipelineBuilder({
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Pipeline Header */}
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">{pipeline.name}</h2>
-        <Input
-          value={pipeline.description || ""}
-          onChange={(e) => updatePipeline(pipeline.id, { description: e.target.value })}
-          placeholder="Add a description for this pipeline (e.g., Chain requests to authenticate and fetch user profile data.)"
-          className="border-none bg-transparent text-muted-foreground text-sm focus-visible:ring-0 px-0 h-8 placeholder:text-muted-foreground/50"
-        />
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">{pipeline.name}</h2>
+          <Input
+            value={pipeline.description || ""}
+            onChange={(e) => updatePipeline(pipeline.id, { description: e.target.value })}
+            placeholder="Add a description for this pipeline (e.g., Chain requests to authenticate and fetch user profile data.)"
+            className="h-8 border-none bg-transparent px-0 text-sm text-muted-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0"
+          />
+        </div>
+        {pipeline.steps.length > 0 ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {canUseCollections ? <PipelineToCollectionDialog pipeline={pipeline} /> : null}
+            <CollectionPipelineDialog
+              initialCollectionId={requestedCollectionId}
+              onCloseRequestReset={onClearRequestedCollection}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col items-center gap-4">
@@ -84,20 +117,32 @@ export function PipelineBuilder({
                 Build your API pipeline
               </h3>
               <p className="text-sm text-muted-foreground/70 max-w-md">
-                Chain multiple API requests that execute sequentially. Reference data from previous
-                responses using{" "}
+                Import a collection or build it manually. Reference data from previous responses
+                using{" "}
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                  {"{{stepId.response.body.token}}"}
+                  {"{{req1.response.body.token}}"}
                 </code>
               </p>
             </div>
-            <Button
-              onClick={handleAddRequest}
-              className="gap-2 h-10 px-6 bg-foreground text-background hover:bg-foreground/90 font-bold"
-            >
-              <Plus className="h-4 w-4" />
-              Add First Request
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <CollectionPipelineDialog
+                initialCollectionId={requestedCollectionId}
+                onCloseRequestReset={onClearRequestedCollection}
+                trigger={
+                  <Button type="button" variant="outline" className="h-10 gap-2 px-6 font-bold">
+                    <Workflow className="h-4 w-4" />
+                    From collection
+                  </Button>
+                }
+              />
+              <Button
+                onClick={handleAddRequest}
+                className="gap-2 h-10 px-6 bg-foreground text-background hover:bg-foreground/90 font-bold"
+              >
+                <Plus className="h-4 w-4" />
+                Add First Request
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -111,24 +156,33 @@ export function PipelineBuilder({
                 aria-label="Pipeline requests"
               >
                 {pipeline.steps.map((step, index) => (
-                  <StepCard
-                    key={step.id}
-                    step={step}
-                    index={index}
-                    isExpanded={expandedStepId === step.id}
-                    onToggleExpand={() => {
-                      if (!activePipelineId) return;
-                      setExpandedStepId(
-                        activePipelineId,
-                        expandedStepId === step.id ? null : step.id,
-                      );
-                    }}
-                    onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
-                    onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
-                    onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
-                    onDuplicate={() => duplicateStep(pipeline.id, step.id)}
-                    onDelete={() => removeStep(pipeline.id, step.id)}
-                  />
+                  <div key={step.id} className="space-y-3">
+                    {shouldShowStageHeader(pipeline.steps, index, generatedStepMeta) ? (
+                      <div className="rounded-xl border border-border/50 bg-muted/15 px-4 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          {getStageLabel(step.id, generatedStepMeta)}
+                        </p>
+                      </div>
+                    ) : null}
+                    <StepCard
+                      executionHint={executionHints.get(step.id)}
+                      step={step}
+                      index={index}
+                      isExpanded={expandedStepId === step.id}
+                      onToggleExpand={() => {
+                        if (!activePipelineId) return;
+                        setExpandedStepId(
+                          activePipelineId,
+                          expandedStepId === step.id ? null : step.id,
+                        );
+                      }}
+                      onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
+                      onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
+                      onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
+                      onDuplicate={() => duplicateStep(pipeline.id, step.id)}
+                      onDelete={() => removeStep(pipeline.id, step.id)}
+                    />
+                  </div>
                 ))}
               </Reorder.Group>
             </LayoutGroup>
@@ -148,4 +202,27 @@ export function PipelineBuilder({
       </div>
     </div>
   );
+}
+
+function shouldShowStageHeader(
+  steps: PipelineStep[],
+  index: number,
+  meta: Map<string, { grouping?: "parallel" | "sequential"; stageIndex?: number }>,
+) {
+  const current = meta.get(steps[index]?.id ?? "");
+  if (!current?.stageIndex) return false;
+  if (index === 0) return true;
+  const previous = meta.get(steps[index - 1]?.id ?? "");
+  return previous?.stageIndex !== current.stageIndex;
+}
+
+function getStageLabel(
+  stepId: string,
+  meta: Map<string, { grouping?: "parallel" | "sequential"; stageIndex?: number }>,
+) {
+  const current = meta.get(stepId);
+  if (!current?.stageIndex) return "Stage";
+  return current.grouping === "parallel"
+    ? `Parallel Group ${current.stageIndex}`
+    : `Stage ${current.stageIndex}`;
 }

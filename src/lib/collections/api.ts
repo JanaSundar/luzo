@@ -1,4 +1,4 @@
-import type { ApiRequest, Collection } from "@/types";
+import type { ApiRequest, ApiResponse, Collection } from "@/types";
 
 interface CollectionPayload {
   id: string;
@@ -7,10 +7,18 @@ interface CollectionPayload {
 }
 
 interface RequestPayload {
+  autoSave?: boolean;
   id: string;
   collectionId: string;
   name: string;
+  persistResponse?: boolean;
   request: ApiRequest;
+  response?: ApiResponse | null;
+}
+
+interface BulkRequestPayload {
+  collectionId: string;
+  requests: RequestPayload[];
 }
 
 export async function fetchCollections(dbUrl: string): Promise<Collection[]> {
@@ -26,6 +34,10 @@ export async function saveCollection(dbUrl: string, payload: CollectionPayload) 
 
 export async function saveCollectionRequest(dbUrl: string, payload: RequestPayload) {
   return postCollectionsRequest(dbUrl, { action: "save-request", ...payload });
+}
+
+export async function saveCollectionRequestsBulk(dbUrl: string, payload: BulkRequestPayload) {
+  return postCollectionsRequest(dbUrl, { action: "save-requests-bulk", ...payload });
 }
 
 export async function removeCollection(dbUrl: string, id: string) {

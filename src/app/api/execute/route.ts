@@ -40,10 +40,21 @@ function applyAuth(
   headers: Record<string, string>,
   envVariables: Record<string, string>,
 ): void {
+  const normalizeBearerToken = (token: string) =>
+    token
+      .trim()
+      .replace(/^Bearer\s+/i, "")
+      .trim();
+
   switch (auth.type) {
     case "bearer":
       if (auth.bearer?.token) {
-        headers.Authorization = `Bearer ${interpolateVariables(auth.bearer.token, envVariables)}`;
+        const resolvedToken = normalizeBearerToken(
+          interpolateVariables(auth.bearer.token, envVariables),
+        );
+        if (resolvedToken) {
+          headers.Authorization = `Bearer ${resolvedToken}`;
+        }
       }
       break;
     case "basic":

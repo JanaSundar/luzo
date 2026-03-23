@@ -8,6 +8,8 @@ interface DebugControlsBarProps {
   currentStepIndex: number;
   totalSteps: number;
   totalTime: number;
+  runningCount: number;
+  completedCount: number;
   isActive: boolean;
   isDone: boolean;
   onStep?: () => void;
@@ -32,6 +34,8 @@ export function DebugControlsBar({
   currentStepIndex,
   totalSteps,
   totalTime,
+  runningCount,
+  completedCount,
   isActive,
   isDone,
   onStep,
@@ -40,6 +44,11 @@ export function DebugControlsBar({
   onStop,
   onRunAuto,
 }: DebugControlsBarProps) {
+  const progressLabel =
+    runningCount > 1
+      ? `${runningCount} running in parallel • ${completedCount}/${totalSteps} done`
+      : `Step ${Math.min(currentStepIndex + 1, totalSteps)}/${totalSteps}`;
+
   return (
     <div className="rounded-xl border bg-background px-4 py-2.5 shadow-sm">
       <div className="flex flex-wrap items-center gap-3">
@@ -54,9 +63,7 @@ export function DebugControlsBar({
 
         <div className="h-4 w-px bg-border" />
 
-        <span className="text-xs font-mono text-muted-foreground">
-          Step {Math.min(currentStepIndex + 1, totalSteps)}/{totalSteps}
-        </span>
+        <span className="text-xs font-mono text-muted-foreground">{progressLabel}</span>
 
         <div className="flex-1" />
 

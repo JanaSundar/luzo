@@ -136,7 +136,7 @@ export function ResponseBodyView({
   };
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:col-span-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t border-border/40 sm:border-t-0 sm:border-l lg:col-span-6">
       <div className="flex items-center justify-between border-b bg-muted/10 p-3">
         <div className="flex items-center gap-2">
           <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">

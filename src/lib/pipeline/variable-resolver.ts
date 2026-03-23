@@ -1,4 +1,5 @@
 const VARIABLE_REGEX = /\{\{([^}]+)\}\}/g;
+import type { StepAlias } from "@/types/pipeline-debug";
 
 /**
  * Safely traverse an object by a dot-separated path.
@@ -27,13 +28,9 @@ export function getByPath(obj: unknown, path: string): unknown {
   return current;
 }
 
-const RESOLVE_CACHE_SIZE = 500;
-const resolveCache = new Map<string, string>();
-
 /**
  * Resolve all {{path}} variables in a template string.
  * Resolution order: variableOverrides → runtimeVariables → envVariables → unresolved (kept as-is).
- * Now includes a memoization layer for performance.
  */
 export function resolveTemplate(
   template: string,
@@ -42,17 +39,6 @@ export function resolveTemplate(
   variableOverrides: Record<string, string> = {},
 ): string {
   if (!template) return template;
-
-  // Simple cache key: template + stringified overrides (stable) + basic identifying info
-  // For runtimeVariables, we'll avoid stringifying the whole thing if it's too large,
-  // but for small objects it's okay. A better approach would be checking reference changes
-  // if this were a hook, but here it's a utility.
-  const cacheKey = `${template}|${JSON.stringify(variableOverrides)}|${Object.keys(runtimeVariables).length}|${Object.keys(envVariables).length}`;
-
-  const cachedValue = resolveCache.get(cacheKey);
-  if (cachedValue !== undefined) {
-    return cachedValue;
-  }
 
   const result = template.replace(VARIABLE_REGEX, (match, rawPath: string) => {
     const path = rawPath.trim();
@@ -70,11 +56,6 @@ export function resolveTemplate(
 
     return match;
   });
-
-  if (resolveCache.size >= RESOLVE_CACHE_SIZE) {
-    resolveCache.clear();
-  }
-  resolveCache.set(cacheKey, result);
 
   return result;
 }
@@ -101,6 +82,18 @@ export function getStepAliasFromPath(path: string): string | null {
   const prefix = path.substring(0, dotIndex);
   if (/^req\d+$/.test(prefix)) return prefix;
   return null;
+}
+
+export function getStepReferenceFromPath(path: string): string | null {
+  const dotIndex = path.indexOf(".");
+  if (dotIndex === -1) return null;
+  return path.substring(0, dotIndex).trim() || null;
+}
+
+export function resolveStepAlias(path: string, aliases: StepAlias[]): StepAlias | null {
+  const reference = getStepReferenceFromPath(path);
+  if (!reference) return null;
+  return aliases.find((alias) => alias.refs.includes(reference)) ?? null;
 }
 
 /**

@@ -3,7 +3,7 @@
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
-import { ACTION_BUTTON_CLASSES_NO_HOVER, cn } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES_NO_HOVER, cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
 import type { Pipeline } from "@/types";
 
 interface PipelineSidebarProps {
@@ -195,7 +195,7 @@ export function PipelineSidebar({
                     </button>
                     <button
                       type="button"
-                      className="p-0.5 rounded"
+                      className={cn("rounded p-0.5", DESTRUCTIVE_ICON_BUTTON_CLASSES)}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteClick(p.id);

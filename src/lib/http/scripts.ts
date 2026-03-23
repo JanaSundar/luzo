@@ -1,4 +1,3 @@
-import { createContext, runInContext } from "node:vm";
 import * as chai from "chai";
 import * as _ from "lodash-es";
 import { LIMITS, validateScript } from "@/lib/utils/security";
@@ -14,8 +13,6 @@ export interface ScriptExecutionResult {
   logs: string[];
   error: string | null;
 }
-
-const SCRIPT_TIMEOUT_MS = 3000;
 
 /**
  * Capture console.log output from scripts
@@ -35,6 +32,18 @@ function createCapturingConsole(): {
     },
     getLogs: () => logs,
   };
+}
+
+function executeScript(script: string, sandbox: Record<string, unknown>): { error: string | null } {
+  try {
+    const keys = Object.keys(sandbox);
+    const values = keys.map((key) => sandbox[key]);
+    const runner = new Function(...keys, `"use strict";\n${script}`);
+    runner(...values);
+    return { error: null };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
@@ -114,15 +123,9 @@ export function runPreRequestScript(
     console: capturingConsole.console,
   };
 
-  try {
-    const scriptObj = createContext(sandbox);
-    runInContext(`(function() { "use strict"; ${script} })();`, scriptObj, {
-      timeout: SCRIPT_TIMEOUT_MS,
-    });
-    result.logs = capturingConsole.getLogs();
-  } catch (err: unknown) {
-    result.error = err instanceof Error ? err.message : String(err);
-  }
+  const execution = executeScript(script, sandbox);
+  result.logs = capturingConsole.getLogs();
+  result.error = execution.error;
 
   return { config: { ...config, headers }, envVariables, result };
 }
@@ -214,14 +217,10 @@ export function runTestScript(
     return { testResults, execution };
   }
 
-  try {
-    const scriptObj = createContext(sandbox);
-    runInContext(`(function() { "use strict"; ${script} })();`, scriptObj, {
-      timeout: SCRIPT_TIMEOUT_MS,
-    });
-    execution.logs = capturingConsole.getLogs();
-  } catch (err: unknown) {
-    execution.error = err instanceof Error ? err.message : String(err);
+  const result = executeScript(script, sandbox);
+  execution.logs = capturingConsole.getLogs();
+  execution.error = result.error;
+  if (execution.error) {
     testResults.push({
       name: "Script execution",
       passed: false,

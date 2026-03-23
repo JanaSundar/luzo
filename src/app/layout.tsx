@@ -1,25 +1,80 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
 import "./global.css";
 import { AppShell } from "@/components/layout/AppShell";
 import { Providers } from "./providers";
 
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
+function normalizeAppUrl(value?: string): URL {
+  const fallback = "http://localhost:3000";
+  const raw = (value ?? fallback).trim();
+  const prefixed = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  try {
+    return new URL(prefixed);
+  } catch {
+    return new URL(fallback);
+  }
+}
+
+const appUrl = normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL);
+const siteTitle = "Luzo";
+const siteDescription =
+  "Design API workflows like a flowchart. Debug them like a timeline with a developer-first API playground, pipeline builder, and AI-powered reporting.";
+const fontVariables =
+  "[--font-sans:Inter,ui-sans-serif,system-ui,sans-serif] [--font-geist-mono:'SFMono-Regular',ui-monospace,monospace]";
 
 export const metadata: Metadata = {
-  title: "Luzo",
-  description: "An AI-powered API testing and development playground",
+  metadataBase: appUrl,
+  applicationName: siteTitle,
+  title: {
+    default: siteTitle,
+    template: `%s | ${siteTitle}`,
+  },
+  description: siteDescription,
+  keywords: [
+    "API playground",
+    "API workflow builder",
+    "pipeline orchestration",
+    "request debugging",
+    "JSON response viewer",
+    "developer tools",
+  ],
+  authors: [{ name: "Luzo" }],
+  creator: "Luzo",
+  publisher: "Luzo",
+  alternates: {
+    canonical: "/",
+  },
+  category: "developer tools",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: siteTitle,
+    title: siteTitle,
+    description: siteDescription,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteTitle,
+  },
   icons: {
-    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/logo.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/favicon.ico" }],
+    apple: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   manifest: "/site.webmanifest",
 };
@@ -33,7 +88,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-screen overflow-hidden`}
+      className={`${fontVariables} h-screen overflow-hidden`}
     >
       <body className="antialiased h-full overflow-hidden">
         <Providers>

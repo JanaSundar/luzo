@@ -14,6 +14,11 @@ import {
 import { createPortal } from "react-dom";
 import { TemplateValueOverlay } from "@/components/ui/TemplateValueOverlay";
 import { TemplateVariableMenu } from "@/components/ui/TemplateVariableMenu";
+import {
+  DEFAULT_TEMPLATE_MENU_POSITION,
+  getTemplateMenuPosition,
+  type TemplateMenuPosition,
+} from "@/lib/utils/templateMenuPosition";
 import { applyTemplateSelection, getActiveTemplateToken } from "@/lib/utils/templateTokens";
 import { cn } from "@/lib/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
@@ -35,7 +40,7 @@ export function TemplateTextarea({
   const cursorPosRef = useRef(0);
   const [items, setItems] = useState<VariableSuggestion[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+  const [menuPosition, setMenuPosition] = useState<TemplateMenuPosition | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
 
   useEffect(() => setMounted(true), []);
@@ -44,14 +49,7 @@ export function TemplateTextarea({
     const textarea = textareaRef.current;
     if (!textarea) return;
     const rect = textarea.getBoundingClientRect();
-    setMenuStyle({
-      position: "fixed",
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: Math.max(rect.width, 240),
-      maxWidth: "calc(100vw - 16px)",
-      zIndex: 9999,
-    });
+    setMenuPosition(getTemplateMenuPosition(rect));
   }, []);
 
   const refreshItems = useCallback(
@@ -147,7 +145,7 @@ export function TemplateTextarea({
       getItemProps={getItemProps}
       getMenuProps={getMenuProps}
       isOpen={isOpen}
-      style={menuStyle}
+      position={menuPosition ?? DEFAULT_TEMPLATE_MENU_POSITION}
     />
   );
 

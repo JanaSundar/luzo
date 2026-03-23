@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { executeRequest } from "@/app/actions/api-tests";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { AddToPipelineDialog } from "@/components/playground/request/AddToPipelineDialog";
+import { ImportCurlDialog } from "@/components/playground/request/ImportCurlDialog";
+import { useCollectionRequestSync } from "@/components/playground/request/useCollectionRequestSync";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
@@ -37,6 +39,7 @@ export function RequestBuilder() {
   const { addToHistory } = useHistoryStore();
   const { pipelines, addStep, addPipeline, setActivePipeline, setView } = usePipelineStore();
   const router = useRouter();
+  const collectionSync = useCollectionRequestSync(request, response);
 
   // Build env variable suggestions for {{}} autocomplete in the URL bar
   const urlSuggestions = useMemo(() => {
@@ -165,6 +168,11 @@ export function RequestBuilder() {
           className="min-w-[min(100%,30rem)] flex-[999_1_42rem] bg-transparent p-0"
         />
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <ImportCurlDialog
+            onImport={(importedRequest) => {
+              setRequest(importedRequest);
+            }}
+          />
           <AddToPipelineDialog
             pipelines={pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name }))}
             onAddToPipeline={handleAddToPipeline}
@@ -183,6 +191,7 @@ export function RequestBuilder() {
           />
           <SaveToCollectionDialog
             request={request}
+            response={response}
             defaultName={`${request.method} ${request.url || "Request"}`}
             trigger={
               <Button
@@ -207,6 +216,53 @@ export function RequestBuilder() {
           </Button>
         </div>
       </div>
+
+      {collectionSync.isLinked && collectionSync.canSync ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-background/60 px-2.5 py-2 shadow-sm">
+          <div className="mr-1 flex items-center gap-2 rounded-lg bg-muted/45 px-2 py-1">
+            <span
+              className={
+                collectionSync.isDirty
+                  ? "h-1.5 w-1.5 rounded-full bg-amber-500"
+                  : "h-1.5 w-1.5 rounded-full bg-emerald-500"
+              }
+            />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Collection
+            </span>
+          </div>
+          <label className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45">
+            <input
+              type="checkbox"
+              checked={collectionSync.autoSave}
+              onChange={(event) => collectionSync.setAutoSave(event.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            Auto-save
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="ml-auto h-7 rounded-lg px-2.5 text-xs"
+            disabled={collectionSync.isSaving || !collectionSync.isDirty}
+            onClick={() => void collectionSync.saveNow("manual")}
+          >
+            {collectionSync.isSaving ? "Saving..." : "Save"}
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            {collectionSync.autoSave
+              ? collectionSync.isDirty
+                ? "Syncing after edit settles."
+                : collectionSync.lastSavedAt
+                  ? `Synced ${new Date(collectionSync.lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                  : "Auto-save on"
+              : collectionSync.isDirty
+                ? "Unsaved changes"
+                : "Up to date"}
+          </span>
+        </div>
+      ) : null}
 
       <RequestForm
         headers={request.headers}

@@ -2,7 +2,7 @@ import type { Pipeline, PipelineStep } from "@/types";
 import type { ValidationError, VariableSuggestion } from "@/types/pipeline-debug";
 import { createVariableSuggestion } from "@/lib/utils/variableMetadata";
 import { buildStepAliases } from "./dag-validator";
-import { flattenObject, getByPath } from "./variable-resolver";
+import { flattenObject, getByPath, resolveStepAlias } from "./variable-resolver";
 
 /**
  * Generate autocomplete suggestions for a step based on prior steps and environment.
@@ -134,25 +134,25 @@ export function progressiveValidate(
     const dotIndex = path.indexOf(".");
     if (dotIndex === -1) continue;
 
-    const refAlias = path.substring(0, dotIndex);
-    if (!/^req\d+$/.test(refAlias)) continue;
+    const matchedAlias = resolveStepAlias(path, aliases);
+    if (!matchedAlias) continue;
 
-    if (!aliasSet.has(refAlias)) {
+    if (!aliasSet.has(matchedAlias.alias)) {
       errors.push({
         stepId: "",
         field: path,
-        message: `"${refAlias}" does not refer to any pipeline step`,
+        message: `"${matchedAlias.alias}" does not refer to any pipeline step`,
         severity: "error",
       });
       continue;
     }
 
-    const refIndex = aliasToIndex.get(refAlias) ?? -1;
+    const refIndex = aliasToIndex.get(matchedAlias.alias) ?? -1;
     if (refIndex >= currentStepIndex) {
       errors.push({
         stepId: "",
         field: path,
-        message: `"${refAlias}" is a forward reference (step hasn't run yet)`,
+        message: `"${matchedAlias.alias}" is a forward reference (step hasn't run yet)`,
         severity: "error",
       });
       continue;
@@ -160,9 +160,9 @@ export function progressiveValidate(
 
     // After execution: validate field exists
     if (executionContext) {
-      const stepCtx = executionContext[refAlias];
+      const stepCtx = executionContext[matchedAlias.alias];
       if (stepCtx) {
-        const fieldPath = path.substring(refAlias.length + 1);
+        const fieldPath = path.substring(path.indexOf(".") + 1);
         const parts = fieldPath.split(".");
         let current: unknown = stepCtx;
 
@@ -171,7 +171,7 @@ export function progressiveValidate(
             errors.push({
               stepId: "",
               field: path,
-              message: `Unknown field "${fieldPath}" in ${refAlias}`,
+              message: `Unknown field "${fieldPath}" in ${matchedAlias.alias}`,
               severity: "warning",
             });
             break;

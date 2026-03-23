@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ACTION_BUTTON_CLASSES_NO_HOVER } from "@/lib/utils";
+import { DESTRUCTIVE_BUTTON_CLASSES, cn } from "@/lib/utils";
 
 interface ConfirmDeleteDialogProps {
   open: boolean;
@@ -20,7 +21,7 @@ interface ConfirmDeleteDialogProps {
   itemCount?: number;
   skipConfirmTemp: boolean;
   onSkipConfirmChange: (checked: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 export function ConfirmDeleteDialog({
@@ -34,6 +35,16 @@ export function ConfirmDeleteDialog({
   onConfirm,
 }: ConfirmDeleteDialogProps) {
   const displayName = itemName || (itemCount === 1 ? "this item" : `these ${itemCount} items`);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,6 +62,7 @@ export function ConfirmDeleteDialog({
               id="skip-confirm"
               checked={skipConfirmTemp}
               onChange={(e) => onSkipConfirmChange(e.target.checked)}
+              disabled={isDeleting}
               className="h-4 w-4 accent-primary rounded border-gray-300 focus:ring-primary"
             />
             <label
@@ -64,7 +76,12 @@ export function ConfirmDeleteDialog({
         <DialogFooter>
           <DialogClose
             render={
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isDeleting}
+                className="h-8 min-w-28 justify-center"
+              >
                 Cancel
               </Button>
             }
@@ -72,11 +89,21 @@ export function ConfirmDeleteDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={onConfirm}
-            className={ACTION_BUTTON_CLASSES_NO_HOVER}
+            onClick={() => void handleConfirm()}
+            disabled={isDeleting}
+            className={cn("h-8 min-w-28 justify-center gap-2", DESTRUCTIVE_BUTTON_CLASSES)}
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

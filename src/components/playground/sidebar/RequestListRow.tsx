@@ -13,7 +13,7 @@ import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEl
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsTruncated } from "@/lib/hooks/useIsTruncated";
-import { cn } from "@/lib/utils";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
 import { stripMethodPrefixFromRequestName } from "@/lib/utils/requestDisplayName";
 
 type RequestListRowProps = {
@@ -154,9 +154,8 @@ export function RequestListRow({
           onDelete();
         }}
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
-          "hover:bg-destructive/10 hover:text-destructive",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+          DESTRUCTIVE_ICON_BUTTON_CLASSES,
         )}
       >
         <Trash2 className="h-3.5 w-3.5 shrink-0" />
