@@ -1,14 +1,16 @@
 "use client";
 
-import { FolderPlus } from "lucide-react";
+import { FolderPlus, Loader2 } from "lucide-react";
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -24,16 +26,18 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import type { ApiRequest } from "@/types";
+import type { ApiRequest, ApiResponse } from "@/types";
 
 interface SaveToCollectionDialogProps {
   request: ApiRequest;
+  response?: ApiResponse | null;
   defaultName: string;
   trigger?: ReactElement;
 }
 
 export function SaveToCollectionDialog({
   request,
+  response = null,
   defaultName,
   trigger,
 }: SaveToCollectionDialogProps) {
@@ -45,6 +49,7 @@ export function SaveToCollectionDialog({
   const [requestName, setRequestName] = useState(defaultName);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
+  const [autoSave, setAutoSave] = useState(false);
 
   useEffect(() => {
     if (!selectedCollectionId && collections[0]?.id) {
@@ -55,6 +60,11 @@ export function SaveToCollectionDialog({
   useEffect(() => {
     setRequestName(defaultName);
   }, [defaultName]);
+
+  useEffect(() => {
+    if (!open) return;
+    setAutoSave(false);
+  }, [open]);
 
   const canUseCollections = status === "connected" && schemaReady;
   const canSave = canUseCollections && Boolean(selectedCollectionId) && Boolean(requestName.trim());
@@ -93,6 +103,8 @@ export function SaveToCollectionDialog({
       collectionId: selectedCollectionId,
       name: requestName.trim(),
       request,
+      response: response ?? undefined,
+      autoSave,
     });
     toast.success("Saved to collection");
     setOpen(false);
@@ -194,25 +206,72 @@ export function SaveToCollectionDialog({
                 onChange={(event) => setNewCollectionDescription(event.target.value)}
                 rows={3}
               />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleCreateCollection}
-                disabled={saveCollection.isPending || !newCollectionName.trim()}
-              >
-                Create collection
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-w-36 justify-center"
+                  onClick={handleCreateCollection}
+                  disabled={saveCollection.isPending || !newCollectionName.trim()}
+                >
+                  {saveCollection.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create collection"
+                  )}
+                </Button>
+              </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="space-y-3 rounded-xl border p-4">
+              <div className="rounded-lg bg-muted/35 px-3 py-2 text-xs text-muted-foreground">
+                {response
+                  ? "Latest response will be saved automatically with this request."
+                  : "No response yet. The request will be saved now, and future saves will include a response automatically when one exists."}
+              </div>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={autoSave}
+                  onChange={(event) => setAutoSave(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                />
+                <span>
+                  <span className="block text-sm font-medium">Enable auto-save</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Debounced sync for future edits after you open this request from the collection.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" className="min-w-28 justify-center">
+                    Cancel
+                  </Button>
+                }
+              />
               <Button
                 type="button"
+                className="min-w-32 justify-center"
                 onClick={handleSave}
                 disabled={!canSave || saveRequest.isPending}
               >
-                Save request
+                {saveRequest.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save request"
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         )}
       </DialogContent>

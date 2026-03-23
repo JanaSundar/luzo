@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { useCollectionMutations } from "@/lib/collections/useCollections";
-import { ACTION_BUTTON_CLASSES, cn } from "@/lib/utils";
+import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
 import { METHOD_BG_COLORS } from "@/lib/utils/http";
 import {
   isStrippedRequestNameEqualToUrl,
@@ -18,7 +18,7 @@ import type { Collection } from "@/types";
 interface CollectionsRequestsSectionProps {
   activeCollection: Collection | null;
   requests: Collection["requests"];
-  onOpenRequest: (request: Collection["requests"][number]["request"]) => void;
+  onOpenRequest: (request: Collection["requests"][number]) => void;
 }
 
 export function CollectionsRequestsSection({
@@ -81,7 +81,7 @@ export function CollectionsRequestsSection({
                       size="sm"
                       variant="outline"
                       className="gap-2"
-                      onClick={() => onOpenRequest(savedRequest.request)}
+                      onClick={() => onOpenRequest(savedRequest)}
                     >
                       <Play className="h-3.5 w-3.5" />
                       Open
@@ -90,7 +90,7 @@ export function CollectionsRequestsSection({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className={ACTION_BUTTON_CLASSES}
+                      className={cn("h-8 gap-2", DESTRUCTIVE_BUTTON_CLASSES)}
                       disabled={deleteRequest.isPending}
                       onClick={() => {
                         setPendingDelete({ id: savedRequest.id, name: savedRequest.name });
@@ -102,7 +102,7 @@ export function CollectionsRequestsSection({
                       ) : (
                         <Trash2 className="h-3.5 w-3.5" />
                       )}
-                      {deleteRequest.isPending ? "..." : "Delete"}
+                      {deleteRequest.isPending ? "Deleting..." : "Delete"}
                     </Button>
                   </div>
                 </div>

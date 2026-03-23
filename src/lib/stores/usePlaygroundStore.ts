@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import type { ApiRequest, HttpMethod, ResponseLayout } from "@/types";
+import type { ApiRequest, HttpMethod, ResponseLayout, SavedRequest } from "@/types";
 
 export const PLAYGROUND_STORAGE_KEY = "luzo-playground-store";
 
@@ -36,6 +36,13 @@ const DEFAULT_REQUEST: ApiRequest = {
 };
 
 interface PlaygroundState {
+  linkedSavedRequest: {
+    autoSave: boolean;
+    collectionId: string;
+    id: string;
+    name: string;
+    persistResponse: boolean;
+  } | null;
   request: ApiRequest;
   originalRequest: ApiRequest | null; // Track last loaded/saved request for dirty detection
   responseLayout: ResponseLayout;
@@ -43,7 +50,9 @@ interface PlaygroundState {
   setMethod: (method: HttpMethod) => void;
   setUrl: (url: string) => void;
   setRequest: (request: Partial<ApiRequest>) => void;
-  setLoadedRequest: (request: ApiRequest) => void; // Call when loading from collection
+  setLoadedRequest: (request: SavedRequest | ApiRequest) => void; // Call when loading from collection
+  setLinkedSavedRequest: (linkedSavedRequest: PlaygroundState["linkedSavedRequest"] | null) => void;
+  markRequestPersisted: (request: ApiRequest) => void;
   resetRequest: () => void;
   setResponseLayout: (layout: ResponseLayout) => void;
 }
@@ -51,6 +60,7 @@ interface PlaygroundState {
 export const usePlaygroundStore = create<PlaygroundState>()(
   persist(
     immer<PlaygroundState>((set) => ({
+      linkedSavedRequest: null,
       request: DEFAULT_REQUEST,
       originalRequest: null,
       responseLayout: "horizontal",
@@ -72,7 +82,32 @@ export const usePlaygroundStore = create<PlaygroundState>()(
 
       setLoadedRequest: (request) =>
         set((state) => {
+          if ("request" in request) {
+            state.request = request.request;
+            state.originalRequest = request.request;
+            state.linkedSavedRequest = request.collectionId
+              ? {
+                  id: request.id,
+                  collectionId: request.collectionId,
+                  name: request.name,
+                  persistResponse: request.persistResponse ?? false,
+                  autoSave: request.autoSave ?? false,
+                }
+              : null;
+            return;
+          }
           state.request = request;
+          state.originalRequest = request;
+          state.linkedSavedRequest = null;
+        }),
+
+      setLinkedSavedRequest: (linkedSavedRequest) =>
+        set((state) => {
+          state.linkedSavedRequest = linkedSavedRequest;
+        }),
+
+      markRequestPersisted: (request) =>
+        set((state) => {
           state.originalRequest = request;
         }),
 
@@ -80,6 +115,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         set((state) => {
           state.request = DEFAULT_REQUEST;
           state.originalRequest = null;
+          state.linkedSavedRequest = null;
         }),
 
       setResponseLayout: (responseLayout) =>
@@ -108,6 +144,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         return {
           request: sanitizedReq,
           originalRequest: s.originalRequest,
+          linkedSavedRequest: s.linkedSavedRequest,
         };
       },
     },

@@ -176,6 +176,7 @@ export interface StepAlias {
   stepId: string;
   alias: string;
   index: number;
+  refs: string[];
 }
 
 export interface DebugSessionOptions {

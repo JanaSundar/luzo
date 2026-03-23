@@ -3,6 +3,7 @@
 import { AnimatePresence, Reorder, motion, useDragControls } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
+import { ImportCurlDialog } from "@/components/playground/request/ImportCurlDialog";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
@@ -19,6 +20,10 @@ import { StepCardMenu } from "./StepCardMenu";
 export { PipelineBadge as Badge } from "./PipelineBadge";
 
 interface StepCardProps {
+  executionHint?: {
+    detail: string;
+    mode: "parallel" | "review" | "sequential";
+  };
   step: PipelineStep;
   index: number;
   isExpanded: boolean;
@@ -31,6 +36,7 @@ interface StepCardProps {
 }
 
 export function StepCard({
+  executionHint,
   step,
   index,
   isExpanded,
@@ -122,6 +128,7 @@ export function StepCard({
       >
         <motion.div layout="position">
           <StepCardHeader
+            executionHint={executionHint}
             index={index}
             name={step.name || `Request ${index + 1}`}
             isExpanded={isExpanded}
@@ -153,6 +160,7 @@ export function StepCard({
             />
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <ImportCurlDialog onImport={(request) => onUpdate(request)} />
             <SaveToCollectionDialog
               request={step}
               defaultName={step.name || `${step.method} ${step.url || `Request ${index + 1}`}`}

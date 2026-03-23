@@ -1,36 +1,28 @@
 "use client";
 
-import {
-  ArrowRight,
-  Clock3,
-  Edit3,
-  Folder,
-  FolderOpen,
-  Loader2,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { ArrowRight, Edit3, FolderOpen, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
 import { CollectionsDisabledState } from "@/components/collections/CollectionsDisabledState";
-import { CollectionsHistorySection } from "@/components/collections/CollectionsHistorySection";
+import { CollectionsHistoryPane } from "@/components/collections/CollectionsHistoryPane";
 import { CollectionsOverview } from "@/components/collections/CollectionsOverview";
 import { CollectionsRequestsSection } from "@/components/collections/CollectionsRequestsSection";
+import { CollectionsSidebarPane } from "@/components/collections/CollectionsSidebarPane";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
 import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
 import { sortSavedRequestsByRecencyDesc } from "@/lib/history/sortSavedRequests";
+import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
+import { useExecutionStore } from "@/lib/stores/useExecutionStore";
 import { useHistoryStore } from "@/lib/stores/useHistoryStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { ACTION_BUTTON_CLASSES, cn } from "@/lib/utils";
+import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
 import type { Collection } from "@/types";
 
 export function CollectionsWorkspace() {
@@ -40,7 +32,8 @@ export function CollectionsWorkspace() {
   const { dbStatus: status, dbSchemaReady: schemaReady } = useSettingsStore();
   const { data: collections = [], isLoading } = useCollectionsQuery();
   const { saveCollection, deleteCollection } = useCollectionMutations();
-  const setRequest = usePlaygroundStore((state) => state.setRequest);
+  const setLoadedRequest = usePlaygroundStore((state) => state.setLoadedRequest);
+  const setPlaygroundResponse = useExecutionStore((state) => state.setPlaygroundResponse);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -112,8 +105,15 @@ export function CollectionsWorkspace() {
     ? collections.find((c) => c.id === pendingDeleteId)?.name
     : undefined;
 
-  const openInPlayground = (request: Collection["requests"][number]["request"]) => {
-    setRequest(request);
+  const openInPlayground = (savedRequest: Collection["requests"][number]) => {
+    setLoadedRequest(savedRequest);
+    setPlaygroundResponse(savedRequest.response ?? null);
+    router.push("/");
+  };
+
+  const openHistoryInPlayground = (request: Collection["requests"][number]["request"]) => {
+    setLoadedRequest(request);
+    setPlaygroundResponse(null);
     router.push("/");
   };
 
@@ -143,68 +143,15 @@ export function CollectionsWorkspace() {
       </div>
 
       <div className="grid flex-1 min-h-0 gap-3 overflow-hidden lg:grid-cols-[260px_2fr_1fr]">
-        <WorkspacePane border>
-          <WorkspaceHeader title="Collections" icon={Folder}>
-            <CollectionEditorDialog
-              onSave={handleSaveCollection}
-              trigger={
-                <Button type="button" size="icon" variant="outline" className="h-8 w-8">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              }
-            />
-          </WorkspaceHeader>
-
-          <div className="space-y-3 border-b border-border/60 p-4 shrink-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search collections..."
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <ScrollArea className="flex-1 min-h-0 no-scrollbar">
-            <div className="divide-y divide-border/20 px-2">
-              {isLoading ? (
-                <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading...
-                </div>
-              ) : filteredCollections.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-muted-foreground">No collections yet.</p>
-              ) : (
-                filteredCollections.map((collection) => (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    onClick={() => setSelectedCollectionId(collection.id)}
-                    className={cn(
-                      "w-full py-3 text-left transition-all px-3 relative",
-                      collection.id === selectedCollectionId
-                        ? "text-primary"
-                        : "text-muted-foreground/70 hover:text-foreground",
-                    )}
-                  >
-                    {collection.id === selectedCollectionId && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 rounded-r-full bg-primary" />
-                    )}
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-bold truncate uppercase tracking-widest text-[11px]">
-                        {collection.name}
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
-                        {collection.requests.length}
-                      </span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </WorkspacePane>
+        <CollectionsSidebarPane
+          collections={filteredCollections}
+          isLoading={isLoading}
+          onCreateCollection={handleSaveCollection}
+          search={search}
+          selectedCollectionId={selectedCollectionId}
+          setSearch={setSearch}
+          setSelectedCollectionId={setSelectedCollectionId}
+        />
 
         <WorkspacePane border>
           <WorkspaceHeader
@@ -216,6 +163,15 @@ export function CollectionsWorkspace() {
           >
             {activeCollection && (
               <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2"
+                  onClick={() => router.push(collectionToPipelineHref(activeCollection.id))}
+                >
+                  Convert
+                </Button>
                 <CollectionEditorDialog
                   collection={activeCollection}
                   onSave={handleSaveCollection}
@@ -230,7 +186,7 @@ export function CollectionsWorkspace() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className={ACTION_BUTTON_CLASSES}
+                  className={cn("h-8 gap-2", DESTRUCTIVE_BUTTON_CLASSES)}
                   disabled={deleteCollection.isPending}
                   onClick={handleDeleteClick}
                 >
@@ -239,7 +195,7 @@ export function CollectionsWorkspace() {
                   ) : (
                     <Trash2 className="h-3.5 w-3.5" />
                   )}
-                  {deleteCollection.isPending ? "..." : "Delete"}
+                  {deleteCollection.isPending ? "Deleting..." : "Delete"}
                 </Button>
               </div>
             )}
@@ -256,29 +212,12 @@ export function CollectionsWorkspace() {
           </ScrollArea>
         </WorkspacePane>
 
-        <WorkspacePane border>
-          <WorkspaceHeader title="History" icon={Clock3} status={`${history.length} items`}>
-            {history.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={ACTION_BUTTON_CLASSES}
-                onClick={clearHistory}
-              >
-                Clear
-              </Button>
-            )}
-          </WorkspaceHeader>
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-4">
-              <CollectionsHistorySection
-                history={historySortedByDate}
-                onOpenRequest={openInPlayground}
-              />
-            </div>
-          </ScrollArea>
-        </WorkspacePane>
+        <CollectionsHistoryPane
+          history={historySortedByDate}
+          historyCount={history.length}
+          onClearHistory={clearHistory}
+          onOpenRequest={openHistoryInPlayground}
+        />
       </div>
 
       <ConfirmDeleteDialog

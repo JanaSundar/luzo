@@ -174,7 +174,7 @@ function rebuildRuntimeVariables(
   upToIndex: number,
 ): Record<string, unknown> {
   const aliases = buildStepAliases(pipeline.steps);
-  const aliasMap = new Map(aliases.map((a) => [a.stepId, a.alias]));
+  const aliasMap = new Map(aliases.map((a) => [a.stepId, a]));
   const runtimeVariables: Record<string, unknown> = {};
 
   for (let i = 0; i < upToIndex; i++) {
@@ -184,7 +184,7 @@ function rebuildRuntimeVariables(
     const alias = aliasMap.get(snap.stepId);
     if (!alias) continue;
 
-    runtimeVariables[alias] = {
+    const value = {
       response: {
         status: snap.reducedResponse?.status ?? 0,
         statusText: snap.reducedResponse?.statusText ?? "",
@@ -194,6 +194,9 @@ function rebuildRuntimeVariables(
         size: snap.reducedResponse?.sizeBytes ?? 0,
       },
     };
+    alias.refs.forEach((ref) => {
+      runtimeVariables[ref] = value;
+    });
   }
 
   return runtimeVariables;

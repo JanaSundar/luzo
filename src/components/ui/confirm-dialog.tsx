@@ -1,5 +1,7 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ACTION_BUTTON_CLASSES_NO_HOVER, cn } from "@/lib/utils";
+import { DESTRUCTIVE_BUTTON_CLASSES, cn } from "@/lib/utils";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -21,7 +23,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   /** When true, primary button uses destructive styling (e.g. delete). */
   destructive?: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 export function ConfirmDialog({
@@ -34,6 +36,17 @@ export function ConfirmDialog({
   destructive,
   onConfirm,
 }: ConfirmDialogProps) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setIsConfirming(true);
+      await onConfirm();
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -44,7 +57,12 @@ export function ConfirmDialog({
         <DialogFooter>
           <DialogClose
             render={
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isConfirming}
+                className="h-8 min-w-28 justify-center"
+              >
                 {cancelLabel}
               </Button>
             }
@@ -52,10 +70,21 @@ export function ConfirmDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={onConfirm}
-            className={cn(destructive && ACTION_BUTTON_CLASSES_NO_HOVER)}
+            onClick={() => void handleConfirm()}
+            disabled={isConfirming}
+            className={cn(
+              "h-8 min-w-28 justify-center",
+              destructive && ["gap-2", DESTRUCTIVE_BUTTON_CLASSES],
+            )}
           >
-            {confirmLabel}
+            {isConfirming ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Working...
+              </>
+            ) : (
+              confirmLabel
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

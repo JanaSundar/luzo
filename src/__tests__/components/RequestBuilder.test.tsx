@@ -111,4 +111,26 @@ describe("RequestBuilder", () => {
       await screen.findByPlaceholderText(/^header$/i, {}, { timeout: 10000 }),
     ).toBeInTheDocument();
   });
+
+  it("imports a curl command into the playground request", async () => {
+    const user = userEvent.setup();
+    render(<RequestBuilder />);
+
+    await user.click(screen.getByRole("button", { name: /^import$/i }));
+
+    fireEvent.change(screen.getByPlaceholderText(/curl 'https:\/\/api\.example\.com\/users'/i), {
+      target: {
+        value:
+          "curl 'https://api.example.com/users?team=platform' -X POST -H 'Content-Type: application/json' --data '{\"name\":\"Ada\"}'",
+      },
+    });
+    await user.click(screen.getByRole("button", { name: /import request/i }));
+
+    const state = usePlaygroundStore.getState().request;
+    expect(state.method).toBe("POST");
+    expect(state.url).toBe("https://api.example.com/users");
+    expect(state.params).toEqual([{ key: "team", value: "platform", enabled: true }]);
+    expect(state.bodyType).toBe("json");
+    expect(state.body).toContain('"name": "Ada"');
+  });
 });

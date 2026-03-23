@@ -1,22 +1,24 @@
 "use client";
 
 import { Folder, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { httpMethodBadgeClass } from "@/components/playground/sidebar/httpMethodStyles";
 import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEllipsisText";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { SidebarMenuItem } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
 import {
   isStrippedRequestNameEqualToUrl,
   stripMethodPrefixFromRequestName,
 } from "@/lib/utils/requestDisplayName";
-import type { ApiRequest, Collection } from "@/types";
+import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
 type CollapsedCollectionItemProps = {
   collection: Collection;
   hasActiveRequest: boolean;
-  onLoadRequest: (request: ApiRequest, name: string) => void;
+  onLoadRequest: (request: SavedRequest, name: string) => void;
   isRequestActive: (request: ApiRequest) => boolean;
   onDeleteRequest?: (requestId: string) => void | Promise<void>;
 };
@@ -28,6 +30,8 @@ export function CollapsedCollectionItem({
   isRequestActive,
   onDeleteRequest,
 }: CollapsedCollectionItemProps) {
+  const router = useRouter();
+
   return (
     <SidebarMenuItem>
       <HoverCard>
@@ -65,6 +69,13 @@ export function CollapsedCollectionItem({
                   {collection.requests.length} request{collection.requests.length === 1 ? "" : "s"}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => router.push(collectionToPipelineHref(collection.id))}
+                className="rounded-md border border-border/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                Pipeline
+              </button>
             </div>
           </div>
           <div className="max-h-[280px] overflow-y-auto p-2">
@@ -125,7 +136,7 @@ export function CollapsedCollectionItem({
                         render={
                           <button
                             type="button"
-                            onClick={() => onLoadRequest(req.request, req.name)}
+                            onClick={() => onLoadRequest(req, req.name)}
                             className="flex min-w-0 flex-1 flex-col gap-1 rounded-md px-1 py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {rowInner}
@@ -152,9 +163,8 @@ export function CollapsedCollectionItem({
                           void onDeleteRequest(req.id);
                         }}
                         className={cn(
-                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
-                          "hover:bg-destructive/10 hover:text-destructive",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+                          DESTRUCTIVE_ICON_BUTTON_CLASSES,
                         )}
                       >
                         <Trash2 className="h-3 w-3" />

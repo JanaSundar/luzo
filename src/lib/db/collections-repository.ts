@@ -4,7 +4,7 @@ import {
   toCollectionRequest,
   toSavedRequest,
 } from "@/lib/collections/request-mapper";
-import type { ApiRequest, Collection } from "@/types";
+import type { ApiRequest, ApiResponse, Collection } from "@/types";
 import type { DbClient } from "./runtime";
 import { collections, requests } from "./schema";
 
@@ -15,10 +15,12 @@ interface UpsertCollectionInput {
 }
 
 interface UpsertRequestInput {
+  autoSave?: boolean;
   id: string;
   collectionId: string;
   name: string;
   request: ApiRequest;
+  response?: ApiResponse | null;
 }
 
 export async function listCollections(client: DbClient): Promise<Collection[]> {
@@ -77,13 +79,19 @@ export async function deleteCollection(client: DbClient, collectionId: string) {
 
 export async function upsertRequest(client: DbClient, input: UpsertRequestInput) {
   const now = new Date();
+  const existingRow = await client.db.select().from(requests).where(eq(requests.id, input.id));
+  const nextData = toCollectionRequest(input.request, {
+    response: input.response,
+    autoSave: input.autoSave,
+    existing: existingRow[0]?.data,
+  });
   await client.db
     .insert(requests)
     .values({
       id: input.id,
       collectionId: input.collectionId,
       name: input.name,
-      data: toCollectionRequest(input.request),
+      data: nextData,
       updatedAt: now,
     })
     .onConflictDoUpdate({
@@ -91,10 +99,27 @@ export async function upsertRequest(client: DbClient, input: UpsertRequestInput)
       set: {
         collectionId: input.collectionId,
         name: input.name,
-        data: toCollectionRequest(input.request),
+        data: nextData,
         updatedAt: now,
       },
     });
+}
+
+export async function insertRequestsBulk(client: DbClient, inputs: UpsertRequestInput[]) {
+  if (inputs.length === 0) return;
+  const now = new Date();
+  await client.db.insert(requests).values(
+    inputs.map((input) => ({
+      id: input.id,
+      collectionId: input.collectionId,
+      name: input.name,
+      data: toCollectionRequest(input.request, {
+        response: input.response,
+        autoSave: input.autoSave,
+      }),
+      updatedAt: now,
+    })),
+  );
 }
 
 export async function deleteRequest(client: DbClient, requestId: string) {

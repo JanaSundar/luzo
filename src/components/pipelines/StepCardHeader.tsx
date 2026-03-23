@@ -3,10 +3,15 @@
 import { Check, ChevronDown, GripVertical, Pencil } from "lucide-react";
 import { type DragControls, motion } from "motion/react";
 import type { RefObject } from "react";
+import { PipelineBadge } from "@/components/pipelines/PipelineBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface StepCardHeaderProps {
+  executionHint?: {
+    detail: string;
+    mode: "parallel" | "review" | "sequential";
+  };
   index: number;
   name: string;
   isExpanded: boolean;
@@ -23,6 +28,7 @@ interface StepCardHeaderProps {
 }
 
 export function StepCardHeader({
+  executionHint,
   index,
   name,
   isExpanded,
@@ -83,17 +89,38 @@ export function StepCardHeader({
               </Button>
             </div>
           ) : (
-            <div className="flex min-w-0 items-center gap-2 group/title">
-              <span className="min-w-0 truncate text-sm font-bold leading-snug text-foreground">
-                {name || `Request ${index + 1}`}
-              </span>
-              <button
-                type="button"
-                className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover/title:opacity-100"
-                onClick={onRenameStart}
-              >
-                <Pencil className="h-3 w-3 text-muted-foreground" />
-              </button>
+            <div className="space-y-1">
+              <div className="flex min-w-0 items-center gap-2 group/title">
+                <span className="min-w-0 truncate text-sm font-bold leading-snug text-foreground">
+                  {name || `Request ${index + 1}`}
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover/title:opacity-100"
+                  onClick={onRenameStart}
+                >
+                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                </button>
+              </div>
+              {executionHint ? (
+                <div className="flex min-w-0 items-center gap-2">
+                  <PipelineBadge
+                    className={cn(
+                      executionHint.mode === "parallel" &&
+                        "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+                      executionHint.mode === "sequential" &&
+                        "bg-blue-500/12 text-blue-700 dark:text-blue-300",
+                      executionHint.mode === "review" &&
+                        "bg-amber-500/12 text-amber-700 dark:text-amber-300",
+                    )}
+                  >
+                    {executionHint.mode}
+                  </PipelineBadge>
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
+                    {executionHint.detail}
+                  </span>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

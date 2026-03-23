@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
 import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
@@ -16,8 +17,10 @@ interface PipelineLayoutProps {
   onRun?: () => void;
   onDebug?: () => void;
   onStop?: () => void;
+  onSaveToDb?: () => void;
   onGenerateReport?: (force?: boolean) => void;
   onExportReport?: (format: ExportFormat) => void;
+  isSavingToDb?: boolean;
 }
 
 export function PipelineLayout({
@@ -25,8 +28,10 @@ export function PipelineLayout({
   onRun,
   onDebug,
   onStop,
+  onSaveToDb,
   onGenerateReport,
   onExportReport,
+  isSavingToDb = false,
 }: PipelineLayoutProps) {
   const {
     pipelines,
@@ -42,6 +47,7 @@ export function PipelineLayout({
   } = usePipelineStore();
 
   const [skipDeleteConfirmation, setSkipDeleteConfirmation] = useState(false);
+  const { dbStatus, dbSchemaReady } = useSettingsStore();
 
   const { isGeneratingReport, isExportingPDF, reportsByPipelineId, aiProvider } =
     usePipelineDebugStore();
@@ -60,6 +66,7 @@ export function PipelineLayout({
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const activePipeline = pipelines.find((p) => p.id === activePipelineId);
+  const canPersistToDb = dbStatus === "connected" && dbSchemaReady;
   const hasGeneratedReport = activePipelineId
     ? Boolean(reportsByPipelineId[activePipelineId])
     : false;
@@ -180,10 +187,13 @@ export function PipelineLayout({
           onRun={onRun || (() => {})}
           onDebug={onDebug || (() => {})}
           onStop={onStop || (() => {})}
+          onSaveToDb={onSaveToDb}
           onGenerateReport={onGenerateReport}
           onExportReport={onExportReport}
+          canPersistToDb={canPersistToDb}
           isGeneratingReport={isGeneratingReport}
           isExportingPDF={isExportingPDF}
+          isSavingToDb={isSavingToDb}
           hasGeneratedReport={hasGeneratedReport}
           hasAIProvider={Boolean(aiProvider.apiKey)}
         />
@@ -191,7 +201,7 @@ export function PipelineLayout({
         <main className="flex-1 overflow-auto bg-muted/5 p-3 sm:p-6 custom-scrollbar">
           {activePipelineId ? (
             <motion.div
-              key={currentView}
+              key={`${activePipelineId}:${currentView}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}

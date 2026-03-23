@@ -43,7 +43,8 @@ export function StepCardMenu({
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={onDelete}
-          className="gap-2 text-xs font-medium text-destructive focus:text-destructive"
+          variant="destructive"
+          className="gap-2 text-xs font-medium"
         >
           <Trash2 className="h-3.5 w-3.5" /> Delete
         </DropdownMenuItem>

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { isSensitiveVariableKey } from "@/lib/utils/variableMetadata";
-import type { Environment, KeyValuePair } from "@/types";
+import type { Environment, EnvironmentSource, EnvironmentVariable, KeyValuePair } from "@/types";
 
 export const ENVIRONMENT_STORAGE_KEY = "luzo-environment-store";
 
@@ -17,8 +17,15 @@ interface EnvironmentState {
   environments: Environment[];
   activeEnvironmentId: string | null;
 
-  addEnvironment: (name: string) => void;
+  addEnvironment: (name: string, options?: { source?: EnvironmentSource }) => void;
   setActiveEnvironment: (id: string | null) => void;
+  importEnvironments: (
+    environments: Array<{
+      name: string;
+      source: EnvironmentSource;
+      variables: EnvironmentVariable[];
+    }>,
+  ) => void;
   updateEnvironmentVariable: (envId: string, key: string, value: string) => void;
   deleteEnvironmentVariable: (envId: string, key: string) => void;
   deleteEnvironment: (id: string) => void;
@@ -32,16 +39,18 @@ export const useEnvironmentStore = create<EnvironmentState>()(
         {
           id: "default",
           name: "Default",
+          source: { kind: "manual", ref: "default" },
           variables: [] as KeyValuePair[],
         },
       ],
       activeEnvironmentId: "default",
 
-      addEnvironment: (name) =>
+      addEnvironment: (name, options) =>
         set((state) => {
           state.environments.push({
             id: crypto.randomUUID(),
             name,
+            source: options?.source ?? { kind: "manual" },
             variables: [],
           });
         }),
@@ -49,6 +58,38 @@ export const useEnvironmentStore = create<EnvironmentState>()(
       setActiveEnvironment: (id) =>
         set((state) => {
           state.activeEnvironmentId = id;
+        }),
+
+      importEnvironments: (environments) =>
+        set((state) => {
+          for (const incoming of environments) {
+            const existing = state.environments.find(
+              (environment) =>
+                environment.source?.kind === incoming.source.kind &&
+                environment.source?.ref &&
+                environment.source.ref === incoming.source.ref,
+            );
+            if (existing) {
+              existing.name = incoming.name;
+              existing.source = { ...existing.source, ...incoming.source };
+              existing.variables = incoming.variables.map((variable) => ({
+                ...variable,
+                secret: variable.secret ?? isSensitiveVariableKey(variable.key),
+              }));
+              state.activeEnvironmentId = existing.id;
+              continue;
+            }
+            const id = crypto.randomUUID();
+            state.environments.unshift({
+              id,
+              ...incoming,
+              variables: incoming.variables.map((variable) => ({
+                ...variable,
+                secret: variable.secret ?? isSensitiveVariableKey(variable.key),
+              })),
+            });
+            state.activeEnvironmentId = id;
+          }
         }),
 
       updateEnvironmentVariable: (envId, key, value) =>

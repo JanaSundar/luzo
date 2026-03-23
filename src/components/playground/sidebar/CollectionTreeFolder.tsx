@@ -2,7 +2,8 @@
 
 import { ChevronRight, Folder, MoreVertical, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
-import { Fragment, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Fragment } from "react";
 import { RequestListRow } from "@/components/playground/sidebar/RequestListRow";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -13,31 +14,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem } from "@/components/ui/sidebar";
+import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
 import { cn } from "@/lib/utils";
-import type { ApiRequest, Collection } from "@/types";
+import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
 type CollectionTreeFolderProps = {
   collection: Collection;
   hasActiveRequest: boolean;
+  isOpen: boolean;
   onDeleteCollection: (id: string, name: string) => void;
   onDeleteRequest?: (requestId: string) => void | Promise<void>;
-  onLoadRequest: (request: ApiRequest, name: string) => void;
+  onLoadRequest: (request: SavedRequest, name: string) => void;
+  onOpenChange: (open: boolean) => void;
   isRequestActive: (request: ApiRequest) => boolean;
 };
 
 export function CollectionTreeFolder({
   collection,
   hasActiveRequest,
+  isOpen,
   onDeleteCollection,
   onDeleteRequest,
   onLoadRequest,
+  onOpenChange,
   isRequestActive,
 }: CollectionTreeFolderProps) {
-  const [open, setOpen] = useState(true);
+  const router = useRouter();
   const regionId = `collection-folder-${collection.id}`;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="group/collapsible">
+    <Collapsible open={isOpen} onOpenChange={onOpenChange} className="group/collapsible">
       <SidebarMenuItem className="w-full min-w-0 max-w-full">
         <div className="flex items-center rounded-md pr-1 transition-colors">
           <CollapsibleTrigger
@@ -51,7 +57,7 @@ export function CollectionTreeFolder({
             <motion.span
               className="inline-flex shrink-0 text-muted-foreground"
               initial={false}
-              animate={{ rotate: open ? 90 : 0 }}
+              animate={{ rotate: isOpen ? 90 : 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             >
               <ChevronRight className="h-3.5 w-3.5" />
@@ -74,7 +80,14 @@ export function CollectionTreeFolder({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-fit p-1">
               <DropdownMenuItem
-                className="gap-2 text-[11px] text-black"
+                className="gap-2 text-[11px]"
+                onClick={() => router.push(collectionToPipelineHref(collection.id))}
+              >
+                Create pipeline
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                className="gap-2 text-[11px]"
                 onClick={() => onDeleteCollection(collection.id, collection.name)}
               >
                 <Trash2 className="h-3 w-3" /> Delete
@@ -86,17 +99,17 @@ export function CollectionTreeFolder({
         <div
           className={cn(
             "grid transition-[grid-template-rows] duration-200 ease-out",
-            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
         >
           <div className="min-h-0 overflow-hidden">
             <div
               id={regionId}
               role="region"
-              aria-hidden={!open}
+              aria-hidden={!isOpen}
               className={cn(
                 "transition-opacity duration-150 ease-out",
-                open ? "opacity-100" : "pointer-events-none opacity-0",
+                isOpen ? "opacity-100" : "pointer-events-none opacity-0",
               )}
             >
               <SidebarMenuSub className="mx-0 ml-2 mt-0.5 w-full min-w-0 max-w-full pl-2 pb-0.5">
@@ -109,7 +122,7 @@ export function CollectionTreeFolder({
                         name={req.name}
                         url={req.request.url}
                         isActive={isRequestActive(req.request)}
-                        onClick={() => onLoadRequest(req.request, req.name)}
+                        onClick={() => onLoadRequest(req, req.name)}
                         onDelete={
                           onDeleteRequest
                             ? () => {

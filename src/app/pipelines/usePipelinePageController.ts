@@ -3,8 +3,14 @@
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { ArtifactInput } from "@/lib/pipeline/partial-run";
+import {
+  buildExecutionResultFromArtifact,
+  buildRuntimeVariablesFromArtifact,
+  buildSnapshotsFromArtifact,
+} from "@/lib/pipeline/execution-artifacts";
 import { planPartialPipelineRun } from "@/lib/pipeline/partial-run";
 import type { CheckpointArtifact } from "@/lib/pipeline/pipeline-persistence";
+import type { PersistedExecutionArtifact } from "@/types/pipeline-debug";
 import {
   buildCheckpointArtifact,
   restoreFromCheckpoint,
@@ -41,6 +47,7 @@ export function usePipelinePageController() {
   const setReportConfig = usePipelineDebugStore((state) => state.setReportConfig);
   const setAIProvider = usePipelineDebugStore((state) => state.setAIProvider);
   const clearReport = usePipelineDebugStore((state) => state.clearReport);
+  const clearExecutionContext = usePipelineDebugStore((state) => state.clearExecutionContext);
   const setSelectedSignals = usePipelineDebugStore((state) => state.setSelectedSignals);
   const getActiveEnvironmentVariables = useEnvironmentStore(
     (state) => state.getActiveEnvironmentVariables,
@@ -82,22 +89,67 @@ export function usePipelinePageController() {
   }, [activePipeline, setReportConfig]);
 
   useEffect(() => {
-    if (!activePipelineId) return;
+    resetExecution();
+    setExecutionResult(null);
+    clearExecutionContext();
+    lastAppliedIdRef.current = null;
+
+    if (!activePipelineId || !activePipeline) {
+      setHasPersistedExecution(false);
+      return;
+    }
+
     const artifact = usePipelineArtifactsStore.getState().getExecutionArtifact(activePipelineId) as
       | (CheckpointArtifact | null)
       | undefined;
 
-    if (artifact && "isDirty" in artifact && artifact.isDirty) {
+    if (artifact && "isDirty" in artifact) {
       if (lastAppliedIdRef.current === artifact.executionId) return;
       lastAppliedIdRef.current = artifact.executionId;
-
       const restored = restoreFromCheckpoint(artifact);
       applyControllerSnapshot(restored);
       setHasPersistedExecution(true);
-    } else if (artifact) {
-      setHasPersistedExecution(true);
+      refreshSignals(activePipeline.steps);
+      return;
     }
-  }, [activePipelineId, applyControllerSnapshot, setHasPersistedExecution]);
+
+    if (!artifact) {
+      setHasPersistedExecution(false);
+      return;
+    }
+
+    const persistedArtifact = artifact as PersistedExecutionArtifact;
+    const snapshots = buildSnapshotsFromArtifact(persistedArtifact);
+    const runtime = buildRuntimeVariablesFromArtifact(persistedArtifact);
+    const result = buildExecutionResultFromArtifact(persistedArtifact);
+    usePipelineExecutionStore.setState({
+      executionId: null,
+      status: result?.status === "failed" ? "error" : "completed",
+      currentStepIndex: snapshots.length > 0 ? snapshots.length - 1 : -1,
+      totalSteps: snapshots.length,
+      snapshots,
+      runtimeVariables: runtime,
+      variableOverrides: {},
+      errorMessage: result?.error ?? null,
+      startedAt: new Date(persistedArtifact.generatedAt).getTime(),
+      completedAt: persistedArtifact.runtime.completedAt
+        ? new Date(persistedArtifact.runtime.completedAt).getTime()
+        : null,
+      hasPersistedExecution: true,
+    });
+    setExecutionResult(result);
+    refreshSignals(activePipeline.steps);
+    setHasPersistedExecution(true);
+  }, [
+    activePipeline,
+    activePipelineId,
+    applyControllerSnapshot,
+    clearExecutionContext,
+    refreshSignals,
+    resetExecution,
+    setExecutionResult,
+    setHasPersistedExecution,
+  ]);
 
   // Stabilize derived state for checkpoint creation
   const snapshotsLength = snapshots.length;

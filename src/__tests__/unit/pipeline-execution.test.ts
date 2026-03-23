@@ -187,6 +187,128 @@ describe("Pipeline Execution Architecture", () => {
     }
   });
 
+  it("resolves runtime variables inside bearer auth for downstream steps", async () => {
+    vi.mocked(executeRequest).mockReset();
+
+    const pipelineWithBearerChain: Pipeline = {
+      ...mockPipeline,
+      steps: [
+        {
+          ...mockPipeline.steps[0],
+          id: "step-1",
+          name: "Login",
+          method: "POST",
+          url: "https://api.example.com/login",
+        },
+        {
+          ...mockPipeline.steps[0],
+          id: "step-2",
+          name: "Profile",
+          method: "GET",
+          url: "https://api.example.com/me",
+          auth: {
+            type: "bearer",
+            bearer: {
+              token: "{{req1.response.body.access_token}}",
+            },
+          },
+        },
+      ],
+    };
+
+    vi.mocked(executeRequest)
+      .mockResolvedValueOnce({
+        ...mockResponse,
+        body: '{"access_token":"token-123"}',
+      })
+      .mockImplementationOnce(async (request) => {
+        expect(request.auth).toEqual({
+          type: "bearer",
+          bearer: { token: "token-123" },
+        });
+        return mockResponse;
+      });
+
+    const abortControls = new Map();
+    const masterAbort = new AbortController();
+    const generator = createPipelineGenerator(
+      pipelineWithBearerChain,
+      {},
+      {
+        abortControls,
+        masterAbort,
+        useStream: false,
+      },
+    );
+
+    let result = await generator.next();
+    while (!result.done) {
+      result = await generator.next();
+    }
+
+    expect(executeRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it("resolves manually typed step-name aliases for downstream auth", async () => {
+    vi.mocked(executeRequest).mockReset();
+
+    const pipelineWithNamedAlias: Pipeline = {
+      ...mockPipeline,
+      steps: [
+        {
+          ...mockPipeline.steps[0],
+          id: "step-login",
+          name: "Login",
+          method: "POST",
+          url: "https://api.example.com/login",
+        },
+        {
+          ...mockPipeline.steps[0],
+          id: "step-profile",
+          name: "Profile",
+          method: "GET",
+          url: "https://api.example.com/me",
+          auth: {
+            type: "bearer",
+            bearer: {
+              token: "{{login.response.body.access_token}}",
+            },
+          },
+        },
+      ],
+    };
+
+    vi.mocked(executeRequest)
+      .mockResolvedValueOnce({
+        ...mockResponse,
+        body: '{"access_token":"token-by-name"}',
+      })
+      .mockImplementationOnce(async (request) => {
+        expect(request.auth).toEqual({
+          type: "bearer",
+          bearer: { token: "token-by-name" },
+        });
+        return mockResponse;
+      });
+
+    const generator = createPipelineGenerator(
+      pipelineWithNamedAlias,
+      {},
+      {
+        abortControls: new Map(),
+        masterAbort: new AbortController(),
+        useStream: false,
+      },
+    );
+
+    let result = await generator.next();
+    while (!result.done) {
+      result = await generator.next();
+    }
+
+    expect(executeRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("DebugController critical 8-step retry protocol", async () => {
     const { createDebugController } = await import("@/lib/pipeline/debug-controller");
     const controller = createDebugController();

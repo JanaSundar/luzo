@@ -1,6 +1,6 @@
 "use client";
 
-import { Bug, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
+import { Bug, Database, Loader2, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
 import { cn } from "@/lib/utils";
@@ -18,10 +18,13 @@ interface PipelineHeaderProps {
   onRun: () => void;
   onDebug: () => void;
   onStop: () => void;
+  onSaveToDb?: () => void;
   onGenerateReport?: (force?: boolean) => void;
   onExportReport?: (format: ExportFormat) => void;
+  canPersistToDb?: boolean;
   isGeneratingReport?: boolean;
   isExportingPDF?: boolean;
+  isSavingToDb?: boolean;
   hasGeneratedReport?: boolean;
   hasAIProvider?: boolean;
 }
@@ -43,10 +46,13 @@ export function PipelineHeader({
   onRun,
   onDebug,
   onStop,
+  onSaveToDb,
   onGenerateReport,
   onExportReport,
+  canPersistToDb = false,
   isGeneratingReport,
   isExportingPDF = false,
+  isSavingToDb = false,
   hasGeneratedReport = false,
   hasAIProvider = false,
 }: PipelineHeaderProps) {
@@ -79,6 +85,24 @@ export function PipelineHeader({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {canPersistToDb && onSaveToDb ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 font-bold"
+            onClick={onSaveToDb}
+            disabled={!activePipelineId || isSavingToDb}
+          >
+            {isSavingToDb ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Database className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">Save to DB</span>
+          </Button>
+        ) : null}
+
         {showExecutionControls &&
           (isExecuting ? (
             <Button

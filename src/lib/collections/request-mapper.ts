@@ -1,7 +1,14 @@
-import type { ApiRequest, Collection, PipelineStep, SavedRequest } from "@/types";
+import type { ApiRequest, ApiResponse, Collection, PipelineStep, SavedRequest } from "@/types";
 
-type StoredRequestPayload = Omit<ApiRequest, "formDataFields"> & {
+type PersistedRequest = Omit<ApiRequest, "formDataFields"> & {
   formDataFields?: Array<Omit<NonNullable<ApiRequest["formDataFields"]>[number], "file">>;
+};
+
+type StoredRequestPayload = {
+  autoSave?: boolean;
+  persistResponse?: boolean;
+  request: PersistedRequest;
+  response?: ApiResponse | null;
 };
 
 interface RequestRow {
@@ -21,10 +28,25 @@ interface CollectionRow {
   updatedAt: Date | string;
 }
 
-export function toCollectionRequest(source: ApiRequest | PipelineStep): StoredRequestPayload {
+export function toCollectionRequest(
+  source: ApiRequest | PipelineStep,
+  options?: {
+    autoSave?: boolean;
+    existing?: unknown;
+    response?: ApiResponse | null;
+  },
+): StoredRequestPayload {
+  const existing = normalizeStoredRequestPayload(options?.existing);
+  const nextResponse =
+    options?.response === undefined ? existing.response : (options.response ?? null);
   return {
-    ...source,
-    formDataFields: source.formDataFields?.map(({ file: _, ...field }) => field),
+    request: {
+      ...source,
+      formDataFields: source.formDataFields?.map(({ file: _, ...field }) => field),
+    },
+    response: nextResponse,
+    persistResponse: nextResponse !== null,
+    autoSave: options?.autoSave ?? false,
   };
 }
 
@@ -35,7 +57,7 @@ export function toSavedRequest(row: RequestRow): SavedRequest {
     collectionId: row.collectionId ?? undefined,
     createdAt: toIsoString(row.createdAt),
     updatedAt: toIsoString(row.updatedAt),
-    request: normalizeRequestPayload(row.data),
+    ...normalizeStoredRequestPayload(row.data),
   };
 }
 
@@ -47,6 +69,20 @@ export function toCollection(row: CollectionRow, requests: SavedRequest[]): Coll
     requests,
     createdAt: toIsoString(row.createdAt),
     updatedAt: toIsoString(row.updatedAt),
+  };
+}
+
+function normalizeStoredRequestPayload(
+  value: unknown,
+): Pick<SavedRequest, "request" | "response" | "persistResponse" | "autoSave"> {
+  const payload = (value ?? {}) as Partial<StoredRequestPayload & ApiRequest>;
+  const requestPayload =
+    payload.request && typeof payload.request === "object" ? payload.request : payload;
+  return {
+    request: normalizeRequestPayload(requestPayload),
+    response: isApiResponseLike(payload.response) ? payload.response : null,
+    persistResponse: payload.persistResponse ?? false,
+    autoSave: payload.autoSave ?? false,
   };
 }
 
@@ -68,6 +104,20 @@ function normalizeRequestPayload(value: unknown): ApiRequest {
     preRequestScript: payload.preRequestScript ?? "",
     testScript: payload.testScript ?? "",
   };
+}
+
+function isApiResponseLike(value: unknown): value is ApiResponse {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const response = value as Partial<ApiResponse>;
+  return (
+    typeof response.status === "number" &&
+    typeof response.statusText === "string" &&
+    typeof response.body === "string" &&
+    typeof response.time === "number" &&
+    typeof response.size === "number" &&
+    !!response.headers &&
+    typeof response.headers === "object"
+  );
 }
 
 function toIsoString(value: Date | string) {
