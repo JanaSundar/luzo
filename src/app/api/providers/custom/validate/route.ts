@@ -5,19 +5,28 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const body = await request.json();
     const apiKey = body?.apiKey;
     const baseUrl = body?.baseUrl;
 
+    logger.info(
+      { requestId, baseUrl, path: "/api/providers/custom/validate" },
+      "Validate custom provider request received",
+    );
+
     if (!apiKey || typeof apiKey !== "string" || apiKey.length < 5) {
+      logger.warn({ requestId }, "Missing or invalid API key for custom validation");
       return NextResponse.json({ valid: false, error: "API key is required" }, { status: 400 });
     }
 
     const url = typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : undefined;
     if (!url) {
+      logger.warn({ requestId }, "Missing Base URL for custom validation");
       return NextResponse.json({ valid: false, error: "Base URL is required" }, { status: 400 });
     }
 
@@ -35,6 +44,7 @@ export async function POST(request: Request) {
       maxOutputTokens: 1,
     });
 
+    logger.info({ requestId, baseUrl }, "Custom provider validation successful");
     return NextResponse.json({ valid: true });
   } catch (error) {
     const err = error as { status?: number; statusCode?: number; message?: string };
@@ -55,6 +65,8 @@ export async function POST(request: Request) {
     } else if (err?.message) {
       errorMessage = err.message;
     }
+
+    logger.error({ requestId, status, error: errorMessage }, "Custom provider validation failed");
 
     return NextResponse.json(
       { valid: false, error: errorMessage },

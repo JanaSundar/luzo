@@ -8,6 +8,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import type { AiProvider } from "@/types";
+import { logger } from "@/lib/utils/logger";
 
 const VALIDATION_MODELS: Record<AiProvider, string> = {
   openai: "gpt-4o-mini",
@@ -41,11 +42,18 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ provider: string }> },
 ) {
+  const { provider: providerParam } = await params;
+  const provider = providerParam as AiProvider;
+  const requestId = crypto.randomUUID();
+
   try {
-    const { provider: providerParam } = await params;
-    const provider = providerParam as AiProvider;
+    logger.info(
+      { requestId, provider, path: `/api/providers/${provider}/validate` },
+      "Validate provider request received",
+    );
 
     if (!["openai", "groq", "openrouter"].includes(provider)) {
+      logger.warn({ requestId, provider }, "Invalid provider for validation");
       return NextResponse.json({ valid: false, error: "Invalid provider" }, { status: 400 });
     }
 
@@ -53,6 +61,7 @@ export async function POST(
     const apiKey = body?.apiKey;
 
     if (!apiKey || typeof apiKey !== "string" || apiKey.length < 5) {
+      logger.warn({ requestId, provider }, "Missing or invalid API key for validation");
       return NextResponse.json({ valid: false, error: "API key is required" }, { status: 400 });
     }
 
@@ -64,6 +73,7 @@ export async function POST(
       maxOutputTokens: 1,
     });
 
+    logger.info({ requestId, provider }, "Provider validation successful");
     return NextResponse.json({ valid: true });
   } catch (error) {
     const err = error as { status?: number; statusCode?: number; message?: string };
@@ -84,6 +94,11 @@ export async function POST(
     } else if (err?.message) {
       errorMessage = err.message;
     }
+
+    logger.error(
+      { requestId, provider, status, error: errorMessage },
+      "Provider validation failed",
+    );
 
     return NextResponse.json(
       { valid: false, error: errorMessage },

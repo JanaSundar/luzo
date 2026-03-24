@@ -3,6 +3,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -24,17 +25,25 @@ function isChatModel(id: string): boolean {
 }
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const body = await request.json();
     const apiKey = body?.apiKey;
     const baseUrl = body?.baseUrl;
 
+    logger.info(
+      { requestId, baseUrl, path: "/api/providers/custom/models" },
+      "Fetch custom models request received",
+    );
+
     if (!apiKey || typeof apiKey !== "string" || apiKey.length < 5) {
+      logger.warn({ requestId }, "Missing or invalid API key for custom model fetch");
       return NextResponse.json({ error: "API key is required", models: [] }, { status: 400 });
     }
 
     const url = typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : undefined;
     if (!url) {
+      logger.warn({ requestId }, "Missing Base URL for custom model fetch");
       return NextResponse.json({ error: "Base URL is required", models: [] }, { status: 400 });
     }
 
@@ -56,6 +65,10 @@ export async function POST(request: Request) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      logger.warn(
+        { requestId, status: response.status },
+        "Custom provider API returned error for models",
+      );
       if (response.status === 401 || response.status === 403) {
         return NextResponse.json(
           { error: "Invalid API key. Please check and try again.", models: [] },
@@ -94,6 +107,7 @@ export async function POST(request: Request) {
 
     models.sort((a, b) => a.id.localeCompare(b.id));
 
+    logger.info({ requestId, modelCount: models.length }, "Custom models fetched successfully");
     return NextResponse.json({ models });
   } catch (error) {
     const err = error as Error;
@@ -102,6 +116,7 @@ export async function POST(request: Request) {
         ? "Request timed out. Please check your connection and try again."
         : (err?.message ?? "Failed to fetch models");
 
+    logger.error({ requestId, error: message }, "Fetch custom models request failed");
     return NextResponse.json({ error: message, models: [] }, { status: 500 });
   }
 }
