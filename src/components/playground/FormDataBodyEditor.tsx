@@ -3,6 +3,7 @@
 import { FileUp, Plus, Trash2 } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TemplateInput } from "@/components/ui/template-input";
@@ -128,7 +129,7 @@ function FileDropzone({
       const err = rejections[0]?.errors[0];
       if (err?.code === "file-too-large") {
         const mb = LIMITS.MAX_FILE_SIZE_BYTES / 1024 / 1024;
-        console.warn(`File exceeds maximum size of ${mb}MB`);
+        toast.error(`File exceeds maximum size of ${mb}MB`);
       }
     },
   });

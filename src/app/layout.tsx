@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Providers } from "./providers";
 
 function normalizeAppUrl(value?: string): URL {
-  const fallback = "http://localhost:3000";
+  const fallback = "https://luzoapi.vercel.app";
   const raw = (value ?? fallback).trim();
   const prefixed = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 
@@ -75,9 +75,10 @@ export const metadata: Metadata = {
       { url: "/logo.svg", type: "image/svg+xml" },
       { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
       { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
       { url: "/favicon.ico", sizes: "any" },
     ],
-    shortcut: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/favicon.ico" }],
+    shortcut: ["/favicon.ico"],
     apple: [
       { url: "/logo.svg", type: "image/svg+xml" },
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },

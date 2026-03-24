@@ -71,8 +71,7 @@ export async function generatePipelineNarrative(
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("AI API error:", response.status, errorText);
+        await response.text(); // Consume body
         // Fallback to template
         return generateTemplateNarrative(
           config.tone,
@@ -94,8 +93,7 @@ export async function generatePipelineNarrative(
         { successCount, failCount, avgLatency, p95Latency, totalSteps: result.results.length },
         config.prompt,
       );
-    } catch (error) {
-      console.error("AI API call failed:", error);
+    } catch {
       // Fallback to template
       return generateTemplateNarrative(
         config.tone,

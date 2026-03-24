@@ -207,7 +207,7 @@ export function ErrorBoundary({ children, fallback }: Props) {
     if (err && typeof err === "object") {
       (err as AugmentedUnknown).__componentStack = info.componentStack ?? "";
     }
-    console.error(err, info.componentStack);
+    console.error(err, info.componentStack); // oxlint-disable-line no-console
   };
 
   return (
