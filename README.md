@@ -1,6 +1,6 @@
 # Luzo
 
-**Design API workflows like a flowchart. Debug them like a timeline.**
+**Design API workflows like a flowchart. Debug them step-by-step.**
 
 Luzo is a developer-centric API playground and pipeline orchestrator. It’s built for building and debugging multi-step API workflows with deterministic execution and full data ownership.
 
@@ -39,7 +39,7 @@ Design complex API chains where data flows seamlessly between steps. Luzo uses a
 
 - Pipeline builder with dependency-aware step references like `{{req1.response.body.token}}`
 - Stage-aware execution planning that distinguishes sequential dependencies from independent parallel work
-- Response stream and timeline views that stay coupled to the currently selected pipeline
+- Real-time execution stream that stays coupled to the currently selected pipeline
 
 ### 🔄 Collections to Pipelines
 
@@ -47,12 +47,13 @@ Design complex API chains where data flows seamlessly between steps. Luzo uses a
 
 - Generate pipelines from Postman JSON, Luzo collections, or stored collections
 - Infer step names, dependencies, unresolved variables, and execution order before creation
+- **Export to Industry Standards**: Convert your pipelines and collections back to Postman Collection (v2.1) or OpenAPI (3.0.0) format with full metadata preservation.
 - Preview and adjust the generated flow before opening it in the pipeline builder
 - Convert pipelines back into collections when DB-backed collections are enabled
 
 ### 🛠️ The Debug Controller (Core Engine)
 
-**Debug like a timeline.**
+**Debug with an execution stream.**
 
 - **Step-by-Step Execution**: Pause at any stage and inspect exactly what’s happening.
 - **Retry from failure, not from scratch**: If a step fails, fix it and resume from that specific point. Luzo automatically rewinds the state for you.
@@ -88,6 +89,7 @@ Generate professional AI-powered reports as PDFs with 100% UI fidelity, powered 
 
 - Compact configurator flow for tone, depth, prompt, and signal selection
 - Modern report preview layout with improved per-request breakdown styling
+- **Dynamic Content**: Add, reorder, and delete custom sections to tailor your narrative.
 - More reliable PDF pagination for request breakdowns and export tables
 
 ### 🌱 Collections and Environments
