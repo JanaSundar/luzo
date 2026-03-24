@@ -11,25 +11,25 @@ Luzo treats API calls as steps in a larger execution graph. It gives you a place
 ## Screenshots
 
 <p align="center">
-  <img src="public/screenshots/playground.jpg" width="100%" alt="Playground" />
+  <img src="public/screenshots/playground.jpeg" width="100%" alt="Playground" />
   <br />
   <em>Modern API Playground with synchronized collections and environments</em>
 </p>
 
 <p align="center">
-  <img src="public/screenshots/pipeline_builder.jpg" width="100%" alt="Pipeline Builder" />
+  <img src="public/screenshots/pipeline_builder.jpeg" width="100%" alt="Pipeline Builder" />
   <br />
   <em>Dependency-aware Pipeline Builder with DAG-based execution planning</em>
 </p>
 
 <p align="center">
-  <img src="public/screenshots/execution_timeline.jpg" width="100%" alt="Execution Timeline" />
+  <img src="public/screenshots/execution_timeline.jpeg" width="100%" alt="Execution Timeline" />
   <br />
   <em>Live Execution Timeline with per-step inspection and state tracking</em>
 </p>
 
 <p align="center">
-  <img src="public/screenshots/ai_configurator.jpg" width="100%" alt="AI Configurator" />
+  <img src="public/screenshots/ai_configurator.jpeg" width="100%" alt="AI Configurator" />
   <br />
   <em>AI Report Configurator with tone, depth, and signal selection</em>
 </p>
