@@ -4,6 +4,28 @@
 
 Luzo is a developer-centric API playground and pipeline orchestrator for building, running, and debugging multi-step API workflows with deterministic execution and full data ownership.
 
+## Screenshots
+
+<div align="center">
+  <img src="public/screenshots/playground.jpg" width="100%" alt="Playground" />
+  <p><em>Modernized API Playground with synchronized collections and environments</em></p>
+  
+  <br />
+  
+  <img src="public/screenshots/pipeline_builder.jpg" width="100%" alt="Pipeline Builder" />
+  <p><em>Dependency-aware Pipeline Builder with DAG and Step Layout planning</em></p>
+  
+  <br />
+
+  <img src="public/screenshots/execution_timeline.jpg" width="100%" alt="Execution Timeline" />
+  <p><em>Real-time Execution Timeline with per-step inspection and state tracking</em></p>
+  
+  <br />
+
+  <img src="public/screenshots/ai_configurator.jpg" width="100%" alt="AI Configurator" />
+  <p><em>AI-driven Report Configurator with tone, depth, and signal selection</em></p>
+</div>
+
 ## How to think about Luzo
 
 > If Postman is for requests, Luzo is for workflows.
