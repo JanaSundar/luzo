@@ -4,5 +4,11 @@
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://luzoapi.vercel.app"
+  },
+  "functions": {
+    "src/app/api/export/pdf/route.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
   }
 }

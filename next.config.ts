@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["curlconverter"],
+  serverExternalPackages: ["curlconverter", "playwright-core", "@sparticuz/chromium-min"],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
