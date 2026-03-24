@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import { createDbClient } from "@/lib/db/runtime";
+import { logger } from "@/lib/utils/logger";
 
 /**
  * POST /api/db/schema
  * Returns table info from information_schema for the Schema Viewer.
  */
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const { dbUrl } = await request.json();
 
+    logger.info({ requestId, path: "/api/db/schema" }, "DB schema request received");
+
     if (!dbUrl || typeof dbUrl !== "string") {
+      logger.warn({ requestId }, "Missing dbUrl in schema request");
       return NextResponse.json({ error: "dbUrl is required" }, { status: 400 });
     }
 
@@ -58,11 +63,11 @@ export async function POST(request: Request) {
       });
     }
 
+    logger.info({ requestId, tableCount: tables.length }, "DB schema fetched successfully");
     return NextResponse.json({ tables: grouped });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to fetch schema" },
-      { status: 500 },
-    );
+    const errorMessage = err instanceof Error ? err.message : "Failed to fetch schema";
+    logger.error({ requestId, error: errorMessage }, "DB schema request failed");
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

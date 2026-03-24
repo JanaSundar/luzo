@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils/security";
 import { interpolateVariables } from "@/lib/utils/variables";
 import type { AuthConfig, KeyValuePair } from "@/types";
+import { logger } from "@/lib/utils/logger";
 
 const CONFIG_KEY = "__config";
 
@@ -72,9 +73,14 @@ function applyAuth(
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
   const rateLimit = checkRateLimit(ip);
+
+  logger.info({ requestId, ip, path: "/api/execute" }, "Execute request received");
+
   if (!rateLimit.allowed) {
+    logger.warn({ requestId, ip }, "Rate limit exceeded for execute request");
     return Response.json(
       { error: "Too many requests. Please try again later." },
       {
@@ -84,20 +90,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch (err) {
+    logger.warn(
+      { requestId, error: err instanceof Error ? err.message : String(err) },
+      "Failed to parse FormData in execute request",
+    );
+    return Response.json({ error: "Invalid FormData" }, { status: 400 });
+  }
+
   const configRaw = formData.get(CONFIG_KEY);
   if (typeof configRaw !== "string") {
+    logger.warn({ requestId }, "Missing __config in execute request");
     return Response.json({ error: "Missing __config in FormData" }, { status: 400 });
   }
 
   if (configRaw.length > LIMITS.MAX_BODY_BYTES) {
+    logger.warn(
+      { requestId, size: configRaw.length },
+      "Config payload too large in execute request",
+    );
     return Response.json({ error: "Config payload too large" }, { status: 413 });
   }
 
   let config: ExecuteConfig;
   try {
     config = JSON.parse(configRaw) as ExecuteConfig;
-  } catch {
+  } catch (err) {
+    logger.warn(
+      { requestId, error: err instanceof Error ? err.message : String(err) },
+      "Invalid JSON in __config",
+    );
     return Response.json({ error: "Invalid __config JSON" }, { status: 400 });
   }
 
@@ -111,6 +136,8 @@ export async function POST(request: NextRequest) {
     preRequestScript,
     testScript,
   } = config;
+
+  logger.info({ requestId, method, url }, "Executing remote request");
 
   if (!validateMethod(method)) {
     return Response.json({ error: "Invalid HTTP method" }, { status: 400 });
@@ -197,6 +224,7 @@ export async function POST(request: NextRequest) {
 
   if (preRequestScript?.trim()) {
     const preStartTime = Date.now();
+    logger.debug({ requestId }, "Running pre-request script");
     const result = runPreRequestScript(preRequestScript, {
       request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
       config: { method, url: targetUrl, headers: finalHeaders, data: bodyFormData },
@@ -220,59 +248,68 @@ export async function POST(request: NextRequest) {
   const safeHeaders = sanitizeHeaders(finalHeaders);
 
   const startTime = Date.now();
-  const res = await undiciFetch(finalUrl, {
-    method,
-    headers: safeHeaders,
-    // Node 18+ undici fetch supports FormData bodies; cast to satisfy TypeScript.
-    body: bodyFormData as unknown as import("undici").BodyInit,
-  });
-  const time = Date.now() - startTime;
-
-  const responseHeaders: Record<string, string> = {};
-  res.headers.forEach((value: string, key: string) => {
-    responseHeaders[key] = value;
-  });
-
-  const contentType = (responseHeaders["content-type"] ?? "").toLowerCase().split(";")[0].trim();
-  const isImage = contentType.startsWith("image/");
-  const isPdf = contentType === "application/pdf";
-  const isBinaryPreview = isImage || isPdf;
-
-  const rawData = await res.arrayBuffer();
-  const size = rawData.byteLength;
-  let body: string;
-  if (isBinaryPreview && rawData.byteLength > 0) {
-    body = Buffer.from(rawData).toString("base64");
-  } else {
-    body = typeof rawData === "string" ? rawData : new TextDecoder().decode(rawData);
-  }
-
-  const apiResponse = {
-    status: res.status,
-    statusText: res.statusText ?? "",
-    headers: responseHeaders,
-    body,
-    time,
-    size,
-  };
-
-  let testResults: Array<{ name: string; passed: boolean; error?: string }> | undefined;
-  let testExecution: { logs: string[]; error: string | null } | undefined;
-
-  if (testScript?.trim()) {
-    const result = runTestScript(testScript, {
-      request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
-      response: apiResponse,
-      envVariables: mutatedEnv,
+  try {
+    const res = await undiciFetch(finalUrl, {
+      method,
+      headers: safeHeaders,
+      // Node 18+ undici fetch supports FormData bodies; cast to satisfy TypeScript.
+      body: bodyFormData as unknown as import("undici").BodyInit,
     });
-    testResults = result.testResults;
-    testExecution = result.execution;
-  }
+    const time = Date.now() - startTime;
 
-  return Response.json({
-    ...apiResponse,
-    preRequestResult,
-    testResults,
-    testExecution,
-  });
+    const responseHeaders: Record<string, string> = {};
+    res.headers.forEach((value: string, key: string) => {
+      responseHeaders[key] = value;
+    });
+
+    const contentType = (responseHeaders["content-type"] ?? "").toLowerCase().split(";")[0].trim();
+    const isImage = contentType.startsWith("image/");
+    const isPdf = contentType === "application/pdf";
+    const isBinaryPreview = isImage || isPdf;
+
+    const rawData = await res.arrayBuffer();
+    const size = rawData.byteLength;
+    let body: string;
+    if (isBinaryPreview && rawData.byteLength > 0) {
+      body = Buffer.from(rawData).toString("base64");
+    } else {
+      body = typeof rawData === "string" ? rawData : new TextDecoder().decode(rawData);
+    }
+
+    const apiResponse = {
+      status: res.status,
+      statusText: res.statusText ?? "",
+      headers: responseHeaders,
+      body,
+      time,
+      size,
+    };
+
+    let testResults: Array<{ name: string; passed: boolean; error?: string }> | undefined;
+    let testExecution: { logs: string[]; error: string | null } | undefined;
+
+    if (testScript?.trim()) {
+      logger.debug({ requestId }, "Running test script");
+      const result = runTestScript(testScript, {
+        request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
+        response: apiResponse,
+        envVariables: mutatedEnv,
+      });
+      testResults = result.testResults;
+      testExecution = result.execution;
+    }
+
+    logger.info({ requestId, status: res.status, time }, "Remote request completed successfully");
+
+    return Response.json({
+      ...apiResponse,
+      preRequestResult,
+      testResults,
+      testExecution,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Remote request failed";
+    logger.error({ requestId, error: errorMessage }, "Remote request failed");
+    return Response.json({ error: errorMessage }, { status: 500 });
+  }
 }

@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import type { AiProvider } from "@/types";
+import { logger } from "@/lib/utils/logger";
 
 const PROVIDER_API_ENDPOINTS: Record<AiProvider, string> = {
   openai: "https://api.openai.com/v1/models",
@@ -41,11 +42,18 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ provider: string }> },
 ) {
+  const { provider: providerParam } = await params;
+  const provider = providerParam as AiProvider;
+  const requestId = crypto.randomUUID();
+
   try {
-    const { provider: providerParam } = await params;
-    const provider = providerParam as AiProvider;
+    logger.info(
+      { requestId, provider, path: `/api/providers/${provider}/models` },
+      "Fetch models request received",
+    );
 
     if (!["openai", "groq", "openrouter"].includes(provider)) {
+      logger.warn({ requestId, provider }, "Invalid provider requested for models");
       return NextResponse.json({ error: "Invalid provider", models: [] }, { status: 400 });
     }
 
@@ -53,6 +61,7 @@ export async function POST(
     const apiKey = body?.apiKey;
 
     if (!apiKey || typeof apiKey !== "string" || apiKey.length < 5) {
+      logger.warn({ requestId, provider }, "Missing or invalid API key for model fetch");
       return NextResponse.json({ error: "API key is required", models: [] }, { status: 400 });
     }
 
@@ -72,6 +81,10 @@ export async function POST(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      logger.warn(
+        { requestId, provider, status: response.status },
+        "Provider API returned error for models",
+      );
       if (response.status === 401 || response.status === 403) {
         return NextResponse.json(
           { error: "Invalid API key. Please check and try again.", models: [] },
@@ -110,6 +123,7 @@ export async function POST(
 
     models.sort((a, b) => a.id.localeCompare(b.id));
 
+    logger.info({ requestId, provider, modelCount: models.length }, "Models fetched successfully");
     return NextResponse.json({ models });
   } catch (error) {
     const err = error as Error;
@@ -118,6 +132,7 @@ export async function POST(
         ? "Request timed out. Please check your connection and try again."
         : (err?.message ?? "Failed to fetch models");
 
+    logger.error({ requestId, error: message }, "Fetch models request failed");
     return NextResponse.json({ error: message, models: [] }, { status: 500 });
   }
 }

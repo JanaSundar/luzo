@@ -58,7 +58,6 @@ Luzo is built for that layer: the workflow layer.
 1. Install and run the app:
    ```bash
    pnpm install
-   pnpm exec playwright install chromium
    pnpm dev
 
 	2.	Send a request in the Playground and save it into a collection.
@@ -119,7 +118,7 @@ Add logic around any request.
 
 Generate reports from real execution data.
 	•	AI-assisted report configurator for tone, depth, prompt, and signal selection
-	•	PDF export powered by Playwright rendering
+	•	PDF export powered by **Puppeteer**
 	•	Request breakdowns and performance-oriented execution summaries
 
 ⸻
@@ -175,7 +174,8 @@ Product model
 	•	Data fetching: TanStack Query￼
 	•	Database: Drizzle ORM￼ + PostgreSQL￼
 	•	Testing: Vitest￼ + Testing Library
-	•	PDF Engine: Playwright￼
+	•	PDF Engine: Puppeteer￼
+	•	Logging: Pino￼
 	•	Linting/Formatting: Oxc￼ (Oxlint, Oxfmt)
 
 ⸻
@@ -185,13 +185,13 @@ Product model
 ### Prerequisites
 	•	Node.js￼ v20+
 	•	pnpm￼ v9+
-	•	Playwright Chromium￼
 
 ### Local setup
 
+```bash
 pnpm install
-pnpm exec playwright install chromium
 pnpm dev
+```
 
 ### Configuration
 

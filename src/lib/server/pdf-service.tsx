@@ -13,6 +13,7 @@ import {
 import { markdownToHtml } from "@/lib/utils/markdown-to-html";
 import { getBrowser } from "./pdf/browser";
 import { getHtmlShell } from "./pdf/html-shell";
+import { logger } from "@/lib/utils/logger";
 
 /**
  * Generates a PDF report from the provided report model.
@@ -23,9 +24,13 @@ export async function generateReportPdf(
   report: ExportReportModel,
   theme: "light" | "dark" = "light",
 ): Promise<Buffer> {
+  const startTime = Date.now();
+  logger.info({ title: report.title, requests: report.requests.length }, "Starting PDF generation");
+
   const { renderToStaticMarkup } = await import("react-dom/server");
 
   // 1. Prepare HTML snippets from Markdown
+  logger.debug("Preparing HTML snippets from Markdown");
   const summaryHtml = await markdownToHtml(report.summary);
   const healthHtml = await markdownToHtml(report.healthSummary || "");
   const conclusionHtml = await markdownToHtml(report.conclusion);
@@ -36,6 +41,7 @@ export async function generateReportPdf(
   const risksHtml = await Promise.all(report.risks.map((r) => markdownToHtml(r)));
 
   // 2. Generate Request Card Sections
+  logger.debug("Generating request card sections");
   const requestCardGroups = await Promise.all(
     Array.from({ length: Math.ceil(report.requests.length / 1) }, (_, index) =>
       Promise.all(
@@ -71,6 +77,7 @@ export async function generateReportPdf(
   ));
 
   // 3. Assemble components into static markup
+  logger.debug("Assembling components into static markup");
   const componentOutput = renderToStaticMarkup(
     <ReportLayoutContainer className="pdf-root" mode="pdf">
       <ReportHeader title={report.title} mode="pdf">
@@ -124,20 +131,26 @@ export async function generateReportPdf(
   );
 
   // 4. Launch browser and generate PDF
+  logger.debug("Launching browser for PDF generation");
   const html = getHtmlShell(componentOutput, theme);
   const browser = await getBrowser();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 1800 } });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 1800 });
 
   try {
-    await page.setContent(html, { waitUntil: "networkidle" });
+    logger.debug("Setting page content and generating PDF");
+    await page.setContent(html, { waitUntil: "networkidle0" });
     await page.evaluate(() => document.fonts.ready);
-    await page.emulateMedia({ media: "print" });
+    await page.emulateMediaType("print");
 
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
       preferCSSPageSize: true,
     });
+
+    const duration = Date.now() - startTime;
+    logger.info({ durationMs: duration, sizeBytes: pdfBuffer.length }, "PDF generation completed");
 
     return Buffer.from(pdfBuffer);
   } finally {
