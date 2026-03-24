@@ -10,7 +10,7 @@ import {
   buildToneFilteredAiInput,
   toEndpointMetrics,
   toReportMetrics,
-} from "@/lib/pipeline/report-generation";
+} from "@/features/pipeline/report-generation";
 import type {
   AIProviderConfig,
   AIReportConfig,
@@ -165,7 +165,7 @@ export async function refineReportSection(input: {
   try {
     const currentContent = sectionKey.startsWith("request:")
       ? report.requests.find((r) => r.stepId === sectionKey.split(":")[1])?.analysis
-      : (report as any)[sectionKey];
+      : report[sectionKey as keyof StructuredReport];
 
     const systemPrompt = `You are an expert API quality engineer. Your task is to refine a specific section of a pipeline execution report.
 Tone: ${config.tone}
@@ -195,15 +195,16 @@ Return only the refined content for this specific section. If the section expect
         r.stepId === stepId ? { ...r, analysis: refinedText } : r,
       );
     } else {
+      const key = sectionKey as keyof StructuredReport;
       try {
-        // Try parsing as JSON if it looks like an array/object
         if (refinedText.startsWith("[") || refinedText.startsWith("{")) {
-          (updatedReport as any)[sectionKey] = JSON.parse(refinedText);
+          const parsed = JSON.parse(refinedText);
+          (updatedReport as Record<string, unknown>)[key] = parsed;
         } else {
-          (updatedReport as any)[sectionKey] = refinedText;
+          (updatedReport as Record<string, unknown>)[key] = refinedText;
         }
       } catch {
-        (updatedReport as any)[sectionKey] = refinedText;
+        (updatedReport as Record<string, unknown>)[key] = refinedText;
       }
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface ResponseStatsProps {
   status: number;
@@ -12,10 +12,10 @@ interface ResponseStatsProps {
 
 function getStatusColor(status: number): string {
   if (status >= 200 && status < 300)
-    return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
-  if (status >= 300 && status < 400) return "bg-blue-500/15 text-blue-600 dark:text-blue-400";
-  if (status >= 400 && status < 500) return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
-  if (status >= 500) return "bg-red-500/15 text-red-600 dark:text-red-400";
+    return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+  if (status >= 300 && status < 400) return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+  if (status >= 400 && status < 500) return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+  if (status >= 500) return "bg-red-500/10 text-red-600 border-red-500/20";
   return "bg-muted text-muted-foreground";
 }
 
@@ -27,17 +27,25 @@ function formatSize(bytes: number): string {
 
 export function ResponseStats({ status, statusText, time, size }: ResponseStatsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
+      {/* High-fidelity pill badge for status */}
       <Badge
+        variant="outline"
         className={cn(
-          "h-6 rounded-md px-2 font-mono text-[11px] font-semibold",
+          "h-7 rounded-full border px-3 font-mono text-xs font-bold shadow-sm",
           getStatusColor(status),
         )}
       >
         {`${status} ${statusText}`}
       </Badge>
-      <span className="text-[11px] text-muted-foreground">{time}ms</span>
-      <span className="text-[11px] text-muted-foreground">{formatSize(size)}</span>
+
+      {/* Muted stats with tracking, inspired by image */}
+      <span className="text-[11px] font-bold tracking-tight text-muted-foreground/70">
+        {time}ms
+      </span>
+      <span className="text-[11px] font-bold tracking-tight text-muted-foreground/70">
+        {formatSize(size)}
+      </span>
     </div>
   );
 }

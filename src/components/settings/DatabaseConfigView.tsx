@@ -4,8 +4,8 @@ import { Database, Eye, EyeOff, Loader2, Server, Unplug, XCircle, Zap } from "lu
 import { useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { cn } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { cn } from "@/utils";
 
 export function DatabaseConfigView() {
   const {

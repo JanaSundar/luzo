@@ -1,6 +1,6 @@
 "use server";
 
-import { executeApiRequest } from "@/lib/http/client";
+import { executeApiRequest } from "@/services/http/client";
 import type { ApiRequest, ApiResponse } from "@/types";
 
 export async function executeRequest(

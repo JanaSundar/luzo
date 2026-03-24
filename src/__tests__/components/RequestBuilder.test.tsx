@@ -1,10 +1,11 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createJSONStorage } from "zustand/middleware";
 import { RequestBuilder } from "@/components/playground/RequestBuilder";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { render } from "@/test/utils";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { render } from "@/utils/test-utils";
+import type { ImportWorkerApi } from "@/types/workers";
 
 vi.mock("@/app/actions/api-tests", () => ({
   executeRequest: vi.fn().mockResolvedValue({
@@ -15,6 +16,39 @@ vi.mock("@/app/actions/api-tests", () => ({
     time: 100,
     size: 16,
   }),
+}));
+
+vi.mock("@/workers/client/import-client", () => ({
+  importWorkerClient: {
+    callLatest: vi.fn(async (_key: string, invoke: (api: ImportWorkerApi) => Promise<unknown>) => {
+      const api: Partial<ImportWorkerApi> = {
+        parseImportSource: vi.fn(async ({ content }: { content: string }) => {
+          // For the specific test case in this file:
+          if (content.includes("-X POST")) {
+            return {
+              ok: true as const,
+              data: {
+                collection: {
+                  method: "POST",
+                  url: "https://api.example.com/users",
+                  params: [{ key: "team", value: "platform", enabled: true }],
+                  bodyType: "json",
+                  body: '{"name": "Ada"}',
+                  headers: [],
+                  auth: { type: "none" },
+                },
+              },
+            };
+          }
+          return {
+            ok: false as const,
+            error: { code: "invalid_node" as const, message: "Mock Parse Error" },
+          };
+        }),
+      };
+      return await invoke(api as ImportWorkerApi);
+    }),
+  },
 }));
 
 const memoryStorage = (() => {
@@ -116,7 +150,7 @@ describe("RequestBuilder", () => {
     const user = userEvent.setup();
     render(<RequestBuilder />);
 
-    await user.click(screen.getByRole("button", { name: /^curl$/i }));
+    await user.click(screen.getByRole("button", { name: /curl/i }));
 
     fireEvent.change(screen.getByPlaceholderText(/curl 'https:\/\/api\.example\.com\/users'/i), {
       target: {
@@ -126,11 +160,13 @@ describe("RequestBuilder", () => {
     });
     await user.click(screen.getByRole("button", { name: /import request/i }));
 
-    const state = usePlaygroundStore.getState().request;
-    expect(state.method).toBe("POST");
-    expect(state.url).toBe("https://api.example.com/users");
-    expect(state.params).toEqual([{ key: "team", value: "platform", enabled: true }]);
-    expect(state.bodyType).toBe("json");
-    expect(state.body).toContain('"name": "Ada"');
+    await waitFor(() => {
+      const state = usePlaygroundStore.getState().request;
+      expect(state.method).toBe("POST");
+      expect(state.url).toBe("https://api.example.com/users");
+      expect(state.params).toEqual([{ key: "team", value: "platform", enabled: true }]);
+      expect(state.bodyType).toBe("json");
+      expect(state.body).toContain('"name": "Ada"');
+    });
   });
 });

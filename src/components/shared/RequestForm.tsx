@@ -4,7 +4,7 @@ import { AnimatePresence } from "motion/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type {
   ApiRequest,
   AuthConfig,
@@ -115,14 +115,9 @@ export function RequestForm({
   const hasTestResults = useMemo(() => !!(testResults && testResults.length > 0), [testResults]);
 
   return (
-    <div
-      className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/45 bg-background",
-        className,
-      )}
-    >
+    <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
       {!showContentOnly && (
-        <div className="flex h-12 shrink-0 items-center border-b border-border/40 bg-muted/10 px-3">
+        <div className="flex h-12 shrink-0 items-center px-1 mb-2">
           <RequestFormTabs
             activeTab={activeTab}
             onTabChange={handleTabChange}
@@ -138,10 +133,14 @@ export function RequestForm({
       )}
 
       {!showTabsOnly && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background px-4 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/50 rounded-2xl border border-border/30 px-5 py-5 shadow-sm">
           <AnimatePresence mode="wait">
             {activeTab === "params" && (
-              <TabPanel key="params" animate={animateTabContent}>
+              <TabPanel
+                key="params"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
                 <KeyValueEditor
                   pairs={params}
                   onChange={(u) => onChange({ params: u })}
@@ -151,7 +150,11 @@ export function RequestForm({
               </TabPanel>
             )}
             {activeTab === "headers" && (
-              <TabPanel key="headers" animate={animateTabContent}>
+              <TabPanel
+                key="headers"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
                 <KeyValueEditor
                   pairs={headers}
                   onChange={(u) => onChange({ headers: u })}
@@ -176,7 +179,11 @@ export function RequestForm({
               </TabPanel>
             )}
             {activeTab === "auth" && (
-              <TabPanel key="auth" animate={animateTabContent}>
+              <TabPanel
+                key="auth"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
                 <RequestAuthPanel
                   auth={auth}
                   suggestions={suggestions}
@@ -185,7 +192,11 @@ export function RequestForm({
               </TabPanel>
             )}
             {activeTab === "scripts" && (
-              <TabPanel key="scripts" animate={animateTabContent}>
+              <TabPanel
+                key="scripts"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
                 <RequestScriptsPanel
                   preRequestEditorType={preRequestEditorType}
                   testEditorType={testEditorType}
@@ -198,7 +209,11 @@ export function RequestForm({
               </TabPanel>
             )}
             {activeTab === "mock" && mockConfig && (
-              <TabPanel key="mock" animate={animateTabContent}>
+              <TabPanel
+                key="mock"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
                 <RequestMockPanel
                   config={mockConfig}
                   suggestions={suggestions}

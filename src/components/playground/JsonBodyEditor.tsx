@@ -14,9 +14,9 @@ import CodeMirror from "@uiw/react-codemirror";
 import { tags } from "@lezer/highlight";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { darkJsonPalette, lightJsonPalette } from "@/lib/json-view/theme";
-import { getVariableAtRange, TEMPLATE_TRIGGER } from "@/lib/utils/templateTokens";
-import { cn } from "@/lib/utils";
+import { darkJsonPalette, lightJsonPalette } from "@/features/json-view/theme";
+import { getVariableAtRange, TEMPLATE_TRIGGER } from "@/utils/templateTokens";
+import { cn } from "@/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function JsonBodyEditor({
@@ -98,14 +98,14 @@ export function JsonBodyEditor({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/40 bg-background [&_.cm-editor]:h-full [&_.cm-gutters]:min-h-full [&_.cm-scroller]:h-full",
+        "relative flex flex-1 h-auto flex-col overflow-hidden rounded-xl border border-border/40 bg-background",
         className,
       )}
     >
       <CodeMirror
         value={value}
-        height="100%"
-        style={{ height: "100%", minHeight: 0 }}
+        theme={activeTheme}
+        className="overflow-hidden max-h-inherit flex flex-1"
         basicSetup={{
           foldGutter: false,
           highlightActiveLine: true,
@@ -197,14 +197,19 @@ function createVariableTooltip(suggestions: VariableSuggestion[]) {
 
 function createEditorTheme(palette: typeof lightJsonPalette) {
   return {
-    "&": { backgroundColor: "transparent", color: palette.foreground },
-    ".cm-editor": { height: "100%" },
+    "&": { backgroundColor: palette.background, color: palette.foreground },
+    "&.cm-editor": { flex: 1 },
     ".cm-content": {
       fontFamily: "var(--font-geist-mono)",
       fontSize: "0.75rem",
       padding: "0.75rem 0.75rem 1rem",
     },
-    ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-geist-mono)", minHeight: "100%" },
+    ".cm-scroller": {
+      overflow: "auto",
+      fontFamily: "var(--font-geist-mono)",
+      minHeight: "100%",
+      height: "100%",
+    },
     ".cm-gutters": {
       backgroundColor: "transparent",
       borderRight: `1px solid ${palette.border}`,

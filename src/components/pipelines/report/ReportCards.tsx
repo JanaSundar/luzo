@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Edit2, Sparkles, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { Button } from "@/components/ui/button";
 
 type ReportRenderMode = "preview" | "pdf";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importOpenApiCollection, importPostmanCollection } from "@/lib/utils/collection-import";
+import { importOpenApiCollection, importPostmanCollection } from "@/utils/collection-import";
 
 describe("collection import", () => {
   it("parses a Postman collection into requests", () => {

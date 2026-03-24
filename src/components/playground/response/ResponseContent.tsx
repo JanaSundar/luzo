@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { JsonView } from "@/components/ui/JsonView";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { ApiResponse, TestResult } from "@/types";
 import {
   Test,
@@ -30,7 +30,6 @@ export function ResponseContent({
   activeTab,
   searchQuery,
   isJson,
-  isBinaryPreview,
   dataUrl,
   contentType,
   fontScale,
@@ -41,7 +40,6 @@ export function ResponseContent({
   activeTab: "body" | "headers" | "pre-request" | "tests";
   searchQuery: string;
   isJson: boolean;
-  isBinaryPreview: boolean;
   dataUrl: string | null;
   contentType: string;
   fontScale: "sm" | "md" | "lg";
@@ -94,13 +92,14 @@ export function ResponseContent({
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1">
+      <div className="flex-1 min-h-0 h-full overflow-hidden">
         {isJson ? (
           <JsonView
             text={response.body}
-            searchQuery={bodyView === "preview" && !isBinaryPreview ? searchQuery : ""}
+            searchQuery={bodyView === "preview" ? searchQuery : ""}
             className="h-full"
             fontScale={fontScale}
+            format={bodyView === "preview"}
           />
         ) : (
           <pre

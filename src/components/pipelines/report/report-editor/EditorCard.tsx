@@ -13,8 +13,8 @@ import {
   serializeDocToList,
   serializeDocToText,
   type ReportEditorSectionKey,
-} from "@/lib/reports/report-editor";
-import { cn } from "@/lib/utils";
+} from "@/features/reports/report-editor";
+import { cn } from "@/utils";
 import { SelectionToolbar } from "./SelectionToolbar";
 import type { SelectionOverlayState } from "./types";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Shield, Sparkles, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { NarrativeTone } from "@/types";
 
 export const TONES: { id: NarrativeTone; label: string; icon: React.ReactNode }[] = [

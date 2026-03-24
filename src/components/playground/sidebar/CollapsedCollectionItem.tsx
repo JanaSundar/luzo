@@ -7,12 +7,12 @@ import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEl
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { SidebarMenuItem } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
-import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
+import { collectionToPipelineHref } from "@/features/pipeline/collectionToPipelineHref";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/utils";
 import {
   isStrippedRequestNameEqualToUrl,
   stripMethodPrefixFromRequestName,
-} from "@/lib/utils/requestDisplayName";
+} from "@/utils/requestDisplayName";
 import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
 type CollapsedCollectionItemProps = {

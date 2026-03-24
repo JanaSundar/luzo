@@ -5,12 +5,15 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import { editReportSelection } from "@/app/actions/ai-report";
 import { ReportEditor } from "@/components/pipelines/report/ReportEditor";
 import { ReportPreviewContent } from "@/components/pipelines/report/ReportPreviewContent";
-import { buildExportReportModel } from "@/lib/reports/export-model";
-import { ensureEditableReport, type ReportEditorSectionKey } from "@/lib/reports/report-editor";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { buildExportReportModel } from "@/features/reports/export-model";
+import {
+  ensureEditableReport,
+  type ReportEditorSectionKey,
+} from "@/features/reports/report-editor";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import { useTheme } from "next-themes";
 
 type ReportWorkspaceTab = "editor" | "preview";

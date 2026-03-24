@@ -1,8 +1,8 @@
 "use client";
 
 import { Database } from "lucide-react";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { cn } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { cn } from "@/utils";
 import type { AiProvider } from "@/types";
 import { AddProviderCard, ProviderConfigCard } from "./ProviderConfigCard";
 

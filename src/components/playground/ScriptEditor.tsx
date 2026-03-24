@@ -1,8 +1,8 @@
 "use client";
 
 import { Textarea } from "@/components/ui/textarea";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 
 interface ScriptEditorProps<TRule> {
   label: string;

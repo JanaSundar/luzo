@@ -2,8 +2,8 @@
 
 import { type MouseEventHandler, useMemo } from "react";
 import { VariableValuePreview } from "@/components/ui/VariableValuePreview";
-import { parseTemplateSegments } from "@/lib/utils/templateTokens";
-import { cn } from "@/lib/utils";
+import { parseTemplateSegments } from "@/utils/templateTokens";
+import { cn } from "@/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function TemplateValueOverlay({

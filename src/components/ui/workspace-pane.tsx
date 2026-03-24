@@ -2,7 +2,7 @@
 
 import { type HTMLMotionProps, motion } from "motion/react";
 import type React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface WorkspacePaneProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode;

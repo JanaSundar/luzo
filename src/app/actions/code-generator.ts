@@ -1,6 +1,6 @@
 "use server";
 
-import { generateCode } from "@/lib/utils/code-generator";
+import { generateCode } from "@/utils/code-generator";
 import type { ApiRequest, CodeGenerationOptions } from "@/types";
 
 export async function generateCodeAction(

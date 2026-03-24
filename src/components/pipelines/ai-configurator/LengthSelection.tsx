@@ -1,7 +1,7 @@
 "use client";
 
 import { File, FileText, Files } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { ReportLength } from "@/types/pipeline-report";
 
 export const REPORT_LENGTHS: { id: ReportLength; label: string; icon: React.ReactNode }[] = [

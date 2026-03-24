@@ -24,11 +24,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem } from "@/components/ui/sidebar";
-import { exportCollectionToOpenApi } from "@/lib/exporters/pipeline-openapi";
-import { exportCollectionToPostman } from "@/lib/exporters/pipeline-postman";
-import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
-import { downloadTextFile, slugifyFilenamePart } from "@/lib/reports/export-download";
-import { cn } from "@/lib/utils";
+import { exportCollectionToOpenApi } from "@/features/exporters/pipeline-openapi";
+import { exportCollectionToPostman } from "@/features/exporters/pipeline-postman";
+import { collectionToPipelineHref } from "@/features/pipeline/collectionToPipelineHref";
+import { downloadTextFile, slugifyFilenamePart } from "@/features/reports/export-download";
+import { cn } from "@/utils";
 import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
 type CollectionTreeFolderProps = {

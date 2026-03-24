@@ -18,11 +18,11 @@ import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Sidebar, SidebarContent, SidebarFooter } from "@/components/ui/sidebar";
-import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
-import { useHistoryStore } from "@/lib/stores/useHistoryStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { cn } from "@/lib/utils";
+import { useCollectionMutations, useCollectionsQuery } from "@/features/collections/useCollections";
+import { useHistoryStore } from "@/stores/useHistoryStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { cn } from "@/utils";
 import type { ApiRequest } from "@/types";
 
 type PendingDelete =

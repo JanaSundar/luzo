@@ -10,7 +10,7 @@ import {
   removeReportCustomSection,
   updateReportListSection,
   updateReportTextSection,
-} from "@/lib/reports/report-editor";
+} from "@/features/reports/report-editor";
 import type { StructuredReport } from "@/types/pipeline-debug";
 
 function createReport(): StructuredReport {

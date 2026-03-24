@@ -11,7 +11,7 @@ describe("JsonResponseViewer", () => {
     expect(container.firstElementChild).toHaveClass("h-full", "w-full");
   });
 
-  it("calls onMatchChange with correct counts when searching", () => {
+  it("calls onMatchChange with correct counts when searching", async () => {
     const onMatchChange = vi.fn();
     const text = JSON.stringify({ name: "John", city: "New York", job: "John's assistant" });
 
@@ -22,11 +22,15 @@ describe("JsonResponseViewer", () => {
     // Initial render with searchQuery="John"
     // matches: "John" in name, "John" in job (2 matches)
     // index should be reset to 0
-    expect(onMatchChange).toHaveBeenLastCalledWith(2, 0);
+    await vi.waitFor(() => {
+      expect(onMatchChange).toHaveBeenLastCalledWith(2, 0);
+    });
 
     // Update search query
     rerender(<JsonResponseViewer text={text} searchQuery="York" onMatchChange={onMatchChange} />);
-    expect(onMatchChange).toHaveBeenLastCalledWith(1, 0);
+    await vi.waitFor(() => {
+      expect(onMatchChange).toHaveBeenLastCalledWith(1, 0);
+    });
 
     // Update text
     const newText = JSON.stringify({ name: "Jane" });
@@ -34,6 +38,8 @@ describe("JsonResponseViewer", () => {
       <JsonResponseViewer text={newText} searchQuery="John" onMatchChange={onMatchChange} />,
     );
     // "John" not in {"name":"Jane"}
-    expect(onMatchChange).toHaveBeenLastCalledWith(0, 0);
+    await vi.waitFor(() => {
+      expect(onMatchChange).toHaveBeenLastCalledWith(0, 0);
+    });
   });
 });

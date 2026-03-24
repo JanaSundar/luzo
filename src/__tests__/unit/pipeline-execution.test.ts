@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { executeRequest } from "@/app/actions/api-tests";
-import { executeRequestStream } from "@/lib/http/client";
+import { executeRequestStream } from "@/services/http/client";
+import type { AnalysisWorkerApi, GraphWorkerApi } from "@/types/workers";
 import {
   type GeneratorExecutorModule,
   createPipelineGenerator,
-} from "@/lib/pipeline/generator-executor";
+} from "@/features/pipeline/generator-executor";
+import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
 import type { Pipeline } from "@/types";
 import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";
 
@@ -20,11 +22,50 @@ vi.mock("@/app/actions/api-tests", () => ({
   executeRequest: vi.fn(),
 }));
 
-vi.mock("@/lib/http/client", () => ({
+vi.mock("@/services/http/client", () => ({
   executeRequestStream: vi.fn(),
 }));
 
-vi.mock("@/lib/pipeline/generator-executor", async (importOriginal) => {
+vi.mock("@/workers/client/analysis-client", () => ({
+  analysisWorkerClient: {
+    callLatest: vi
+      .fn()
+      .mockImplementation(async (cb: (api: AnalysisWorkerApi) => Promise<unknown>) => {
+        // Mock the analysis API
+        const api: Partial<AnalysisWorkerApi> = {
+          rebuildRuntimeVariables: vi.fn().mockResolvedValue({
+            ok: true,
+            data: { req1: { response: { body: "ok" } } },
+          }),
+          analyzeVariables: vi.fn(),
+          buildVariableSuggestions: vi.fn(),
+        };
+        return cb(api as AnalysisWorkerApi);
+      }),
+    get: vi.fn().mockResolvedValue({
+      rebuildRuntimeVariables: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { req1: { response: { body: "ok" } } },
+      }),
+    }),
+  },
+}));
+
+vi.mock("@/workers/client/graph-client", () => ({
+  graphWorkerClient: {
+    callLatest: vi.fn(async (_key: string, invoke: (api: GraphWorkerApi) => Promise<unknown>) => {
+      const mockApi: Partial<GraphWorkerApi> = {
+        compileExecutionPlan: async (input) => {
+          const { plan, warnings } = compileExecutionPlan(input);
+          return { ok: true, data: { plan, warnings, aliases: [] } };
+        },
+      };
+      return invoke(mockApi as GraphWorkerApi);
+    }),
+  },
+}));
+
+vi.mock("@/features/pipeline/generator-executor", async (importOriginal) => {
   const actual: GeneratorExecutorModule = await importOriginal();
   return {
     ...actual,
@@ -318,7 +359,7 @@ describe("Pipeline Execution Architecture", () => {
   });
 
   it("DebugController critical 8-step retry protocol", async () => {
-    const { createDebugController } = await import("@/lib/pipeline/debug-controller");
+    const { createDebugController } = await import("@/features/pipeline/debug-controller");
     const controller = createDebugController();
     type ControllerWithState = typeof controller & {
       __state: {
@@ -408,6 +449,11 @@ describe("Pipeline Execution Architecture", () => {
     });
 
     const retryPromise = controller.retry();
+
+    // Since retry() now delegates to a Web Worker asynchronously,
+    // we need to flush promises to let the state transition to 'running'
+    // before the mocked generator starts yielding.
+    await new Promise(process.nextTick);
 
     // Verify intermediate state (Fix 6: Update store before starting generator loop)
     expect(controllerImpl.status).toBe("running");

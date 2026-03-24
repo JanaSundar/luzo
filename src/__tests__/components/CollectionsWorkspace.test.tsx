@@ -1,8 +1,8 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CollectionsWorkspace } from "@/components/collections/CollectionsWorkspace";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { render } from "@/test/utils";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { render } from "@/utils/test-utils";
 
 describe("CollectionsWorkspace", () => {
   beforeEach(() => {

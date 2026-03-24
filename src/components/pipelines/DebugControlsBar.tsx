@@ -1,7 +1,7 @@
 "use client";
 import { Play, RotateCcw, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface DebugControlsBarProps {
   status: string;

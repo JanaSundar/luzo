@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
+import { DEFAULT_PROMPTS } from "@/features/pipeline/ai-constants";
 
 describe("DEFAULT_PROMPTS", () => {
   it("keeps technical prompt section-specific", () => {

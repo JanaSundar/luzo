@@ -1,4 +1,5 @@
 import type { PipelineGenerationMetadata } from "./pipeline-generation";
+import type { FlowDocument } from "./workflow";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
@@ -164,10 +165,18 @@ export interface MockConfig {
   latencyMs: number;
 }
 
+export interface PipelineRequestSource {
+  collectionId?: string;
+  requestId?: string;
+  requestName?: string;
+  mode: "detached" | "linked" | "new";
+}
+
 export interface PipelineStep extends ApiRequest {
   id: string;
   name: string;
   mockConfig?: MockConfig;
+  requestSource?: PipelineRequestSource;
 }
 
 export interface Pipeline {
@@ -175,6 +184,7 @@ export interface Pipeline {
   generationMetadata?: PipelineGenerationMetadata;
   name: string;
   description?: string;
+  flowDocument?: FlowDocument;
   steps: PipelineStep[];
   narrativeConfig: AINarrativeConfig;
   createdAt: string;
@@ -254,3 +264,6 @@ export interface CodeGenerationOptions {
 }
 
 export * from "./pipeline-generation";
+export * from "./worker-results";
+export * from "./workflow";
+export * from "./workers";

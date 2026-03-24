@@ -4,15 +4,64 @@ import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AIConfigurator } from "@/components/pipelines/AIConfigurator";
-import { DebuggerShell } from "@/components/pipelines/DebuggerShell";
-import { PipelineBuilder } from "@/components/pipelines/PipelineBuilder";
-import { PipelineLayout } from "@/components/pipelines/PipelineLayout";
-import { ReportPreview } from "@/components/pipelines/ReportPreview";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import dynamic from "next/dynamic";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSavePipelineToDb } from "./useSavePipelineToDb";
 import { usePipelinePageController } from "./usePipelinePageController";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+
+// Dynamically import heavy pipeline components
+const PipelineBuilder = dynamic(
+  () => import("@/components/pipelines/PipelineBuilder").then((mod) => mod.PipelineBuilder),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <LoadingSpinner size="lg" variant="dots" />
+      </div>
+    ),
+  },
+);
+
+const DebuggerShell = dynamic(
+  () => import("@/components/pipelines/DebuggerShell").then((mod) => mod.DebuggerShell),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <LoadingSpinner size="lg" variant="dots" />
+      </div>
+    ),
+  },
+);
+
+const AIConfigurator = dynamic(
+  () => import("@/components/pipelines/AIConfigurator").then((mod) => mod.AIConfigurator),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <LoadingSpinner size="lg" variant="dots" />
+      </div>
+    ),
+  },
+);
+
+const ReportPreview = dynamic(
+  () => import("@/components/pipelines/ReportPreview").then((mod) => mod.ReportPreview),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <LoadingSpinner size="lg" variant="dots" />
+      </div>
+    ),
+  },
+);
+
+// PipelineLayout remains static as it's the structural frame
+import { PipelineLayout } from "@/components/pipelines/PipelineLayout";
 
 function PipelinesPageContent() {
   const pathname = usePathname();
@@ -68,12 +117,11 @@ function PipelinesPageContent() {
 
     const syncMissingDbPipelines = async () => {
       try {
-        const response = await fetch("/api/db/collections", {
-          method: "POST",
+        const response = await fetch("/api/db/pipelines", {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dbUrl: normalizedDbUrl,
-            action: "load-pipelines",
           }),
         });
 

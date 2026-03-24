@@ -4,8 +4,8 @@ import { ArrowDown, ArrowUp, GitBranch, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PipelineGenerationDraft, PreviewGrouping } from "@/types";
-import { METHOD_BG_COLORS } from "@/lib/utils/http";
-import { cn } from "@/lib/utils";
+import { METHOD_BG_COLORS } from "@/utils/http";
+import { cn } from "@/utils";
 
 interface CollectionPipelineStepListProps {
   draft: PipelineGenerationDraft;

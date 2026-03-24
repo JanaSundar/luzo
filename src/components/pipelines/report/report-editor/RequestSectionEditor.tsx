@@ -3,8 +3,8 @@
 import { Reorder, useDragControls } from "motion/react";
 import type { ReactNode } from "react";
 import type { StructuredReport } from "@/types/pipeline-debug";
-import { updateReportTextSection } from "@/lib/reports/report-editor";
-import { updateReportRequestOrder } from "@/lib/reports/report-editor-reorder";
+import { updateReportTextSection } from "@/features/reports/report-editor";
+import { updateReportRequestOrder } from "@/features/reports/report-editor-reorder";
 import { TextSectionEditorCard } from "./SectionCards";
 import { ReorderHandle } from "./ReorderHandle";
 import type { ReportEditorProps } from "./types";

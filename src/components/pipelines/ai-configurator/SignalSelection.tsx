@@ -13,9 +13,9 @@ import {
   Square,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { maskSensitiveValue } from "@/lib/pipeline/sensitivity";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { cn } from "@/lib/utils";
+import { maskSensitiveValue } from "@/features/pipeline/sensitivity";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { cn } from "@/utils";
 import type { ContextVariable, SignalGroup } from "@/types/pipeline-debug";
 
 interface SignalSelectionProps {

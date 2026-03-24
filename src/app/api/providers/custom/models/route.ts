@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 const FETCH_TIMEOUT_MS = 15_000;
 

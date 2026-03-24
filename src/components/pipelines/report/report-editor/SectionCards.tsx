@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { ReportEditorSectionKey } from "@/lib/reports/report-editor";
+import type { ReportEditorSectionKey } from "@/features/reports/report-editor";
 import { EditorCard } from "./EditorCard";
 import type { ReportEditorProps } from "./types";
 
