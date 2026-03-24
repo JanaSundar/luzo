@@ -69,6 +69,12 @@ export interface NarrativeRequestReport {
   latencyMs: number | null;
 }
 
+export interface NarrativeCustomSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface NarrativeAiOutput {
   summary: string;
   insights: string[];
@@ -82,6 +88,9 @@ export interface NarrativeReport extends NarrativeAiOutput {
   id?: string;
   tone: NarrativeTone;
   title: string;
+  healthSummary: string;
+  sectionOrder?: string[];
+  customSections?: NarrativeCustomSection[];
   metrics: ReportMetrics;
   endpointMetrics: ReportEndpointMetric[];
   requests: NarrativeRequestReport[];
@@ -111,6 +120,8 @@ export interface ExportReportModel {
   tone: NarrativeTone;
   pipelineName: string;
   generatedAt: string;
+  sectionOrder?: string[];
+  customSections?: NarrativeCustomSection[];
   summary: string;
   healthSummary: string;
   metrics: ReportMetrics;

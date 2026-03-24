@@ -11,13 +11,9 @@ import {
 import type { PipelineStep } from "@/types";
 import type { GeneratorYield, StepAlias, StepSnapshot } from "@/types/pipeline-runtime";
 import { toRuntimeValue } from "./pipeline-execution-mappers";
-import { createInitialSnapshot } from "./pipeline-snapshot-utils";
 import {
   DEFAULT_STEP_TIMEOUT_MS,
   type GeneratorOptions,
-  type NormalizedResponse,
-  buildAbortedSnapshot,
-  buildFailedSnapshot,
   buildResolvedRequest,
   buildSuccessSnapshot,
   buildYield,
@@ -28,6 +24,13 @@ import {
   limitStreamChunks,
   resolveStep,
 } from "./generator-executor-shared";
+import { createInitialSnapshot } from "./pipeline-snapshot-utils";
+import {
+  executeMockStep,
+  buildStageEntry,
+  completeSingleStep,
+  emitFailure,
+} from "./step-executor-helpers";
 
 export async function* executeStepGenerator(
   step: PipelineStep,
@@ -54,18 +57,21 @@ export async function* executeStepGenerator(
   try {
     const resolvedStep = resolveStep(step, runtimeVariables, envVariables, variableOverrides);
     const resolvedRequest = buildResolvedRequest(resolvedStep);
-    const resolvedResponse = options.useStream
-      ? normalizeStreamResult(
-          yield* runStreamExecution(
-            resolvedStep,
-            envVariables,
-            pendingSnapshot,
-            snapshots,
-            stepAbort,
-            options.masterAbort,
-          ),
-        )
-      : await executeRequest(resolvedStep, envVariables);
+
+    const resolvedResponse = resolvedStep.mockConfig?.enabled
+      ? await executeMockStep(resolvedStep)
+      : options.useStream
+        ? normalizeStreamResult(
+            yield* runStreamExecution(
+              resolvedStep,
+              envVariables,
+              pendingSnapshot,
+              snapshots,
+              stepAbort,
+              options.masterAbort,
+            ),
+          )
+        : await executeRequest(resolvedStep, envVariables);
 
     clearStepAbort(step.id, stepAbort, options.abortControls, options.masterAbort, onMasterAbort);
     yield* completeSingleStep(
@@ -119,15 +125,38 @@ export async function* executeParallelStage(
   const requests = stage.map((entry) =>
     resolveStep(entry.step, cloneRuntimeVariables(runtimeVariables), envVariables, {}),
   );
+
   try {
-    const responses = await executeBatchRequestsThroughApiRoute(
-      requests,
-      envVariables,
-      options.masterAbort.signal,
+    const responses: (RouteExecutionResponse | null)[] = Array.from(
+      { length: stage.length },
+      () => null,
     );
+    const realIndices = stage.map((_, i) => i).filter((i) => !stage[i]!.step.mockConfig?.enabled);
+    const mockIndices = stage.map((_, i) => i).filter((i) => stage[i]!.step.mockConfig?.enabled);
+
+    await Promise.all([
+      realIndices.length > 0
+        ? executeBatchRequestsThroughApiRoute(
+            realIndices.map((i) => requests[i]!),
+            envVariables,
+            options.masterAbort.signal,
+          ).then((res) => {
+            realIndices.forEach((realIdx, resIdx) => {
+              responses[realIdx] = res[resIdx] as RouteExecutionResponse;
+            });
+          })
+        : Promise.resolve(),
+      ...mockIndices.map(async (i) => {
+        const { buildMockResponse } = await import("./step-executor-helpers");
+        const mock = stage[i]!.step.mockConfig!;
+        if (mock.latencyMs > 0) await new Promise((resolve) => setTimeout(resolve, mock.latencyMs));
+        responses[i] = buildMockResponse(stage[i]!.step) as unknown as RouteExecutionResponse;
+      }),
+    ]);
+
     for (let i = 0; i < stage.length; i++) {
       const entry = stage[i]!;
-      const response = responses[i] as RouteExecutionResponse | undefined;
+      const response = responses[i];
       if (!response) continue;
       const resolvedRequest = buildResolvedRequest(requests[i]!);
       const runtimeValue = toRuntimeValue(response);
@@ -185,80 +214,6 @@ async function* runStreamExecution(
   return next.value as StreamResult;
 }
 
-function normalizeStreamResult(res: StreamResult): NormalizedResponse {
+function normalizeStreamResult(res: StreamResult) {
   return { ...res };
-}
-
-function buildStageEntry(
-  step: PipelineStep | undefined,
-  aliasMap: Map<string, StepAlias>,
-  stepIndex: number,
-  runtimeVariables: Record<string, unknown>,
-  snapshots: StepSnapshot[],
-) {
-  if (!step) return null;
-  const pendingSnapshot = createInitialSnapshot(step, stepIndex, "running", runtimeVariables, null);
-  pendingSnapshot.startedAt = Date.now();
-  snapshots.push(pendingSnapshot);
-  return {
-    step,
-    pendingSnapshot,
-    snapshotIndex: snapshots.length - 1,
-    alias: aliasMap.get(step.id) ?? {
-      alias: "reqUnknown",
-      index: stepIndex,
-      refs: ["reqUnknown"],
-      stepId: step.id,
-    },
-  };
-}
-
-async function* completeSingleStep(
-  stepAlias: StepAlias,
-  pendingSnapshot: StepSnapshot,
-  resolvedRequest: ReturnType<typeof buildResolvedRequest>,
-  resolvedResponse: NormalizedResponse,
-  runtimeVariables: Record<string, unknown>,
-  snapshots: StepSnapshot[],
-  masterAbort: AbortController,
-  stepAbort: ReturnType<typeof createStepAbort>,
-) {
-  if (isAborted(stepAbort, masterAbort)) {
-    const aborted = buildAbortedSnapshot(
-      pendingSnapshot,
-      runtimeVariables,
-      resolvedRequest,
-      resolvedResponse,
-    );
-    snapshots[snapshots.length - 1] = aborted;
-    yield buildYield("step_complete", aborted, snapshots);
-    return;
-  }
-
-  const runtimeValue = toRuntimeValue(resolvedResponse);
-  stepAlias.refs.forEach((ref) => {
-    runtimeVariables[ref] = runtimeValue;
-  });
-  const completed = buildSuccessSnapshot(
-    pendingSnapshot,
-    resolvedResponse,
-    runtimeVariables,
-    resolvedRequest,
-  );
-  snapshots[snapshots.length - 1] = completed;
-  yield buildYield("step_complete", completed, snapshots);
-}
-
-async function* emitFailure(
-  pendingSnapshot: StepSnapshot,
-  runtimeVariables: Record<string, unknown>,
-  error: unknown,
-  snapshots: StepSnapshot[],
-  aborted: boolean,
-  snapshotIndex = snapshots.length - 1,
-) {
-  const failed = buildFailedSnapshot(pendingSnapshot, runtimeVariables, error, aborted);
-  snapshots[snapshotIndex] = failed;
-  yield buildYield("step_complete", failed, snapshots);
-  if (!aborted) yield buildYield("error", failed, snapshots);
 }

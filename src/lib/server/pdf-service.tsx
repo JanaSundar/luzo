@@ -3,15 +3,6 @@ import { chromium } from "playwright-core";
 import chromium_stealth from "@sparticuz/chromium";
 import type { ExportReportModel } from "@/types/pipeline-report";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronRight,
-  Info,
-  Lightbulb,
-  Target,
-  Activity,
-} from "lucide-react";
-import {
   ReportLayoutContainer,
   ReportHeader,
   ReportStat,
@@ -61,11 +52,7 @@ export async function generateReportPdf(
   const requestSections = requestCardGroups.map((group, index) => (
     <div key={`request-group-${index}`} className="break-inside-avoid request-group space-y-3">
       {index === 0 ? (
-        <ReportSection
-          title="Per Request Breakdown"
-          icon={<ChevronRight className="h-4 w-4" />}
-          mode="pdf"
-        >
+        <ReportSection title="Per Request Breakdown" mode="pdf">
           <div className="space-y-3">{group}</div>
         </ReportSection>
       ) : (
@@ -86,15 +73,15 @@ export async function generateReportPdf(
       </ReportHeader>
 
       <div className="space-y-6">
-        <ReportSection title="Executive Summary" icon={<Target className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Executive Summary" mode="pdf">
           <StaticHtml html={summaryHtml} />
         </ReportSection>
 
-        <ReportSection title="Health Summary" icon={<Activity className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Health Summary" mode="pdf">
           <StaticHtml html={healthHtml} />
         </ReportSection>
 
-        <ReportSection title="Key Insights" icon={<Lightbulb className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Key Insights" mode="pdf">
           <ReportList
             items={insightsHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -102,7 +89,7 @@ export async function generateReportPdf(
           />
         </ReportSection>
 
-        <ReportSection title="Recommendations" icon={<Info className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Recommendations" mode="pdf">
           <ReportList
             items={recommendationsHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -110,7 +97,7 @@ export async function generateReportPdf(
           />
         </ReportSection>
 
-        <ReportSection title="Risks" icon={<AlertTriangle className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Risks" mode="pdf">
           <ReportList
             items={risksHtml.map((html, i) => (
               <StaticHtml key={i} html={html} />
@@ -120,15 +107,11 @@ export async function generateReportPdf(
 
         {requestSections}
 
-        <ReportSection title="Conclusion" icon={<CheckCircle2 className="h-4 w-4" />} mode="pdf">
+        <ReportSection title="Conclusion" mode="pdf">
           <StaticHtml html={conclusionHtml} />
         </ReportSection>
 
-        <ReportSection
-          title="Performance Appendix"
-          icon={<ChevronRight className="h-4 w-4" />}
-          mode="pdf"
-        >
+        <ReportSection title="Performance Appendix" mode="pdf">
           <PerformanceAppendixTable metrics={report.endpointMetrics} mode="pdf" />
         </ReportSection>
       </div>
@@ -206,9 +189,10 @@ header, section, div {
   page-break-inside: auto !important;
 }
 
-.break-inside-avoid {
+.break-inside-avoid, .break-inside-avoid-page {
   break-inside: avoid !important;
   page-break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
 }
 
 /* Sections */
@@ -245,7 +229,8 @@ section:last-of-type { border-bottom: none !important; margin-bottom: 0 !importa
 .markdown-content p { margin: 0 0 16px 0 !important; }
 .markdown-content ul { padding-left: 20px; margin-bottom: 16px; list-style: none; }
 .markdown-content, .markdown-content * { overflow-wrap: anywhere !important; word-break: break-word !important; }
-.markdown-content li { margin-bottom: 10px; position: relative; }
+.markdown-content li { margin-bottom: 10px; position: relative; break-inside: avoid !important; }
+.markdown-content p, .markdown-content blockquote, .markdown-content pre, .markdown-content img { break-inside: avoid !important; page-break-inside: avoid !important; }
 .markdown-content li::before { 
   content: "•"; 
   position: absolute; 
@@ -263,8 +248,15 @@ table, tbody, thead, tr, td, th, div, p, span {
 table {
   width: 100% !important;
   table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   break-inside: auto !important;
-  page-break-inside: auto !important;
+}
+
+thead, tbody, tfoot, tr, td, th {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
 }
 
 thead {
@@ -282,7 +274,7 @@ tfoot {
 }
 
 tr {
-  break-inside: avoid-page !important;
+  break-inside: avoid !important;
   page-break-inside: avoid !important;
 }
 
@@ -291,12 +283,17 @@ th, td {
   overflow-wrap: anywhere !important;
   word-break: break-word !important;
   vertical-align: top !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
 }
 
 .markdown-content table {
   width: 100% !important;
   table-layout: fixed !important;
-  border-collapse: collapse !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
 }
 
 .markdown-content th,

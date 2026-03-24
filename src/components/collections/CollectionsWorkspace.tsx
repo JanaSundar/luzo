@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
+import { CollectionExportMenu } from "@/components/collections/CollectionExportMenu";
 import { CollectionsDisabledState } from "@/components/collections/CollectionsDisabledState";
 import { CollectionsHistoryPane } from "@/components/collections/CollectionsHistoryPane";
 import { CollectionsOverview } from "@/components/collections/CollectionsOverview";
@@ -172,6 +173,7 @@ export function CollectionsWorkspace() {
                 >
                   Convert
                 </Button>
+                <CollectionExportMenu collection={activeCollection} />
                 <CollectionEditorDialog
                   collection={activeCollection}
                   onSave={handleSaveCollection}

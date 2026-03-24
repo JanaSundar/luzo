@@ -4,7 +4,7 @@ import type {
   NarrativeReport,
   ReducedContext,
 } from "@/types/pipeline-debug";
-import { toEndpointMetrics } from "./shared";
+import { buildHealthSummary, toEndpointMetrics } from "./shared";
 
 export function buildFallbackStructuredReport(
   context: ReducedContext,
@@ -131,10 +131,10 @@ function createFallbackNarrativeReport(
   title: string,
 ): NarrativeReport {
   const endpointMetrics = toEndpointMetrics(context);
-
-  return {
+  const baseReport: NarrativeReport = {
     tone: config.tone,
     title,
+    healthSummary: "",
     metrics: {
       totalSteps: context.metadata.totalSteps,
       failedSteps: context.metadata.failedSteps,
@@ -158,6 +158,11 @@ function createFallbackNarrativeReport(
       latencyMs: endpoint.latencyMs,
       analysis: output.requests[index]?.analysis ?? `${endpoint.stepName} processed.`,
     })),
+  };
+
+  return {
+    ...baseReport,
+    healthSummary: buildHealthSummary(baseReport),
   };
 }
 

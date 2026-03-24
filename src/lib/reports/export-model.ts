@@ -22,8 +22,10 @@ export function buildExportReportModel({
     tone: report.tone ?? "technical",
     pipelineName,
     generatedAt: generatedAt ?? new Date().toISOString(),
+    sectionOrder: report.sectionOrder ?? [],
+    customSections: safeArray(report.customSections),
     summary: report.summary ?? "",
-    healthSummary: buildHealthSummary(report),
+    healthSummary: report.healthSummary ?? buildHealthSummary(report),
     metrics: report.metrics ?? {
       totalSteps: 0,
       failedSteps: 0,

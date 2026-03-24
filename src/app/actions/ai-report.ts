@@ -5,6 +5,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import {
   buildFallbackStructuredReport,
+  buildHealthSummary,
   buildReportSystemPrompt,
   buildToneFilteredAiInput,
   toEndpointMetrics,
@@ -85,9 +86,7 @@ ${JSON.stringify(aiInput, null, 2)}`;
       const computedEndpointMetrics = toEndpointMetrics(context);
 
       report.metrics = computedMetrics;
-
       report.endpointMetrics = computedEndpointMetrics;
-
       report.requests = computedEndpointMetrics.map((endpoint, index) => ({
         stepId: endpoint.stepId,
         name: endpoint.stepName,
@@ -97,6 +96,7 @@ ${JSON.stringify(aiInput, null, 2)}`;
         latencyMs: endpoint.latencyMs,
         analysis: report.requests?.[index]?.analysis ?? `${endpoint.stepName} completed.`,
       }));
+      report.healthSummary = report.healthSummary ?? buildHealthSummary(report);
     } catch {
       return {
         report: buildFallbackStructuredReport(context, config, derivedTitle),
@@ -109,8 +109,7 @@ ${JSON.stringify(aiInput, null, 2)}`;
       mode: "ai",
       tokensUsed: result.usage?.totalTokens,
     };
-  } catch (error) {
-    console.error("AI report generation failed:", error);
+  } catch {
     return {
       report: buildFallbackStructuredReport(context, config, derivedTitle),
       mode: "preview",
@@ -148,4 +147,127 @@ function createProviderModel(provider: AIProviderConfig) {
       return fallback(modelId);
     }
   }
+}
+
+export async function refineReportSection(input: {
+  report: StructuredReport;
+  sectionKey: string;
+  instruction: string;
+  provider: AIProviderConfig;
+  config: AIReportConfig;
+}): Promise<GenerateReportResult> {
+  const { report, sectionKey, instruction, provider, config } = input;
+
+  if (!provider.apiKey) {
+    return { report, mode: "preview" };
+  }
+
+  try {
+    const currentContent = sectionKey.startsWith("request:")
+      ? report.requests.find((r) => r.stepId === sectionKey.split(":")[1])?.analysis
+      : (report as any)[sectionKey];
+
+    const systemPrompt = `You are an expert API quality engineer. Your task is to refine a specific section of a pipeline execution report.
+Tone: ${config.tone}
+Section: ${sectionKey}
+
+Original Content:
+${typeof currentContent === "string" ? currentContent : JSON.stringify(currentContent)}
+
+User Instruction:
+${instruction}
+
+Return only the refined content for this specific section. If the section expects a list (like insights/risks), return a JSON array of strings. If it's a narrative (summary/conclusion/analysis), return a plain text string. Do not include any other commentary.`;
+
+    const result = await generateText({
+      model: createProviderModel(provider),
+      system: systemPrompt,
+      prompt: "Refine the section based on the instructions.",
+      temperature: 0.3,
+    });
+
+    const refinedText = result.text.trim();
+    const updatedReport = { ...report };
+
+    if (sectionKey.startsWith("request:")) {
+      const stepId = sectionKey.split(":")[1];
+      updatedReport.requests = updatedReport.requests.map((r) =>
+        r.stepId === stepId ? { ...r, analysis: refinedText } : r,
+      );
+    } else {
+      try {
+        // Try parsing as JSON if it looks like an array/object
+        if (refinedText.startsWith("[") || refinedText.startsWith("{")) {
+          (updatedReport as any)[sectionKey] = JSON.parse(refinedText);
+        } else {
+          (updatedReport as any)[sectionKey] = refinedText;
+        }
+      } catch {
+        (updatedReport as any)[sectionKey] = refinedText;
+      }
+    }
+
+    return {
+      report: updatedReport,
+      mode: "ai",
+      tokensUsed: result.usage?.totalTokens,
+    };
+  } catch {
+    return { report, mode: "ai" };
+  }
+}
+
+export async function editReportSelection(input: {
+  selectedText: string;
+  sectionKey: string;
+  sectionTitle: string;
+  sectionContent: string;
+  reportContext: string;
+  instruction: string;
+  provider: AIProviderConfig;
+  config: AIReportConfig;
+}): Promise<{ replacement: string; tokensUsed?: number }> {
+  const {
+    selectedText,
+    sectionKey,
+    sectionTitle,
+    sectionContent,
+    reportContext,
+    instruction,
+    provider,
+    config,
+  } = input;
+
+  if (!provider.apiKey) {
+    throw new Error("AI provider not configured.");
+  }
+
+  const result = await generateText({
+    model: createProviderModel(provider),
+    system: `You are editing one selected span inside a pipeline report.
+Tone: ${config.tone}
+Section key: ${sectionKey}
+Section title: ${sectionTitle}
+
+Full report context:
+${reportContext}
+
+Section content:
+${sectionContent}
+
+Selected text:
+${selectedText}
+
+User instruction:
+${instruction}
+
+Return only the replacement text for the selected span. Do not wrap it in quotes or add any commentary.`,
+    prompt: "Rewrite the selected text only.",
+    temperature: 0.3,
+  });
+
+  return {
+    replacement: result.text.trim(),
+    tokensUsed: result.usage?.totalTokens,
+  };
 }

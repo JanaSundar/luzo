@@ -3,7 +3,7 @@
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
-import { ACTION_BUTTON_CLASSES_NO_HOVER, cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES_NO_HOVER, cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
 import type { Pipeline } from "@/types";
 
 interface PipelineSidebarProps {
@@ -50,12 +50,12 @@ export function PipelineSidebar({
   return (
     <aside
       className={cn(
-        "bg-muted/20 flex flex-col min-h-0 border-r",
+        "bg-muted/20 flex flex-col min-h-0 border-r border-border/40",
         "fixed inset-y-0 left-0 z-40 w-64 transition-transform duration-200 lg:relative lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="flex h-14 items-center justify-between border-b border-border/40 px-4">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Saved Pipelines
         </h2>
@@ -80,7 +80,7 @@ export function PipelineSidebar({
 
       <div
         className={cn(
-          "grid border-b transition-[grid-template-rows] duration-200 ease-out",
+          "grid border-b border-border/40 transition-[grid-template-rows] duration-200 ease-out",
           selectionMode ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
@@ -195,14 +195,18 @@ export function PipelineSidebar({
                     </button>
                     <button
                       type="button"
-                      className={cn("rounded p-0.5", DESTRUCTIVE_ICON_BUTTON_CLASSES)}
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-md p-0",
+                        DESTRUCTIVE_BUTTON_CLASSES,
+                      )}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteClick(p.id);
                       }}
+                      aria-label="Delete pipeline"
                       title="Delete"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )}

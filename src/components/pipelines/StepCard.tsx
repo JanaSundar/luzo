@@ -106,6 +106,12 @@ export function StepCard({
       activeTab,
       onTabChange: setActiveTab,
       disabledTabs,
+      mockConfig: step.mockConfig ?? {
+        enabled: false,
+        statusCode: 200,
+        body: "",
+        latencyMs: 0,
+      },
     }),
     [step, suggestions, onUpdate, activeTab, disabledTabs],
   );
@@ -142,6 +148,7 @@ export function StepCard({
             onRenameSave={handleRenameSave}
             onRenameCancel={() => setRenamingId(null)}
             onRenameValueChange={setRenameValue}
+            isMockEnabled={step.mockConfig?.enabled}
           />
         </motion.div>
 
