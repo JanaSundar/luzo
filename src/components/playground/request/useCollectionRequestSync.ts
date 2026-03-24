@@ -58,7 +58,7 @@ export function useCollectionRequestSync(request: ApiRequest, response: ApiRespo
       lastSavedFingerprintRef.current = fingerprint;
       markRequestPersisted(request);
       setLastSavedAt(new Date().toISOString());
-      if (reason === "manual") {
+      if (reason === "manual" && !linkedSavedRequest.autoSave) {
         toast.success("Collection request saved");
       }
     },

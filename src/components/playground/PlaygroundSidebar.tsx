@@ -1,7 +1,7 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -17,13 +17,7 @@ import { useConfirmLoadRequest } from "@/components/playground/sidebar/useConfir
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter } from "@/components/ui/sidebar";
 import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
 import { useHistoryStore } from "@/lib/stores/useHistoryStore";
 import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
@@ -38,8 +32,6 @@ type PendingDelete =
 
 export function PlaygroundSidebar() {
   const { dbStatus, dbSchemaReady } = useSettingsStore();
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
 
   const { data: collections = [], isLoading } = useCollectionsQuery();
   const {
@@ -134,6 +126,8 @@ export function PlaygroundSidebar() {
     }
   }, [pendingDelete, deleteCollectionMutation, deleteRequestMutation, removeFromHistory]);
 
+  const isDeletePending = deleteCollectionMutation.isPending || deleteRequestMutation.isPending;
+
   const deleteDialogCopy = useMemo(() => {
     if (!pendingDelete) return null;
     if (pendingDelete.kind === "collection") {
@@ -147,6 +141,7 @@ export function PlaygroundSidebar() {
           </>
         ),
         confirmLabel: "Delete",
+        pendingLabel: "Deleting...",
         destructive: true as const,
       };
     }
@@ -155,6 +150,7 @@ export function PlaygroundSidebar() {
         title: "Delete saved request",
         description: "Delete this saved request? This cannot be undone.",
         confirmLabel: "Delete",
+        pendingLabel: "Deleting...",
         destructive: true as const,
       };
     }
@@ -162,13 +158,14 @@ export function PlaygroundSidebar() {
       title: "Remove from history",
       description: "Remove this entry from history?",
       confirmLabel: "Remove",
+      pendingLabel: "Removing...",
       destructive: false as const,
     };
   }, [pendingDelete]);
 
   return (
     <Sidebar
-      collapsible="icon"
+      collapsible="none"
       className="top-14 h-[calc(100svh-3.5rem)] border-r border-border/40"
     >
       {loadRequestConfirmDialog}
@@ -179,8 +176,10 @@ export function PlaygroundSidebar() {
           title={deleteDialogCopy.title}
           description={deleteDialogCopy.description}
           confirmLabel={deleteDialogCopy.confirmLabel}
+          pendingLabel={deleteDialogCopy.pendingLabel}
+          isPending={isDeletePending}
           destructive={deleteDialogCopy.destructive}
-          onConfirm={() => void confirmPendingDelete()}
+          onConfirm={confirmPendingDelete}
         />
       )}
       <div
@@ -204,7 +203,7 @@ export function PlaygroundSidebar() {
             "group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:pb-2",
           )}
         >
-          <SidebarWorkspaceTabs tab={tab} onTabChange={setTab} collapsed={collapsed} />
+          <SidebarWorkspaceTabs tab={tab} onTabChange={setTab} collapsed={false} />
         </div>
 
         <SidebarContent className="no-scrollbar min-w-0 px-2 pb-2 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:pb-2">
@@ -242,32 +241,25 @@ export function PlaygroundSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="border-t border-border/40 p-2 group-data-[collapsible=icon]:p-2">
-          <div
-            className={cn(
-              "flex w-full gap-2 px-1",
-              collapsed
-                ? "flex-col items-center justify-center gap-1.5"
-                : "flex-row items-center justify-between",
-            )}
-          >
-            <SidebarTrigger
-              className={cn(
-                "h-8 w-8 shrink-0 rounded-lg text-muted-foreground",
-                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
-              )}
-            />
-            <Link
-              href="/settings"
-              aria-label="Settings"
-              title="Settings"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "icon" }),
-                "h-8 w-8 shrink-0 rounded-lg",
-                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
-              )}
+          <div className="flex w-full items-center justify-end gap-2 px-1">
+            <motion.div
+              whileHover={{ rotate: 24 }}
+              whileTap={{ rotate: 0, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 360, damping: 24 }}
             >
-              <Settings className="h-4 w-4 text-muted-foreground" />
-            </Link>
+              <Link
+                href="/settings"
+                aria-label="Settings"
+                title="Settings"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "h-8 w-8 shrink-0 rounded-lg",
+                  "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
+                )}
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            </motion.div>
           </div>
         </SidebarFooter>
       </div>

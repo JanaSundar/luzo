@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderPlus, Upload } from "lucide-react";
+import { FolderPlus, Upload, X } from "lucide-react";
 import type { DropzoneInputProps, DropzoneRootProps } from "react-dropzone";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,10 @@ interface ImportCollectionUploadPanelProps {
   collectionName: string;
   getInputProps: <T extends DropzoneInputProps>(props?: T) => T;
   getRootProps: <T extends DropzoneRootProps>(props?: T) => T;
+  inputResetKey?: string;
   isDragActive: boolean;
   onCollectionNameChange: (value: string) => void;
+  onRemoveFile?: () => void;
   uploadedFileName: string;
 }
 
@@ -20,8 +22,10 @@ export function ImportCollectionUploadPanel({
   collectionName,
   getInputProps,
   getRootProps,
+  inputResetKey,
   isDragActive,
   onCollectionNameChange,
+  onRemoveFile,
   uploadedFileName,
 }: ImportCollectionUploadPanelProps) {
   return (
@@ -49,11 +53,11 @@ export function ImportCollectionUploadPanel({
           uploadedFileName && "border-primary/45 bg-primary/5",
         )}
       >
-        <input {...getInputProps()} />
+        <input key={inputResetKey} {...getInputProps()} />
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
           <Upload className="h-4 w-4 text-muted-foreground" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">
             {uploadedFileName || (isDragActive ? "Drop JSON file here" : "Upload JSON file")}
           </p>
@@ -61,6 +65,21 @@ export function ImportCollectionUploadPanel({
             {uploadedFileName || "Drop or click to load a Postman or OpenAPI JSON file."}
           </p>
         </div>
+        {uploadedFileName && onRemoveFile ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onRemoveFile();
+            }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            aria-label="Remove uploaded file"
+            title="Remove file"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

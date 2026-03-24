@@ -110,6 +110,43 @@ const TABLES = [
       },
     ] satisfies ExpectedColumn[],
   },
+  {
+    name: "luzo_pipelines",
+    createSql: `
+      CREATE TABLE luzo_pipelines (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `,
+    columns: [
+      { name: "id", dataType: "text", addSql: "ALTER TABLE luzo_pipelines ADD COLUMN id TEXT" },
+      {
+        name: "name",
+        dataType: "text",
+        addSql: "ALTER TABLE luzo_pipelines ADD COLUMN name TEXT",
+      },
+      {
+        name: "data",
+        dataType: "jsonb",
+        addSql: "ALTER TABLE luzo_pipelines ADD COLUMN data JSONB",
+      },
+      {
+        name: "created_at",
+        dataType: "timestamp with time zone",
+        addSql:
+          "ALTER TABLE luzo_pipelines ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+      },
+      {
+        name: "updated_at",
+        dataType: "timestamp with time zone",
+        addSql:
+          "ALTER TABLE luzo_pipelines ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+      },
+    ] satisfies ExpectedColumn[],
+  },
 ] as const;
 
 export async function ensureRuntimeSchema(

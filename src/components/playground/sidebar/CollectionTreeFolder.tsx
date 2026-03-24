@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronRight, Folder, MoreVertical, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  Download,
+  FileJson2,
+  Folder,
+  GitBranch,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { Fragment } from "react";
@@ -9,12 +17,17 @@ import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem } from "@/components/ui/sidebar";
+import { exportCollectionToOpenApi } from "@/lib/exporters/pipeline-openapi";
+import { exportCollectionToPostman } from "@/lib/exporters/pipeline-postman";
 import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
+import { downloadTextFile, slugifyFilenamePart } from "@/lib/reports/export-download";
 import { cn } from "@/lib/utils";
 import type { ApiRequest, Collection, SavedRequest } from "@/types";
 
@@ -41,6 +54,23 @@ export function CollectionTreeFolder({
 }: CollectionTreeFolderProps) {
   const router = useRouter();
   const regionId = `collection-folder-${collection.id}`;
+  const slug = slugifyFilenamePart(collection.name, "collection");
+
+  const handlePostmanExport = () => {
+    downloadTextFile(
+      exportCollectionToPostman(collection),
+      `${slug}.postman_collection.json`,
+      "application/json",
+    );
+  };
+
+  const handleOpenApiExport = () => {
+    downloadTextFile(
+      exportCollectionToOpenApi(collection),
+      `${slug}.openapi.json`,
+      "application/json",
+    );
+  };
 
   return (
     <Collapsible open={isOpen} onOpenChange={onOpenChange} className="group/collapsible">
@@ -78,16 +108,37 @@ export function CollectionTreeFolder({
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-fit p-1">
+            <DropdownMenuContent align="end" className="w-44 p-1.5">
+              <DropdownMenuGroup className="pb-1">
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                  Create
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2 pl-5 text-[11px]"
+                  onClick={() => router.push(collectionToPipelineHref(collection.id))}
+                >
+                  <GitBranch className="h-3 w-3" /> Pipeline
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuGroup className="pt-1 pb-1">
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                  Export
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2 pl-5 text-[11px]"
+                  onClick={handlePostmanExport}
+                >
+                  <Download className="h-3 w-3" /> To Postman
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2 pl-5 text-[11px]"
+                  onClick={handleOpenApiExport}
+                >
+                  <FileJson2 className="h-3 w-3" /> To OpenAPI
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuItem
-                className="gap-2 text-[11px]"
-                onClick={() => router.push(collectionToPipelineHref(collection.id))}
-              >
-                Create pipeline
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                className="gap-2 text-[11px]"
+                className="mt-1 cursor-pointer gap-2 text-[11px] text-foreground"
                 onClick={() => onDeleteCollection(collection.id, collection.name)}
               >
                 <Trash2 className="h-3 w-3" /> Delete

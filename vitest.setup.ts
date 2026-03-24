@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+import "@/lib/immer/init";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

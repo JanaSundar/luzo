@@ -8,7 +8,8 @@ import {
   upsertCollection,
   upsertRequest,
 } from "@/lib/db/collections-repository";
-import { createDbClient } from "@/lib/db/runtime";
+import { createDbClient, initSchema } from "@/lib/db/runtime";
+import { hydratePipelineFromDb, sanitizePipelineForDb } from "@/lib/pipeline/pipeline-db";
 import { pipelines } from "@/lib/db/schema";
 
 /**
@@ -23,6 +24,14 @@ export async function POST(request: Request) {
 
     if (!dbUrl || typeof dbUrl !== "string") {
       return NextResponse.json({ error: "dbUrl is required" }, { status: 400 });
+    }
+
+    const schemaResult = await initSchema(dbUrl);
+    if (!schemaResult.ok) {
+      return NextResponse.json(
+        { error: schemaResult.error || "Failed to initialize database schema" },
+        { status: 500 },
+      );
     }
 
     const { db } = createDbClient(dbUrl);
@@ -81,19 +90,28 @@ export async function POST(request: Request) {
 
       case "save-pipeline": {
         const { id, name, data } = payload;
+        const sanitizedData = sanitizePipelineForDb(data);
         await db
           .insert(pipelines)
-          .values({ id, name, data, updatedAt: new Date() })
+          .values({ id, name, data: sanitizedData, updatedAt: new Date() })
           .onConflictDoUpdate({
             target: pipelines.id,
-            set: { name, data, updatedAt: new Date() },
+            set: { name, data: sanitizedData, updatedAt: new Date() },
           });
         return NextResponse.json({ ok: true });
       }
 
       case "load-pipelines": {
         const result = await db.select().from(pipelines);
-        return NextResponse.json({ pipelines: result });
+        return NextResponse.json({
+          pipelines: result.map((entry) =>
+            hydratePipelineFromDb(
+              entry.data as Parameters<typeof hydratePipelineFromDb>[0],
+              entry.createdAt.toISOString(),
+              entry.updatedAt.toISOString(),
+            ),
+          ),
+        });
       }
 
       case "delete-pipeline": {
@@ -106,8 +124,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
   } catch (err) {
+    const rootCause =
+      err && typeof err === "object" && "cause" in err && err.cause instanceof Error
+        ? err.cause.message
+        : null;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Operation failed" },
+      { error: rootCause ?? (err instanceof Error ? err.message : "Operation failed") },
       { status: 500 },
     );
   }

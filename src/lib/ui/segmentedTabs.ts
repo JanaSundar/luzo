@@ -16,7 +16,7 @@ export function segmentedTabBadgeClassName(active: boolean) {
   return cn(
     "flex h-[16px] min-w-[16px] items-center justify-center rounded-md px-1 text-[9px] font-semibold leading-none transition-colors",
     active
-      ? "bg-foreground text-background dark:bg-black dark:text-white"
+      ? "bg-background text-foreground ring-1 ring-border/70"
       : "bg-muted/70 text-muted-foreground",
   );
 }
@@ -26,7 +26,7 @@ export function segmentedTabTriggerClassName(active: boolean, className?: string
     "relative flex min-w-0 min-h-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[11px] font-medium transition-[color,background-color,border-color] duration-150 ease-out outline-none",
     "focus-visible:ring-2 focus-visible:ring-ring",
     active
-      ? "border-border/70 bg-foreground text-background font-bold shadow-[0_1px_2px_rgba(15,23,42,0.14),0_0_0_1px_rgba(255,255,255,0.06)_inset] dark:border-white/10 dark:bg-white dark:text-black dark:shadow-[0_1px_2px_rgba(2,6,23,0.4),0_0_0_1px_rgba(255,255,255,0.18)_inset]"
+      ? "border-border/70 bg-background text-foreground font-bold shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,0.06)_inset] dark:border-white/10 dark:shadow-[0_1px_2px_rgba(2,6,23,0.22),0_0_0_1px_rgba(255,255,255,0.12)_inset]"
       : "border-transparent text-foreground/65 hover:border-border/45 hover:bg-background/66 hover:text-foreground dark:text-white/65 dark:hover:border-white/10 dark:hover:bg-background/52 dark:hover:text-white",
     className,
   );

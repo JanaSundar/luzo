@@ -3,6 +3,7 @@
 import { Loader2, Pencil, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
 import { useSettingsStore } from "@/lib/stores/useSettingsStore";
@@ -47,7 +48,7 @@ export function PipelineLayout({
   } = usePipelineStore();
 
   const [skipDeleteConfirmation, setSkipDeleteConfirmation] = useState(false);
-  const { dbStatus, dbSchemaReady } = useSettingsStore();
+  const { dbStatus, dbSchemaReady, dbUrl } = useSettingsStore();
 
   const { isGeneratingReport, isExportingPDF, reportsByPipelineId, aiProvider } =
     usePipelineDebugStore();
@@ -92,10 +93,45 @@ export function PipelineLayout({
     setRenamingId(null);
   };
 
+  const deletePipelinesEverywhere = async (ids: string[]) => {
+    if (ids.length === 0) return;
+
+    if (canPersistToDb && dbUrl) {
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch("/api/db/collections", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              dbUrl,
+              action: "delete-pipeline",
+              id,
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Unable to delete pipeline from DB");
+          }
+        }),
+      );
+    }
+
+    resetSession();
+    if (ids.length === 1) {
+      deletePipeline(ids[0]!);
+    } else {
+      deletePipelines(ids);
+      setSelectedIds([]);
+      setSelectionMode(false);
+    }
+  };
+
   const handleDeleteClick = (id: string) => {
     if (skipDeleteConfirmation) {
-      resetSession();
-      deletePipeline(id);
+      void deletePipelinesEverywhere([id]).catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Unable to delete pipeline");
+      });
     } else {
       setPendingDeleteIds([id]);
       setShowConfirmDialog(true);
@@ -105,27 +141,24 @@ export function PipelineLayout({
   const handleBatchDeleteClick = () => {
     if (selectedIds.length === 0) return;
     if (skipDeleteConfirmation) {
-      resetSession();
-      deletePipelines(selectedIds);
-      setSelectedIds([]);
-      setSelectionMode(false);
+      void deletePipelinesEverywhere(selectedIds).catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Unable to delete pipelines");
+      });
     } else {
       setPendingDeleteIds(selectedIds);
       setShowConfirmDialog(true);
     }
   };
 
-  const confirmDelete = () => {
-    if (pendingDeleteIds.length === 1) {
-      deletePipeline(pendingDeleteIds[0]);
-    } else {
-      deletePipelines(pendingDeleteIds);
-      setSelectedIds([]);
-      setSelectionMode(false);
+  const confirmDelete = async () => {
+    try {
+      await deletePipelinesEverywhere(pendingDeleteIds);
+      if (skipConfirmTemp) setSkipDeleteConfirmation(true);
+      setShowConfirmDialog(false);
+      setPendingDeleteIds([]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete pipeline");
     }
-    if (skipConfirmTemp) setSkipDeleteConfirmation(true);
-    setShowConfirmDialog(false);
-    setPendingDeleteIds([]);
   };
 
   return (
@@ -140,7 +173,7 @@ export function PipelineLayout({
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
           onKeyDown={() => {}}
           role="button"

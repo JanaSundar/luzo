@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { isSensitiveVariableKey } from "@/lib/utils/variableMetadata";
 import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
 
 function getEnvironmentLabel(kind: "manual" | "openapi" | "postman" | undefined) {
@@ -173,20 +173,36 @@ export function EnvironmentSelector() {
                 </p>
 
                 {activeEnv.variables.map((v) => {
-                  const isMasked = maskedKeys.has(v.key) || isSensitiveVariableKey(v.key);
+                  const isMasked = maskedKeys.has(v.key);
+                  const displayValue = isMasked ? "••••••••" : v.value;
                   return (
                     <div key={v.key} className="flex items-center gap-2">
                       <span className="text-sm font-mono w-32 truncate text-muted-foreground">
                         {v.key}
                       </span>
-                      <span className="text-sm font-mono flex-1 truncate">
-                        {isMasked ? "••••••••" : v.value}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <span className="min-w-0 flex-1 truncate text-sm font-mono">
+                              {displayValue}
+                            </span>
+                          }
+                        />
+                        <TooltipContent
+                          side="top"
+                          align="start"
+                          hideArrow
+                          className="max-w-[28rem] break-all font-mono"
+                        >
+                          {displayValue}
+                        </TooltipContent>
+                      </Tooltip>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => toggleMask(v.key)}
+                        title={isMasked ? "Show value" : "Hide value"}
                       >
                         {isMasked ? (
                           <EyeOff className="h-3.5 w-3.5" />

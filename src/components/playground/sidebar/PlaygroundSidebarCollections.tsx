@@ -1,6 +1,7 @@
 "use client";
 
-import { Folder, Plus } from "lucide-react";
+import { Braces, Folder, Plus } from "lucide-react";
+import { ImportCollectionDialog } from "@/components/collections/ImportCollectionDialog";
 import { Fragment, useEffect, useState } from "react";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
 import { CollapsedCollectionItem } from "@/components/playground/sidebar/CollapsedCollectionItem";
@@ -66,18 +67,31 @@ export function PlaygroundSidebarCollections({
         <SidebarGroupLabel className="px-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Your collections
         </SidebarGroupLabel>
-        <CollectionEditorDialog
-          onSave={onCreateCollection}
-          trigger={
-            <button
-              type="button"
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-              title="New collection"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          }
-        />
+        <div className="flex items-center gap-1">
+          <ImportCollectionDialog
+            trigger={
+              <button
+                type="button"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                title="Import Postman or OpenAPI"
+              >
+                <Braces className="h-3.5 w-3.5" />
+              </button>
+            }
+          />
+          <CollectionEditorDialog
+            onSave={onCreateCollection}
+            trigger={
+              <button
+                type="button"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                title="New collection"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            }
+          />
+        </div>
       </div>
 
       <SidebarGroupContent className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto">
