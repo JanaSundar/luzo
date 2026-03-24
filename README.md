@@ -2,215 +2,211 @@
 
 **Design API workflows like a flowchart. Debug them with a live execution timeline.**
 
-Luzo is a developer-centric API playground and pipeline orchestrator for building, running, and debugging multi-step API workflows with deterministic execution and full data ownership.
+Luzo is a developer and QA-centric API workflow builder for designing, running, and debugging multi-step API workflows with deterministic execution and full data ownership.
 
-## Screenshots
-
-<div align="center">
-  <img src="public/screenshots/playground.jpg" width="100%" alt="Playground" />
-  <p><em>Modernized API Playground with synchronized collections and environments</em></p>
-  
-  <br />
-  
-  <img src="public/screenshots/pipeline_builder.jpg" width="100%" alt="Pipeline Builder" />
-  <p><em>Dependency-aware Pipeline Builder with DAG and Step Layout planning</em></p>
-  
-  <br />
-
-  <img src="public/screenshots/execution_timeline.jpg" width="100%" alt="Execution Timeline" />
-  <p><em>Real-time Execution Timeline with per-step inspection and state tracking</em></p>
-  
-  <br />
-
-  <img src="public/screenshots/ai_configurator.jpg" width="100%" alt="AI Configurator" />
-  <p><em>AI-driven Report Configurator with tone, depth, and signal selection</em></p>
-</div>
-
-## How to think about Luzo
-
-> If Postman is for requests, Luzo is for workflows.
-
-Luzo is a workspace where individual API calls are just steps in a larger, state-managed execution loop. It bridges the gap between simple ad-hoc testing and complex system automation.
-
-## Try this in 30 seconds
-
-1. **Clone & Install**:
-   ```bash
-   pnpm install
-   pnpm dev
-   ```
-2. **Save a Request**: Use the Playground to send a request and save it into a collection from the sidebar collections tab.
-3. **Build a Pipeline**: Convert that collection into a pipeline, then pass values between steps with variable references.
-4. **Run the Debugger**: Open the pipeline stream view, run the flow, and inspect the execution timeline and per-step request/response details.
+Luzo treats API calls as steps in a larger execution graph. It gives you a place to chain requests, pass data between them, inspect execution as it happens, and debug failures without losing the state of the workflow.
 
 ---
 
-## Key Features
+## Screenshots
+
+<p align="center">
+  <img src="public/screenshots/playground.jpg" width="100%" alt="Playground" />
+  <br />
+  <em>Modern API Playground with synchronized collections and environments</em>
+</p>
+
+<p align="center">
+  <img src="public/screenshots/pipeline_builder.jpg" width="100%" alt="Pipeline Builder" />
+  <br />
+  <em>Dependency-aware Pipeline Builder with DAG-based execution planning</em>
+</p>
+
+<p align="center">
+  <img src="public/screenshots/execution_timeline.jpg" width="100%" alt="Execution Timeline" />
+  <br />
+  <em>Live Execution Timeline with per-step inspection and state tracking</em>
+</p>
+
+<p align="center">
+  <img src="public/screenshots/ai_configurator.jpg" width="100%" alt="AI Configurator" />
+  <br />
+  <em>AI Report Configurator with tone, depth, and signal selection</em>
+</p>
+
+---
+
+## Why Luzo exists
+
+Most API tools are great at sending individual requests.
+
+They are less helpful when you need to:
+
+- run multiple dependent API calls in sequence
+- pass values from one request into the next
+- understand parallel vs sequential execution
+- inspect state while a workflow is running
+- retry from a failure without starting over
+- keep your data and provider keys in your own infrastructure
+
+Luzo is built for that layer: the workflow layer.
+
+---
+
+## Try this in 30 seconds
+
+1. Install and run the app:
+   ```bash
+   pnpm install
+   pnpm exec playwright install chromium
+   pnpm dev
+
+	2.	Send a request in the Playground and save it into a collection.
+	3.	Convert that collection into a pipeline.
+	4.	Run the pipeline and inspect the live execution timeline step by step.
+
+⸻
+
+## Core features
 
 ### Pipeline orchestration
 
 Build workflows, not just isolated calls.
+	•	Dependency-aware pipeline builder with step references like {{req1.response.body.token}}
+	•	DAG validation to keep execution order explicit and deterministic
+	•	Stage-aware planning for sequential dependencies and independent parallel work
+	•	Real-time execution stream tied directly to the selected pipeline
 
-- Pipeline builder with dependency-aware step references like `{{req1.response.body.token}}`
-- Stage-aware execution planning that distinguishes sequential dependencies from independent parallel work
-- DAG validation so execution order stays explicit and deterministic
-- Real-time execution stream that stays coupled to the selected pipeline
+### Live execution timeline
 
-### Timeline debugger
-
-Debug with a proper execution timeline instead of a flat log.
-
-- Normalized timeline store backed by Zustand + Immer
-- Filterable event list with active, paused, completed, failed, and mock-aware execution states
-- Per-step detail pane for request, response, error, timing, and payload metadata
-- Resume-friendly debugger shell with persisted execution artifacts
+Debug with a timeline instead of a flat log.
+	•	Inspect execution event by event as the workflow runs
+	•	Track active, paused, completed, failed, skipped, and retried states
+	•	Open per-step details for request, response, error, timing, and payload metadata
+	•	Resume debugging with persisted execution artifacts and timeline state
 
 ### Collections to pipelines
 
 Turn saved requests into runnable workflows.
+	•	Import from Postman JSON, Luzo collections, or stored collections
+	•	Infer step names, dependencies, unresolved variables, and execution order
+	•	Preview and adjust the generated flow before opening it in the builder
+	•	Export pipelines and collections to Postman Collection v2.1 or OpenAPI 3.0
 
-- Generate pipelines from Postman JSON, Luzo collections, or stored collections
-- Infer step names, dependencies, unresolved variables, and execution order before creation
-- Export pipelines and collections back to Postman Collection v2.1 or OpenAPI 3.0
-- Preview and adjust the generated flow before opening it in the pipeline builder
-- Convert pipelines back into collections when DB-backed collections are enabled
+### Deterministic debug controller
 
-### Debug controller
-
-Step through execution with deterministic control.
-
-- Step-by-step execution with pause/resume controls
-- Retry from failure instead of restarting the entire pipeline
-- Async-generator driven controller loop for deterministic UI sync
-- Parallel stage execution without breaking variable dependency flow
+Step through execution with control.
+	•	Pause and resume a pipeline run
+	•	Retry from failure instead of rerunning the whole workflow
+	•	Async-generator based controller loop for deterministic UI synchronization
+	•	Parallel stage execution without breaking variable dependency flow
 
 ### BYOK and BYODB
 
 Your keys. Your data. Your infrastructure.
-
-- BYOK for AI providers including OpenAI and Groq
-- BYODB PostgreSQL persistence via Drizzle ORM
-- Local-first behavior when you do not configure external services
+	•	Bring your own AI provider keys, including OpenAI and Groq
+	•	Persist data in your own PostgreSQL database through Drizzle ORM
+	•	Stay local-first when external services are not configured
 
 ### Request scripts and assertions
 
-Execute logic before or after any call in a sandboxed Node `vm` environment.
+Add logic around any request.
+	•	Pre-request scripting in a sandboxed Node vm
+	•	Assertions with lz.test() and lz.expect()
+	•	Request and response inspection during execution and debugging
 
-- Pre-request scripting
-- Test assertions with `lz.test()` and `lz.expect()`
-- Request/response inspection during debugging
+### Reports and export
 
-### Reporting and export
+Generate reports from real execution data.
+	•	AI-assisted report configurator for tone, depth, prompt, and signal selection
+	•	PDF export powered by Playwright rendering
+	•	Request breakdowns and performance-oriented execution summaries
 
-Generate AI-assisted reports and export polished PDFs.
+⸻
 
-- Report configurator for tone, depth, prompt, and signal selection
-- PDF export powered by Playwright rendering
-- Request breakdowns and performance-oriented report views
+## Variable chaining
 
-### Playground and collections
+Access values from earlier steps using:
 
-A faster request/response workflow without losing power.
+{{stepAlias.path}}
 
-- Shared JSON viewer with syntax highlighting, line numbers, exact-match search, and smoother response navigation
-- Refined request composer, URL bar, tabs, and response stream surfaces inspired by modern API tools
-- Variable value previews, better truncation tooltips, and tighter editor behavior across playground inputs
-- Postman-style cURL import in the request builder plus Postman/OpenAPI collection import directly inside the playground collections tab
-- Save requests and latest responses into DB-backed collections when connected
-- Import collection variables from Postman and server variables from OpenAPI as reusable environments
-- Auto-save collection-linked requests efficiently with debounced writes and local cache updates
+Example:
 
----
+{{auth.response.body.token}}
 
-## Getting Started
+Common aliases:
+	•	req1, req2, …
+	•	step ids
+	•	unique step-name aliases such as login.response.body.access_token
+
+⸻
+
+## Architecture
+
+## System overview
+
+Luzo uses a high-interaction frontend for orchestration and a backend layer for managing persistence, sensitive execution paths, and server-side operations like PDF generation and AI execution.
+
+Execution flow
+
+[Validation] ──▶ [Execution Planner] ──▶ [Debug Controller] ──▶ [Timeline Store]
+ (DAG Check)       (Stage Layout)          (Loop Management)      (UI Sync)
+
+Product model
+
+[Playground / Collections]
+          ↓
+ [Pipeline Builder]
+          ↓
+ [Execution Planner]
+          ↓
+ [Debug Controller]
+          ↓
+ [Live Timeline + Step Inspection]
+
+
+⸻
+
+## Technical stack
+	•	Framework: Next.js 16 (App Router)￼
+	•	UI: React 19￼
+	•	Styling: Tailwind CSS 4￼
+	•	State: Zustand￼ + Immer￼
+	•	Data fetching: TanStack Query￼
+	•	Database: Drizzle ORM￼ + PostgreSQL￼
+	•	Testing: Vitest￼ + Testing Library
+	•	PDF Engine: Playwright￼
+	•	Linting/Formatting: Oxc￼ (Oxlint, Oxfmt)
+
+⸻
+
+## Getting started
 
 ### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v20+)
-- [pnpm](https://pnpm.io/) (v9+)
-- [Playwright Chromium](https://playwright.dev/) (`pnpm exec playwright install chromium`)
+	•	Node.js￼ v20+
+	•	pnpm￼ v9+
+	•	Playwright Chromium￼
 
 ### Local setup
 
-```bash
 pnpm install
 pnpm exec playwright install chromium
 pnpm dev
-```
 
 ### Configuration
 
-Luzo works instantly with local storage. For the full persistence and AI experience, add these to your `.env.local`:
+Luzo works with local storage by default. For persistence and AI features, add these to .env.local:
 
-```bash
 DATABASE_URL="postgresql://user:password@localhost:5432/luzo"
 OPENAI_API_KEY="..."
 GROQ_API_KEY="..."
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
 
----
 
-## Variable chaining
+⸻
 
-Access values from previous steps using `{{stepAlias.path}}`.
-Example: `{{auth.response.body.token}}`
+### Project structure
 
-Common step aliases:
-- `req1`, `req2`, ...
-- step ids
-- unique step-name aliases like `login.response.body.access_token`
-
----
-
-## Architecture
-
-### System overview
-
-Luzo uses a dual-layer architecture: a high-interaction frontend for orchestration and a proxy backend to bypass CORS and manage sensitive script execution.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Luzo App Shell                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│   Navigation: [ Playground ]  [ Pipelines ]  [ Settings ]                    │
-├──────────────────────────────────────┬──────────────────────────────────────┤
-│           Request Builder            │           Response Viewer            │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│  • Method & URL                      │  • Status & Performance              │
-│  • Headers & Params                  │  • Pretty JSON / Raw                 │
-│  • Auth & Environments               │  • Headers & Size                    │
-│  • Interceptors (Scripts)            │  • Test Assertions                   │
-│  • Body (Form-data / JSON)           │  • AI Execution Report               │
-└──────────────────────────────────────┴──────────────────────────────────────┘
-```
-
-### Execution flow
-
-```
-[Validation] ──▶ [Execution Planner] ──▶ [Debug Controller] ──▶ [Timeline Store]
- (DAG Check)       (Stage Layout)          (Loop Management)      (UI Sync)
-```
-
----
-
-## Technical Stack
-
-- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
-- **UI**: [React 19](https://react.dev/)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
-- **State**: [Zustand](https://github.com/pmndrs/zustand) + [Immer](https://immerjs.github.io/immer/)
-- **Data fetching**: [TanStack Query](https://tanstack.com/query/latest)
-- **Database**: [Drizzle ORM](https://orm.drizzle.team/) + [PostgreSQL](https://www.postgresql.org/)
-- **Testing**: [Vitest](https://vitest.dev/) + Testing Library
-- **PDF Engine**: [Playwright](https://playwright.dev/)
-- **Linting/Formatting**: [Oxc](https://oxc.rs/) (Oxlint, Oxfmt)
-
----
-
-## Project Structure
-
-```
 src/
 ├── app/
 │   ├── api/              # API routes
@@ -226,29 +222,24 @@ src/
 │   ├── stores/           # Zustand stores
 │   └── db/               # Persistence layer
 └── src/__tests__/        # Unit and component tests
-```
 
----
 
-## Scripts
+⸻
 
-| Command       | Description              |
-| ------------- | ------------------------ |
-| `pnpm dev`    | Start dev server         |
-| `pnpm build`  | Build for production     |
-| `pnpm start`  | Start production server  |
-| `pnpm build:start` | Build and start      |
-| `pnpm test`   | Run Vitest suite         |
-| `pnpm test:watch` | Watch test suite      |
-| `pnpm test:coverage` | Coverage run       |
-| `pnpm lint`   | Fast linting with Oxlint |
-| `pnpm lint:fix` | Auto-fix lint issues   |
-| `pnpm format` | Formatting with Oxfmt    |
+### Scripts
 
-## Why Luzo?
+Command	Description
+pnpm dev	Start dev server
+pnpm build	Build for production
+pnpm start	Start production server
+pnpm build:start	Build and start
+pnpm test	Run Vitest suite
+pnpm test:watch	Watch tests
+pnpm test:coverage	Run coverage
+pnpm lint	Lint with Oxlint
+pnpm lint:fix	Auto-fix lint issues
+pnpm format	Format with Oxfmt
 
-Luzo was built for developers who want workflow tooling that feels closer to engineering than dashboard automation.
 
-1. **Ownership**: Your data can live in your DB, and your provider keys stay in your environment.
-2. **Execution control**: No black boxes. Step through every stage of a pipeline.
-3. **Fast iteration**: Modern frontend tooling, focused state management, and a debugger-first UI.
+⸻
+
