@@ -10,7 +10,6 @@ export async function generateCodeAction(
   try {
     return generateCode(request, options);
   } catch (error: unknown) {
-    console.error("Code generation action error:", error);
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(message || "Failed to generate code");
   }

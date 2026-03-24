@@ -242,24 +242,25 @@ export function PlaygroundSidebar() {
 
         <SidebarFooter className="border-t border-border/40 p-2 group-data-[collapsible=icon]:p-2">
           <div className="flex w-full items-center justify-end gap-2 px-1">
-            <motion.div
-              whileHover={{ rotate: 24 }}
-              whileTap={{ rotate: 0, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 360, damping: 24 }}
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              title="Settings"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "icon" }),
+                "h-8 w-8 shrink-0 rounded-lg",
+                "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
+              )}
             >
-              <Link
-                href="/settings"
-                aria-label="Settings"
-                title="Settings"
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "h-8 w-8 shrink-0 rounded-lg",
-                  "group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7",
-                )}
+              <motion.div
+                whileHover={{ rotate: 18 }}
+                whileTap={{ rotate: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 360, damping: 20 }}
+                className="flex items-center justify-center"
               >
                 <Settings className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            </motion.div>
+              </motion.div>
+            </Link>
           </div>
         </SidebarFooter>
       </div>

@@ -61,7 +61,6 @@ export function generateCode(request: ApiRequest, options: CodeGenerationOptions
     const generator = generators[options.language];
     return generator ? generator(curlCommand) : curlCommand;
   } catch (error: unknown) {
-    console.error(`Error generating ${options.language} code:`, error);
     const message = error instanceof Error ? error.message : String(error);
     return `// Error generating code: ${message}\n${curlCommand}`;
   }

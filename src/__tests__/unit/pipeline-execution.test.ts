@@ -8,6 +8,14 @@ import {
 import type { Pipeline } from "@/types";
 import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";
 
+interface MockStepVariables {
+  req1: {
+    response: {
+      body: Record<string, unknown>;
+    };
+  };
+}
+
 vi.mock("@/app/actions/api-tests", () => ({
   executeRequest: vi.fn(),
 }));
@@ -91,9 +99,9 @@ describe("Pipeline Execution Architecture", () => {
     const lastYield = yields[yields.length - 1];
     expect(lastYield?.type).toBe("step_complete");
     expect(lastYield?.snapshot.status).toBe("success");
-    expect(
-      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body,
-    ).toEqual({
+
+    const variables = lastYield?.snapshot.variables as unknown as MockStepVariables;
+    expect(variables?.req1.response.body).toEqual({
       message: "success",
     });
   });
@@ -142,9 +150,9 @@ describe("Pipeline Execution Architecture", () => {
     const lastYield = yields[yields.length - 1];
     expect(lastYield?.type).toBe("step_complete");
     expect(lastYield?.snapshot.status).toBe("success");
-    expect(
-      (lastYield?.snapshot.variables.req1 as { response: { body: string } }).response.body,
-    ).toEqual({
+
+    const variables = lastYield?.snapshot.variables as unknown as MockStepVariables;
+    expect(variables?.req1.response.body).toEqual({
       message: "success",
     });
   });

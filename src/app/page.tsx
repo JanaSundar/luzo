@@ -181,46 +181,50 @@ function PlaygroundContent() {
         <PlaygroundSidebar />
 
         <SidebarInset className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden bg-transparent p-3 pt-2">
-          <WorkspacePane className="h-auto shrink-0 flex-row items-center gap-3 rounded-[1.6rem] border border-border/45 bg-background/75 px-5 py-2.5 shadow-sm backdrop-blur">
+          <WorkspacePane className="h-auto shrink-0 flex-row items-center gap-3 rounded-[1.8rem] border border-border/40 bg-background/60 px-5 py-2.5 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 dark:bg-background/40">
             <div className="flex items-center gap-3">
               <EnvironmentSelector />
-              <div className="h-4 w-[1px] bg-border/40 mx-2" />
-              <CodeGenerator />
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                Layout
-              </span>
-              <div className="flex items-center rounded-lg border border-border bg-muted/50 p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-7 w-7 p-0 rounded-md transition-all",
-                    responseLayout === "vertical"
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                  onClick={() => setResponseLayout("vertical")}
-                  title="Vertical Layout"
-                >
-                  <PanelTop className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-7 w-7 p-0 rounded-md transition-all",
-                    responseLayout === "horizontal"
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                  onClick={() => setResponseLayout("horizontal")}
-                  title="Horizontal Layout"
-                >
-                  <PanelLeft className="h-3.5 w-3.5" />
-                </Button>
+            <div className="ml-auto flex items-center">
+              <CodeGenerator />
+
+              <div className="h-4 w-[1px] bg-border/30 mx-1" />
+
+              <div className="flex items-center gap-2.5 rounded-2xl bg-muted/30 p-1 border border-border/40">
+                <span className="pl-2.5 text-[10px] text-muted-foreground/60 font-bold uppercase tracking-[0.15em] select-none">
+                  Layout
+                </span>
+                <div className="flex items-center rounded-xl bg-background/40 p-0.5 shadow-inner">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className={cn(
+                      "h-7 w-7 rounded-lg transition-all duration-300",
+                      responseLayout === "vertical"
+                        ? "bg-background shadow-md text-foreground scale-[1.05]"
+                        : "text-muted-foreground opacity-50 hover:opacity-100",
+                    )}
+                    onClick={() => setResponseLayout("vertical")}
+                    title="Vertical Layout"
+                  >
+                    <PanelTop className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className={cn(
+                      "h-7 w-7 rounded-lg transition-all duration-300",
+                      responseLayout === "horizontal"
+                        ? "bg-background shadow-md text-foreground scale-[1.05]"
+                        : "text-muted-foreground opacity-50 hover:opacity-100",
+                    )}
+                    onClick={() => setResponseLayout("horizontal")}
+                    title="Horizontal Layout"
+                  >
+                    <PanelLeft className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </WorkspacePane>

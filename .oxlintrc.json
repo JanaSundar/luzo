@@ -1,6 +1,7 @@
 {
   "rules": {
     "no-unused-vars": "error",
+    "no-unused-imports": "error",
     "no-debugger": "warn",
     "no-console": "warn"
   }
