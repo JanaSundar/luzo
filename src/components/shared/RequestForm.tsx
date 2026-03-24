@@ -2,17 +2,8 @@
 
 import { AnimatePresence } from "motion/react";
 import { type ReactNode, useMemo, useState } from "react";
-import { FormDataBodyEditor } from "@/components/playground/FormDataBodyEditor";
-import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type {
   ApiRequest,
@@ -22,11 +13,14 @@ import type {
   PreRequestRule,
   TestResult,
   TestRule,
+  MockConfig,
 } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import { RequestAuthPanel } from "./RequestAuthPanel";
 import { RequestFormTabs, type TabId } from "./RequestFormTabs";
 import { RequestScriptsPanel } from "./RequestScriptsPanel";
+import { RequestMockPanel } from "./RequestMockPanel";
+import { RequestBodyPanel } from "./RequestBodyPanel";
 
 type RequestFormFields = Pick<
   ApiRequest,
@@ -42,7 +36,7 @@ type RequestFormFields = Pick<
   | "testRules"
   | "preRequestScript"
   | "testScript"
->;
+> & { mockConfig?: MockConfig };
 
 interface RequestFormProps {
   headers: KeyValuePair[];
@@ -58,6 +52,7 @@ interface RequestFormProps {
   preRequestScript?: string;
   testScript?: string;
   testResults?: TestResult[];
+  mockConfig?: MockConfig;
   suggestions?: VariableSuggestion[];
   onChange: (partial: Partial<RequestFormFields>) => void;
   onTabChange?: (tab: TabId) => void;
@@ -67,12 +62,11 @@ interface RequestFormProps {
   instanceId?: string;
   showTabsOnly?: boolean;
   showContentOnly?: boolean;
-  /** When false, tab panels swap without motion (avoids distorted text in tight flex/scroll layouts, e.g. pipeline StepCard). */
   animateTabContent?: boolean;
   disabledTabs?: TabId[];
 }
 
-function RequestFormTabPanel({
+function TabPanel({
   animate,
   className,
   children,
@@ -81,9 +75,7 @@ function RequestFormTabPanel({
   className?: string;
   children: ReactNode;
 }) {
-  if (animate) {
-    return <AnimatedTabContent className={className}>{children}</AnimatedTabContent>;
-  }
+  if (animate) return <AnimatedTabContent className={className}>{children}</AnimatedTabContent>;
   return <div className={cn("w-full min-w-0", className ?? "block")}>{children}</div>;
 }
 
@@ -101,6 +93,7 @@ export function RequestForm({
   preRequestScript = "",
   testScript = "",
   testResults,
+  mockConfig,
   suggestions = [],
   onChange,
   activeTab: externalActiveTab,
@@ -114,7 +107,6 @@ export function RequestForm({
   disabledTabs = [],
 }: RequestFormProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<TabId>(defaultTab);
-
   const activeTab = externalActiveTab ?? internalActiveTab;
   const handleTabChange = onTabChange ?? setInternalActiveTab;
 
@@ -139,6 +131,8 @@ export function RequestForm({
             hasTestResults={hasTestResults}
             instanceId={instanceId}
             disabledTabs={disabledTabs}
+            showMockTab={!!mockConfig}
+            mockEnabled={mockConfig?.enabled}
           />
         </div>
       )}
@@ -147,106 +141,51 @@ export function RequestForm({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background px-4 py-4">
           <AnimatePresence mode="wait">
             {activeTab === "params" && (
-              <RequestFormTabPanel key="params" animate={animateTabContent}>
+              <TabPanel key="params" animate={animateTabContent}>
                 <KeyValueEditor
                   pairs={params}
-                  onChange={(updated) => onChange({ params: updated })}
+                  onChange={(u) => onChange({ params: u })}
                   placeholder="Parameter"
                   suggestions={suggestions}
                 />
-              </RequestFormTabPanel>
+              </TabPanel>
             )}
-
             {activeTab === "headers" && (
-              <RequestFormTabPanel key="headers" animate={animateTabContent}>
+              <TabPanel key="headers" animate={animateTabContent}>
                 <KeyValueEditor
                   pairs={headers}
-                  onChange={(updated) => onChange({ headers: updated })}
+                  onChange={(u) => onChange({ headers: u })}
                   placeholder="Header"
                   suggestions={suggestions}
                 />
-              </RequestFormTabPanel>
+              </TabPanel>
             )}
-
             {activeTab === "body" && (
-              <RequestFormTabPanel
+              <TabPanel
                 key="body"
                 animate={animateTabContent}
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
               >
-                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-                  <div className="flex shrink-0 items-center gap-3 rounded-lg border border-border/40 bg-muted/10 px-3 py-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Body
-                    </span>
-                    <Select
-                      value={bodyType}
-                      onValueChange={(v) => {
-                        const newType = v as ApiRequest["bodyType"];
-                        onChange({
-                          bodyType: newType,
-                          body: newType === "form-data" ? null : body,
-                          formDataFields:
-                            newType === "form-data" && !formDataFields?.length
-                              ? []
-                              : formDataFields,
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-40 border-border/40 bg-background text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="json">JSON</SelectItem>
-                        <SelectItem value="raw">Raw</SelectItem>
-                        <SelectItem value="form-data">Form Data</SelectItem>
-                        <SelectItem value="x-www-form-urlencoded">URL Encoded</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {bodyType === "form-data" && (
-                    <FormDataBodyEditor
-                      fields={formDataFields ?? []}
-                      onChange={(updated) => onChange({ formDataFields: updated })}
-                      suggestions={suggestions}
-                    />
-                  )}
-
-                  {bodyType !== "none" && bodyType !== "form-data" && (
-                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                      <div className="mb-2 shrink-0 text-[11px] font-medium text-muted-foreground">
-                        {bodyType === "json" ? "JSON body" : "Raw body"}
-                      </div>
-                      <JsonBodyEditor
-                        value={body ?? ""}
-                        onChange={(val) => onChange({ body: val })}
-                        suggestions={suggestions}
-                        placeholder={
-                          bodyType === "json" ? '{\n  "key": "value"\n}' : "Request body..."
-                        }
-                        className="h-full"
-                        mode={bodyType === "json" ? "json" : "text"}
-                      />
-                    </div>
-                  )}
-                </div>
-              </RequestFormTabPanel>
+                <RequestBodyPanel
+                  body={body}
+                  bodyType={bodyType}
+                  formDataFields={formDataFields}
+                  suggestions={suggestions}
+                  onChange={onChange}
+                />
+              </TabPanel>
             )}
-
             {activeTab === "auth" && (
-              <RequestFormTabPanel key="auth" animate={animateTabContent}>
+              <TabPanel key="auth" animate={animateTabContent}>
                 <RequestAuthPanel
                   auth={auth}
                   suggestions={suggestions}
-                  onChange={(updated) => onChange({ auth: updated })}
+                  onChange={(u) => onChange({ auth: u })}
                 />
-              </RequestFormTabPanel>
+              </TabPanel>
             )}
-
             {activeTab === "scripts" && (
-              <RequestFormTabPanel key="scripts" animate={animateTabContent}>
+              <TabPanel key="scripts" animate={animateTabContent}>
                 <RequestScriptsPanel
                   preRequestEditorType={preRequestEditorType}
                   testEditorType={testEditorType}
@@ -256,7 +195,16 @@ export function RequestForm({
                   testScript={testScript}
                   onChange={onChange}
                 />
-              </RequestFormTabPanel>
+              </TabPanel>
+            )}
+            {activeTab === "mock" && mockConfig && (
+              <TabPanel key="mock" animate={animateTabContent}>
+                <RequestMockPanel
+                  config={mockConfig}
+                  suggestions={suggestions}
+                  onChange={(u) => onChange({ mockConfig: u })}
+                />
+              </TabPanel>
             )}
           </AnimatePresence>
         </div>

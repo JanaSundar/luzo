@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import type { PipelineView } from "@/types";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { ReportExportMenu } from "./ReportExportMenu";
+import { PipelineExportMenu } from "./PipelineExportMenu";
+import { usePipelineStore } from "@/lib/stores/usePipelineStore";
 
 interface PipelineHeaderProps {
   activePipelineName: string | null;
@@ -56,6 +58,9 @@ export function PipelineHeader({
   hasGeneratedReport = false,
   hasAIProvider = false,
 }: PipelineHeaderProps) {
+  const { pipelines } = usePipelineStore();
+  const pipeline = pipelines.find((p) => p.id === activePipelineId);
+
   const showExecutionControls = currentView === "builder" || currentView === "stream";
   const showReportControls = currentView === "ai-config" || currentView === "report";
   const isStreamView = currentView === "stream";
@@ -160,6 +165,7 @@ export function PipelineHeader({
                 <Play className="h-3.5 w-3.5 fill-current" />
                 <span className="hidden sm:inline">Run</span>
               </Button>
+              {pipeline && <PipelineExportMenu pipeline={pipeline} disabled={isExecuting} />}
             </>
           ))}
 

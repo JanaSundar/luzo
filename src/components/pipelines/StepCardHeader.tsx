@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, GripVertical, Pencil } from "lucide-react";
+import { Check, ChevronDown, GripVertical, Pencil, Zap } from "lucide-react";
 import { type DragControls, motion } from "motion/react";
 import type { RefObject } from "react";
 import { PipelineBadge } from "@/components/pipelines/PipelineBadge";
@@ -25,6 +25,7 @@ interface StepCardHeaderProps {
   onRenameSave: () => void;
   onRenameCancel: () => void;
   onRenameValueChange: (val: string) => void;
+  isMockEnabled?: boolean;
 }
 
 export function StepCardHeader({
@@ -42,6 +43,7 @@ export function StepCardHeader({
   onRenameSave,
   onRenameCancel,
   onRenameValueChange,
+  isMockEnabled = false,
 }: StepCardHeaderProps) {
   return (
     <header className="flex min-h-[52px] min-w-0 items-center gap-3 border-b bg-muted/5 px-4 py-3">
@@ -101,6 +103,14 @@ export function StepCardHeader({
                 >
                   <Pencil className="h-3 w-3 text-muted-foreground" />
                 </button>
+                {isMockEnabled && (
+                  <div
+                    className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-foreground/15 bg-foreground text-background shadow-[0_0_8px_rgba(15,23,42,0.18)]"
+                    title="Mock mode enabled"
+                  >
+                    <Zap className="h-2.5 w-2.5 fill-current" />
+                  </div>
+                )}
               </div>
               {executionHint ? (
                 <div className="flex min-w-0 items-center gap-2">

@@ -157,9 +157,17 @@ export interface AINarrativeConfig {
   promptOverrides?: Partial<Record<NarrativeTone, string>>;
 }
 
+export interface MockConfig {
+  enabled: boolean;
+  statusCode: number;
+  body: string;
+  latencyMs: number;
+}
+
 export interface PipelineStep extends ApiRequest {
   id: string;
   name: string;
+  mockConfig?: MockConfig;
 }
 
 export interface Pipeline {

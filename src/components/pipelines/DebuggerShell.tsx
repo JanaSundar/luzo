@@ -79,18 +79,29 @@ export function DebuggerShell({
 
   useEffect(() => {
     if (!savedDebugger) return;
-    setSelectedIndex(savedDebugger.selectedStepIndex);
-    setPanelTab(savedDebugger.panelTab);
+    setSelectedIndex((current) =>
+      current === savedDebugger.selectedStepIndex ? current : savedDebugger.selectedStepIndex,
+    );
+    setPanelTab((current) =>
+      current === savedDebugger.panelTab ? current : savedDebugger.panelTab,
+    );
   }, [savedDebugger]);
 
   useEffect(() => {
     if (!activePipelineId) return;
+    if (
+      savedDebugger &&
+      savedDebugger.selectedStepIndex === selectedIndex &&
+      savedDebugger.panelTab === panelTab
+    ) {
+      return;
+    }
     saveDebuggerArtifact(activePipelineId, {
       pipelineId: activePipelineId,
       selectedStepIndex: selectedIndex,
       panelTab,
     });
-  }, [activePipelineId, panelTab, saveDebuggerArtifact, selectedIndex]);
+  }, [activePipelineId, panelTab, saveDebuggerArtifact, selectedIndex, savedDebugger]);
 
   useEffect(() => {
     if (selectedIndex < snapshots.length) return;

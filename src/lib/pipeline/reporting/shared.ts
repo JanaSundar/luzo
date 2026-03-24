@@ -46,28 +46,36 @@ export function createNarrativeReport(
   derivedTitle?: string,
 ): NarrativeReport {
   const endpointMetrics = toEndpointMetrics(context);
-
-  return {
+  const title = buildTitle(config.tone, derivedTitle);
+  const metrics = toReportMetrics(context);
+  const requests = endpointMetrics.map((endpoint, index) => ({
+    stepId: endpoint.stepId,
+    name: endpoint.stepName,
+    method: endpoint.method,
+    url: endpoint.url,
+    statusCode: endpoint.statusCode,
+    latencyMs: endpoint.latencyMs,
+    analysis:
+      output.requests[index]?.analysis ??
+      fallbackRequestAnalysis(endpoint.stepName, endpoint.statusCode, endpoint.latencyMs),
+  }));
+  const baseReport: NarrativeReport = {
     tone: config.tone,
-    title: buildTitle(config.tone, derivedTitle),
-    metrics: toReportMetrics(context),
+    title,
+    healthSummary: "",
+    metrics,
     endpointMetrics,
     summary: output.summary,
     insights: uniqueItems(output.insights),
     risks: uniqueItems(output.risks),
     recommendations: uniqueItems(output.recommendations),
     conclusion: output.conclusion,
-    requests: endpointMetrics.map((endpoint, index) => ({
-      stepId: endpoint.stepId,
-      name: endpoint.stepName,
-      method: endpoint.method,
-      url: endpoint.url,
-      statusCode: endpoint.statusCode,
-      latencyMs: endpoint.latencyMs,
-      analysis:
-        output.requests[index]?.analysis ??
-        fallbackRequestAnalysis(endpoint.stepName, endpoint.statusCode, endpoint.latencyMs),
-    })),
+    requests,
+  };
+
+  return {
+    ...baseReport,
+    healthSummary: buildHealthSummary(baseReport),
   };
 }
 
