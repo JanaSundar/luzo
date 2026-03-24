@@ -116,7 +116,7 @@ describe("RequestBuilder", () => {
     const user = userEvent.setup();
     render(<RequestBuilder />);
 
-    await user.click(screen.getByRole("button", { name: /^import$/i }));
+    await user.click(screen.getByRole("button", { name: /^curl$/i }));
 
     fireEvent.change(screen.getByPlaceholderText(/curl 'https:\/\/api\.example\.com\/users'/i), {
       target: {

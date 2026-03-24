@@ -106,7 +106,9 @@ export function SaveToCollectionDialog({
       response: response ?? undefined,
       autoSave,
     });
-    toast.success("Saved to collection");
+    if (!autoSave) {
+      toast.success("Saved to collection");
+    }
     setOpen(false);
   };
 

@@ -176,7 +176,7 @@ function PlaygroundContent() {
   }
 
   return (
-    <SidebarProvider defaultOpen={!isSmallScreen}>
+    <SidebarProvider open onOpenChange={() => {}}>
       <div className="flex h-full min-h-0 w-full overflow-hidden bg-background/70">
         <PlaygroundSidebar />
 

@@ -17,6 +17,7 @@ interface PipelineState {
   getExpandedStepId: (pipelineId: string) => string | null;
   addPipeline: (name: string) => void;
   insertPipeline: (pipeline: Pipeline) => void;
+  mergeMissingPipelines: (pipelines: Pipeline[]) => void;
   updatePipeline: (id: string, partial: Partial<Pipeline>) => void;
   deletePipeline: (id: string) => void;
   deletePipelines: (ids: string[]) => void;
@@ -68,6 +69,18 @@ export const usePipelineStore = create<PipelineState>()(
         set((state) => {
           state.pipelines.push(pipeline);
           state.activePipelineId = pipeline.id;
+        }),
+
+      mergeMissingPipelines: (pipelines) =>
+        set((state) => {
+          const existingIds = new Set(state.pipelines.map((entry) => entry.id));
+          const missing = pipelines.filter((pipeline) => !existingIds.has(pipeline.id));
+          if (missing.length === 0) return;
+
+          state.pipelines.push(...missing);
+          if (!state.activePipelineId) {
+            state.activePipelineId = missing[0]?.id ?? state.pipelines[0]?.id ?? null;
+          }
         }),
 
       updatePipeline: (id, partial) =>

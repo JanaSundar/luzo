@@ -21,7 +21,7 @@ export function Header() {
   const activeTheme = resolvedTheme === "light" ? "light" : "dark";
 
   return (
-    <header className="sticky top-0 z-50 flex h-12 items-center gap-2 border-b px-3 transition-all glass sm:h-14 sm:gap-4 sm:px-4 md:px-6">
+    <header className="sticky top-0 z-50 flex h-12 items-center gap-2 border-b border-border/60 bg-background/80 px-3 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset] backdrop-blur-xl supports-[backdrop-filter]:bg-background/72 sm:h-14 sm:gap-4 sm:px-4 md:px-6">
       <Link
         href="/"
         className="flex items-center gap-2 font-bold tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
@@ -100,82 +100,51 @@ function ThemeToggleIcon({ theme }: { theme: "light" | "dark" }) {
   const isDark = theme === "dark";
 
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      className="h-[1.15rem] w-[1.15rem]"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <motion.g
+    <span className="relative block h-[1.15rem] w-[1.15rem]">
+      <motion.svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        className="absolute inset-0 h-full w-full"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         initial={false}
         animate={{
-          rotate: isDark ? -30 : 0,
-          scale: isDark ? 0.75 : 1,
           opacity: isDark ? 0 : 1,
+          rotate: isDark ? -45 : 0,
+          scale: isDark ? 0.82 : 1,
         }}
-        transition={{ duration: 0.45, ease: "easeInOut" }}
-        style={{ originX: "50%", originY: "50%" }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       >
-        <motion.circle
-          cx="12"
-          cy="12"
-          r="4.2"
-          initial={false}
-          animate={{
-            scale: isDark ? 0.7 : 1,
-            opacity: isDark ? 0 : 1,
-          }}
-          transition={{ duration: 0.35, ease: "easeInOut" }}
-          fill="currentColor"
-          stroke="none"
-        />
+        <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+        <path d="M12 2.5v2.5" />
+        <path d="M12 19v2.5" />
+        <path d="M2.5 12H5" />
+        <path d="M19 12h2.5" />
+        <path d="m5.2 5.2 1.8 1.8" />
+        <path d="m17 17 1.8 1.8" />
+        <path d="m17 7 1.8-1.8" />
+        <path d="m5.2 18.8 1.8-1.8" />
+      </motion.svg>
 
-        {[
-          "12 1.8 12 4.2",
-          "12 19.8 12 22.2",
-          "1.8 12 4.2 12",
-          "19.8 12 22.2 12",
-          "4.4 4.4 6.1 6.1",
-          "17.9 17.9 19.6 19.6",
-          "17.9 6.1 19.6 4.4",
-          "4.4 19.6 6.1 17.9",
-        ].map((points, index) => (
-          <motion.line
-            key={points}
-            x1={points.split(" ")[0]}
-            y1={points.split(" ")[1]}
-            x2={points.split(" ")[2]}
-            y2={points.split(" ")[3]}
-            initial={false}
-            animate={{
-              strokeDasharray: 4,
-              strokeDashoffset: isDark ? 4 : 0,
-            }}
-            transition={{
-              duration: 0.4,
-              delay: index * 0.015,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </motion.g>
-
-      <motion.path
-        d="M21 12.79A9 9 0 1 1 11.21 3c0 .67.07 1.32.2 1.95a7 7 0 0 0 8.64 8.64c.63.13 1.28.2 1.95.2"
+      <motion.svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        className="absolute inset-0 h-full w-full"
+        fill="currentColor"
+        stroke="none"
         initial={false}
         animate={{
           opacity: isDark ? 1 : 0,
-          scale: isDark ? 1 : 0.7,
+          rotate: isDark ? 0 : 45,
+          scale: isDark ? 1 : 0.82,
         }}
-        transition={{ duration: 0.45, ease: "easeInOut" }}
-        fill="currentColor"
-        stroke="none"
-        style={{ originX: "50%", originY: "50%" }}
-      />
-    </svg>
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3c0 .67.07 1.32.2 1.95a7 7 0 0 0 8.64 8.64c.63.13 1.28.2 1.95.2" />
+      </motion.svg>
+    </span>
   );
 }

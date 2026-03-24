@@ -148,6 +148,7 @@ export function CollectionsWorkspace() {
           collections={filteredCollections}
           isLoading={isLoading}
           onCreateCollection={handleSaveCollection}
+          onImportCollection={setSelectedCollectionId}
           search={search}
           selectedCollectionId={selectedCollectionId}
           setSearch={setSearch}

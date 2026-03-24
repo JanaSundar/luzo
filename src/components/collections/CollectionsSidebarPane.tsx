@@ -1,7 +1,8 @@
 "use client";
 
-import { Folder, Loader2, Plus, Search } from "lucide-react";
+import { Braces, Folder, Loader2, Plus, Search } from "lucide-react";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
+import { ImportCollectionDialog } from "@/components/collections/ImportCollectionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +19,7 @@ interface CollectionsSidebarPaneProps {
     id: string;
     name: string;
   }) => Promise<void>;
+  onImportCollection?: (collectionId: string) => void;
   search: string;
   selectedCollectionId: string | null;
   setSearch: (value: string) => void;
@@ -28,6 +30,7 @@ export function CollectionsSidebarPane({
   collections,
   isLoading,
   onCreateCollection,
+  onImportCollection,
   search,
   selectedCollectionId,
   setSearch,
@@ -36,6 +39,15 @@ export function CollectionsSidebarPane({
   return (
     <WorkspacePane border>
       <WorkspaceHeader title="Collections" icon={Folder}>
+        <ImportCollectionDialog
+          onImported={onImportCollection}
+          trigger={
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-2">
+              <Braces className="h-4 w-4" />
+              Import
+            </Button>
+          }
+        />
         <CollectionEditorDialog
           onSave={onCreateCollection}
           trigger={

@@ -92,7 +92,7 @@ export function CollectionPipelineDialog({
           )
         }
       />
-      <DialogContent className="flex max-h-[88vh] flex-col sm:max-w-6xl">
+      <DialogContent className="flex max-h-[88dvh] flex-col sm:max-w-6xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-center gap-2">
             <Badge

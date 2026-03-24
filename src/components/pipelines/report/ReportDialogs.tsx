@@ -50,7 +50,7 @@ export function RefinementDialog({
 }: RefinementDialogProps) {
   return (
     <Dialog open={!!section} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[500px]">
+      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
@@ -74,7 +74,7 @@ export function RefinementDialog({
               placeholder="e.g., Make it more technical, highlight the latency spikes..."
               value={instruction}
               onChange={(e) => onInstructionChange(e.target.value)}
-              className="field-sizing-fixed max-h-[22vh] min-h-[100px] resize-none overflow-y-auto"
+              className="field-sizing-fixed max-h-[22dvh] min-h-[100px] resize-none overflow-y-auto"
             />
           </div>
         </div>
@@ -103,7 +103,7 @@ export function RefinementDialog({
 export function EditDialog({ section, onSectionChange, onSave, onClose }: EditDialogProps) {
   return (
     <Dialog open={!!section} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[700px]">
+      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Edit {section?.title}</DialogTitle>
         </DialogHeader>
@@ -113,7 +113,7 @@ export function EditDialog({ section, onSectionChange, onSave, onClose }: EditDi
             onChange={(e) =>
               onSectionChange(section ? { ...section, content: e.target.value } : null)
             }
-            className="field-sizing-fixed min-h-[320px] max-h-[60vh] resize-none overflow-y-auto font-mono text-sm"
+            className="field-sizing-fixed min-h-[320px] max-h-[60dvh] resize-none overflow-y-auto font-mono text-sm"
             rows={14}
             placeholder="Enter markdown content..."
           />
