@@ -58,7 +58,6 @@ Luzo is built for that layer: the workflow layer.
 1. Install and run the app:
    ```bash
    pnpm install
-   pnpm exec playwright install chromium
    pnpm dev
 
 	2.	Send a request in the Playground and save it into a collection.
