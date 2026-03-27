@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createDbClient } from "@/lib/db/runtime";
-import { logger } from "@/lib/utils/logger";
+import { createDbClient } from "@/services/db/runtime";
+import { logger } from "@/utils/logger";
 
 /**
  * POST /api/db/schema

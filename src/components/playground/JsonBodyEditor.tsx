@@ -14,9 +14,9 @@ import CodeMirror from "@uiw/react-codemirror";
 import { tags } from "@lezer/highlight";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { darkJsonPalette, lightJsonPalette } from "@/lib/json-view/theme";
-import { getVariableAtRange, TEMPLATE_TRIGGER } from "@/lib/utils/templateTokens";
-import { cn } from "@/lib/utils";
+import { darkJsonPalette, lightJsonPalette } from "@/features/json-view/theme";
+import { getVariableAtRange, TEMPLATE_TRIGGER } from "@/utils/templateTokens";
+import { cn } from "@/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function JsonBodyEditor({

@@ -8,7 +8,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import type { AiProvider } from "@/types";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 const VALIDATION_MODELS: Record<AiProvider, string> = {
   openai: "gpt-4o-mini",

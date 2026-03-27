@@ -12,12 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MODEL_REGISTRY } from "@/config/model-registry";
-import { validateApiKey } from "@/lib/settings/api-key-validation";
-import { type ProviderModel, fetchProviderModels } from "@/lib/settings/fetch-provider-models";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { validateApiKey } from "@/features/settings/api-key-validation";
+import { type ProviderModel, fetchProviderModels } from "@/features/settings/fetch-provider-models";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { AiProvider } from "@/types";
 import { PROVIDER_META } from "./ProviderConfigCard";
 import { PROVIDER_ICONS } from "./ProviderIcons";

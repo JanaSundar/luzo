@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { Collection } from "@/types";
 
 interface CollectionsSidebarPaneProps {

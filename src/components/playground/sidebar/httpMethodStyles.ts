@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 /** Text colors for HTTP verbs — matches API-tool style (GET blue, POST primary, PATCH amber). */
 export function httpMethodTextClass(method: string): string {

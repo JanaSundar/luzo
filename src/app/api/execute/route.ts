@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { fetch as undiciFetch } from "undici";
-import { runPreRequestScript, runTestScript } from "@/lib/http/scripts";
-import { checkRateLimit } from "@/lib/utils/rate-limit";
+import { runPreRequestScript, runTestScript } from "@/services/http/scripts";
+import { checkRateLimit } from "@/utils/rate-limit";
 import {
   LIMITS,
   sanitizeHeaders,
@@ -10,10 +10,10 @@ import {
   validateParams,
   validateScript,
   validateUrl,
-} from "@/lib/utils/security";
-import { interpolateVariables } from "@/lib/utils/variables";
+} from "@/utils/security";
+import { interpolateVariables } from "@/utils/variables";
 import type { AuthConfig, KeyValuePair } from "@/types";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 const CONFIG_KEY = "__config";
 

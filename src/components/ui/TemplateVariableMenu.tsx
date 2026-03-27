@@ -2,8 +2,8 @@
 
 import type { UseComboboxReturnValue } from "downshift";
 import { AnimatePresence, motion } from "motion/react";
-import type { TemplateMenuPosition } from "@/lib/utils/templateMenuPosition";
-import { cn } from "@/lib/utils";
+import type { TemplateMenuPosition } from "@/utils/templateMenuPosition";
+import { cn } from "@/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 type TemplateCombobox = UseComboboxReturnValue<VariableSuggestion>;
@@ -29,7 +29,7 @@ export function TemplateVariableMenu({
   return (
     <div
       {...menuProps}
-      style={{ position: "fixed", inset: 0, pointerEvents: "none" }}
+      style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: position.zIndex }}
       aria-hidden={!isOpen || items.length === 0}
     >
       <AnimatePresence>
@@ -37,73 +37,83 @@ export function TemplateVariableMenu({
           <motion.div
             style={{
               position: position.position,
-              zIndex: position.zIndex,
+              top: position.top,
+              left: position.left,
+              width: position.width,
               maxWidth: position.maxWidth,
+              maxHeight: position.maxHeight,
               pointerEvents: "auto",
+              transformOrigin: "top center",
             }}
             initial={{
               opacity: 0,
-              scale: 0.97,
-              y: -4,
+              scale: 0.95,
             }}
             animate={{
               opacity: 1,
               scale: 1,
-              y: 0,
-              top: position.top,
-              left: position.left,
-              width: position.width,
-              maxHeight: position.maxHeight,
             }}
             exit={{
               opacity: 0,
-              scale: 0.98,
-              y: -4,
+              scale: 0.95,
             }}
             transition={{
-              opacity: { duration: 0.14, ease: "easeOut" },
-              scale: { duration: 0.16, ease: "easeOut" },
-              y: { duration: 0.16, ease: "easeOut" },
-              top: { type: "spring", stiffness: 520, damping: 38, mass: 0.65 },
-              left: { type: "spring", stiffness: 520, damping: 38, mass: 0.65 },
-              width: { type: "spring", stiffness: 420, damping: 34, mass: 0.7 },
-              maxHeight: { duration: 0.18, ease: "easeOut" },
+              duration: 0.12,
+              ease: [0.23, 1, 0.32, 1],
             }}
             className={cn(
-              "min-w-[240px] max-w-sm overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl",
-              "overflow-y-auto",
+              "overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-2xl ring-1 ring-border/20 backdrop-blur-xl",
+              "flex flex-col shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)]",
             )}
           >
-            <div className="p-1">
+            <div className="overflow-y-auto p-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/40">
               {groups.map((group) => (
-                <div key={group.stepId}>
+                <div key={group.stepId} className="flex flex-col gap-0.5">
                   {group.label ? (
-                    <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    <div className="sticky top-0 z-10 bg-popover/80 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 backdrop-blur-sm">
                       {group.label}
                     </div>
                   ) : null}
-                  {group.items.map((item) => {
-                    const index = items.indexOf(item);
-                    return (
-                      <div
-                        key={item.path}
-                        {...getItemProps({ item, index })}
-                        className={cn(
-                          "cursor-pointer rounded-lg px-2 py-1.5 text-xs transition-colors",
-                          highlightedIndex === index
-                            ? "bg-accent text-accent-foreground"
-                            : "hover:bg-muted/60",
-                        )}
-                      >
-                        <span className="block font-mono text-[11px] leading-tight">
-                          {item.path}
-                        </span>
-                        <span className="block text-[10px] leading-tight text-muted-foreground">
-                          {item.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  <div className="flex flex-col gap-0.5 px-1 pb-1">
+                    {group.items.map((item) => {
+                      const index = items.indexOf(item);
+                      return (
+                        <div
+                          key={item.path}
+                          {...getItemProps({ item, index })}
+                          className={cn(
+                            "group cursor-pointer rounded-lg px-2 py-2 text-xs transition-all duration-75",
+                            highlightedIndex === index
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-foreground",
+                          )}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span
+                              className={cn(
+                                "block font-mono text-[11px] font-bold leading-tight tracking-tight",
+                                highlightedIndex === index
+                                  ? "text-slate-50 dark:text-slate-950"
+                                  : "text-foreground",
+                              )}
+                            >
+                              {item.path}
+                            </span>
+                            <span
+                              className={cn(
+                                "block truncate text-[10px] leading-tight",
+                                highlightedIndex === index
+                                  ? "text-slate-50/70 dark:text-slate-950/70"
+                                  : "text-muted-foreground/70",
+                              )}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>

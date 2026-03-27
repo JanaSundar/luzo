@@ -4,12 +4,16 @@ import { Check, Copy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { JsonView } from "@/components/ui/JsonView";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
-import { METHOD_COLORS } from "@/lib/utils/http";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
+import { METHOD_COLORS } from "@/utils/http";
 import type { TimelineEvent } from "@/types/timeline-event";
-import { formatBytes, formatDuration, formatTimestamp } from "@/lib/pipeline/timeline/format-utils";
-import { getHttpStatusColor, getStatusVisual } from "@/lib/pipeline/timeline/status-config";
+import {
+  formatBytes,
+  formatDuration,
+  formatTimestamp,
+} from "@/features/pipeline/timeline/format-utils";
+import { getHttpStatusColor, getStatusVisual } from "@/features/pipeline/timeline/status-config";
 
 // ─── Tab types ──────────────────────────────────────────────────────
 type DetailTab = "overview" | "request" | "response" | "error";

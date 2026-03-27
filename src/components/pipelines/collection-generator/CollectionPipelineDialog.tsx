@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useCollectionsQuery } from "@/lib/collections/useCollections";
+import { useCollectionsQuery } from "@/features/collections/useCollections";
 
 interface CollectionPipelineDialogProps {
   initialCollectionId?: string | null;

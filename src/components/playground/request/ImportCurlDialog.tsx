@@ -16,8 +16,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { importCurlToRequest } from "@/lib/utils/curl-import";
+import { importWorkerClient } from "@/workers/client/import-client";
 import type { ApiRequest } from "@/types";
+import type { Result } from "@/types/worker-results";
+import type { ParseImportSourceOutput } from "@/features/workflow/import/parseImportSource";
+
 export function ImportCurlDialog({
   onImport,
   trigger,
@@ -27,15 +30,31 @@ export function ImportCurlDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleImport = async () => {
+    if (!source.trim()) return;
+    setIsLoading(true);
     try {
-      onImport(importCurlToRequest(source));
-      toast.success("Request imported");
-      setSource("");
-      setOpen(false);
+      const res = await importWorkerClient.callLatest<Result<ParseImportSourceOutput>>(
+        "curl-import",
+        async (api) => api.parseImportSource({ sourceType: "curl", content: source }),
+      );
+
+      if (!res) return; // Cancelled
+
+      if (res.ok) {
+        onImport(res.data.collection as ApiRequest);
+        toast.success("Request imported");
+        setSource("");
+        setOpen(false);
+      } else {
+        toast.error(res.error.message);
+      }
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Unable to import");
+    } finally {
+      setIsLoading(false);
     }
   };
   return (
@@ -82,10 +101,14 @@ export function ImportCurlDialog({
             type="button"
             className="gap-2"
             onClick={() => void handleImport()}
-            disabled={!source.trim()}
+            disabled={!source.trim() || isLoading}
           >
-            <WandSparkles className="h-4 w-4" />
-            Import request
+            {isLoading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <WandSparkles className="h-4 w-4" />
+            )}
+            {isLoading ? "Parsing..." : "Import request"}
           </Button>
         </DialogFooter>
       </DialogContent>

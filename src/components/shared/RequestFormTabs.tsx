@@ -4,8 +4,8 @@ import {
   segmentedTabBadgeClassName,
   segmentedTabListClassName,
   segmentedTabTriggerClassName,
-} from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+} from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 
 export type TabId = "params" | "headers" | "body" | "auth" | "scripts" | "mock";
 

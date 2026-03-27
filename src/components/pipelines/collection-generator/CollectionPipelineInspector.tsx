@@ -22,6 +22,19 @@ export function CollectionPipelineInspector({
   const unresolvedMessages = uniqueLines(unresolved.map((entry) => entry.message));
   const validationMessages = uniqueLines(draft.validation.errors.map((error) => error.message));
 
+  const parallelCount = draft.steps.filter((s) => s.grouping === "parallel").length;
+  const sequentialCount = draft.steps.filter((s) => s.grouping === "sequential").length;
+
+  // Re-calculate real depth for accurate batch count
+  const depthMap = new Map<string, number>();
+  for (const id of draft.validation.sortedStepIds) {
+    const deps = draft.validation.adjacency[id] ?? [];
+    const d =
+      deps.length === 0 ? 0 : Math.max(...deps.map((depId) => depthMap.get(depId) ?? 0)) + 1;
+    depthMap.set(id, d);
+  }
+  const batchCount = new Set(Array.from(depthMap.values())).size;
+
   return (
     <div className="space-y-3">
       <SummaryCard
@@ -29,6 +42,8 @@ export function CollectionPipelineInspector({
         title="What Luzo inferred"
         lines={[
           `${draft.steps.length} steps ready for pipeline creation`,
+          `${parallelCount} parallel and ${sequentialCount} sequential steps`,
+          `Auto-recognized ${batchCount} execution ${batchCount === 1 ? "batch" : "batches"}`,
           `${activeDependencies.length} validated dependencies`,
           `${unresolved.length} unresolved variables`,
         ]}

@@ -3,7 +3,7 @@
 import { AlertCircle, CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 const TOAST_CONFIG = {
   success: {

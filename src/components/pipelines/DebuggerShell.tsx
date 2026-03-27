@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import type { CheckpointArtifact } from "@/lib/pipeline/pipeline-persistence";
-import { restoreFromCheckpoint } from "@/lib/pipeline/pipeline-persistence";
-import { selectTimelineStats } from "@/lib/pipeline/timeline/timeline-selectors";
-import { usePipelineArtifactsStore } from "@/lib/stores/usePipelineArtifactsStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { useTimelineStore } from "@/lib/stores/useTimelineStore";
+import type { CheckpointArtifact } from "@/features/pipeline/pipeline-persistence";
+import { restoreFromCheckpoint } from "@/features/pipeline/pipeline-persistence";
+import { selectTimelineStats } from "@/features/pipeline/timeline/timeline-selectors";
+import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useTimelineStore } from "@/stores/useTimelineStore";
 import { DebugControlsBar } from "./DebugControlsBar";
 import { TimelineEmpty } from "./debugger/TimelineEmptyState";
 import { ResumePrompt } from "./ResumePrompt";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createDbClient } from "@/lib/db/runtime";
-import { logger } from "@/lib/utils/logger";
+import { createDbClient } from "@/services/db/runtime";
+import { logger } from "@/utils/logger";
 
 const SELECT_ONLY_REGEX = /^\s*(SELECT|WITH)\b/i;
 const DANGEROUS_KEYWORDS = /\b(DROP|TRUNCATE|ALTER|GRANT|REVOKE)\b/i;

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import "@/lib/immer/init";
+import "@/features/immer/init";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(

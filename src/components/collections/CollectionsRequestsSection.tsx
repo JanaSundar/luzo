@@ -6,13 +6,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { useCollectionMutations } from "@/lib/collections/useCollections";
-import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
-import { METHOD_BG_COLORS } from "@/lib/utils/http";
+import { useCollectionMutations } from "@/features/collections/useCollections";
+import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
+import { METHOD_BG_COLORS } from "@/utils/http";
 import {
   isStrippedRequestNameEqualToUrl,
   stripMethodPrefixFromRequestName,
-} from "@/lib/utils/requestDisplayName";
+} from "@/utils/requestDisplayName";
 import type { Collection } from "@/types";
 
 interface CollectionsRequestsSectionProps {

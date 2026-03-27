@@ -2,7 +2,7 @@ import { CheckCircle2, Circle, XCircle } from "lucide-react";
 import type React from "react";
 import { useContext } from "react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { TestResultsContext, formatDuration } from "./context";
 
 export const TestResultsHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({

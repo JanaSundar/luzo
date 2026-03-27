@@ -1,6 +1,6 @@
-import { executeApiRequest } from "@/lib/http/client";
+import { executeApiRequest } from "@/services/http/client";
 import type { ApiRequest } from "@/types";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 interface BatchPayload {
   envVariables?: Record<string, string>;

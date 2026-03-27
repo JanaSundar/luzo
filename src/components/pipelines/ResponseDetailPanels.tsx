@@ -17,8 +17,8 @@ import {
   TestSuiteName,
   TestSuiteStats,
 } from "@/components/common/TestResults";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 
 export type ResponsePanelTab = "response" | "pre-request" | "tests";

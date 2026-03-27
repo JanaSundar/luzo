@@ -4,12 +4,12 @@ import { Play, Save } from "lucide-react";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { METHOD_BG_COLORS } from "@/lib/utils/http";
+import { cn } from "@/utils";
+import { METHOD_BG_COLORS } from "@/utils/http";
 import {
   isStrippedRequestNameEqualToUrl,
   stripMethodPrefixFromRequestName,
-} from "@/lib/utils/requestDisplayName";
+} from "@/utils/requestDisplayName";
 import type { SavedRequest } from "@/types";
 
 export function CollectionsHistorySection({

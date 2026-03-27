@@ -6,7 +6,7 @@ import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { MockConfig } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 

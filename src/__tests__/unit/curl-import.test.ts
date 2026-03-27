@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importCurlToRequest } from "@/lib/utils/curl-import";
+import { importCurlToRequest } from "@/utils/curl-import";
 
 describe("importCurlToRequest", () => {
   it("maps json curl commands into a JSON request", () => {

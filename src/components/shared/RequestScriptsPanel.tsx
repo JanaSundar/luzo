@@ -4,11 +4,11 @@ import { useState } from "react";
 import { PreRequestBuilder } from "@/components/playground/PreRequestBuilder";
 import { ScriptEditor } from "@/components/playground/ScriptEditor";
 import { TestBuilder } from "@/components/playground/TestBuilder";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
-import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
-import { parsePreRequestScript, parseTestScript } from "@/lib/utils/rule-parser";
-import { PRE_REQUEST_EXAMPLES, TEST_EXAMPLES } from "@/lib/utils/script-examples";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
+import { compilePreRequestRules, compileTestRules } from "@/utils/rule-compiler";
+import { parsePreRequestScript, parseTestScript } from "@/utils/rule-parser";
+import { PRE_REQUEST_EXAMPLES, TEST_EXAMPLES } from "@/utils/script-examples";
 import type { PipelineStep, PreRequestRule, TestRule } from "@/types";
 
 interface RequestScriptsPanelProps {

@@ -4,14 +4,23 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "next-themes";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { codeToTokens, type ThemedToken } from "shiki";
-import { tryBuildJsonDocument, type JsonLineMeta } from "@/lib/json-view/buildJsonDocument";
+import {
+  type JsonDocumentModel,
+  type JsonLineMeta,
+  type JsonNodeMeta,
+} from "@/features/json-view/buildJsonDocument";
+import type { Result } from "@/types/worker-results";
+import type { JsonWorkerApi } from "@/types/workers";
 import {
   darkJsonPalette,
   darkJsonTheme,
   lightJsonPalette,
   lightJsonTheme,
-} from "@/lib/json-view/theme";
-import { cn } from "@/lib/utils";
+} from "@/features/json-view/theme";
+import { cn } from "@/utils";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { jsonWorkerClient } from "@/workers/client/json-client";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 export interface JsonViewProps {
   text: string;
@@ -19,6 +28,7 @@ export interface JsonViewProps {
   onMatchChange?: (matchCount: number, currentIndex: number) => void;
   className?: string;
   fontScale?: "sm" | "md" | "lg";
+  format?: boolean;
 }
 
 export interface JsonViewRef {
@@ -26,30 +36,81 @@ export interface JsonViewRef {
   goPrev: () => void;
 }
 
+const LINE_HEIGHTS = {
+  sm: 20,
+  md: 24,
+  lg: 28,
+};
+
 export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView(
-  { text, searchQuery = "", onMatchChange, className, fontScale = "md" },
+  { text, searchQuery = "", onMatchChange, className, fontScale = "md", format = true },
   ref,
 ) {
   const { resolvedTheme } = useTheme();
   const activeTheme = resolvedTheme === "light" ? "light" : "dark";
   const palette = activeTheme === "dark" ? darkJsonPalette : lightJsonPalette;
   const theme = activeTheme === "dark" ? darkJsonTheme : lightJsonTheme;
-  const model = useMemo(() => tryBuildJsonDocument(text) ?? createPlainDocument(text), [text]);
+
+  const [model, setModel] = useState(() =>
+    format ? { formattedText: "", lines: [], nodes: {} } : createPlainDocument(text),
+  );
+  const [isProcessing, setIsProcessing] = useState(true);
   const [tokenLines, setTokenLines] = useState<ThemedToken[][]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const query = searchQuery.trim();
-  const lineRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const fontSizeClass = {
-    sm: "text-[11px] leading-5",
-    md: "text-xs leading-6",
-    lg: "text-[13px] leading-7",
-  }[fontScale];
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const clientId = useState(() => crypto.randomUUID())[0];
+
+  // 1. Model Preparation (Worker or Local)
+  useEffect(() => {
+    let cancelled = false;
+    setIsProcessing(true);
+
+    if (!format) {
+      setModel(createPlainDocument(text));
+      return;
+    }
+
+    const process = async () => {
+      const res = await jsonWorkerClient.callLatest<Result<JsonDocumentModel | null>>(
+        `json-${clientId}`,
+        async (api: JsonWorkerApi) => api.tryBuildJsonDocument({ text }),
+      );
+
+      if (!cancelled) {
+        if (res?.ok) {
+          setModel(res.data ?? createPlainDocument(text));
+        } else {
+          setModel(createPlainDocument(text));
+        }
+      }
+    };
+
+    void process();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [text, format]);
 
   useEffect(() => {
     let cancelled = false;
+
     void codeToTokens(model.formattedText, { lang: "json", theme })
-      .then((result) => !cancelled && setTokenLines(result.tokens))
-      .catch(() => !cancelled && setTokenLines([]));
+      .then((result) => {
+        if (!cancelled) {
+          setTokenLines(result.tokens);
+          setIsProcessing(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTokenLines([]);
+          setIsProcessing(false);
+        }
+      });
+
     return () => {
       cancelled = true;
     };
@@ -70,17 +131,20 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
     onMatchChange?.(matches.length, nextIndex);
   }, [currentIndex, matches.length, onMatchChange]);
 
+  const itemSize = LINE_HEIGHTS[fontScale as keyof typeof LINE_HEIGHTS] || LINE_HEIGHTS.md;
+
+  const rowVirtualizer = useVirtualizer({
+    count: model.lines.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => itemSize,
+    overscan: 10,
+  });
+
   useEffect(() => {
     const activeMatch = matches[currentIndex];
     if (!activeMatch) return;
-
-    requestAnimationFrame(() => {
-      lineRefs.current[activeMatch.lineNumber]?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    });
-  }, [currentIndex, matches]);
+    rowVirtualizer.scrollToIndex(activeMatch.lineNumber - 1, { align: "center" });
+  }, [currentIndex, matches, rowVirtualizer]);
 
   const goNext = () =>
     setCurrentIndex((prev) => (matches.length ? (prev + 1) % matches.length : 0));
@@ -92,9 +156,15 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
 
   return (
     <div className={cn("relative h-full min-h-0 overflow-hidden bg-background", className)}>
-      {query ? (
+      {isProcessing ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
+          <LoadingSpinner size="lg" variant="dots" />
+        </div>
+      ) : null}
+
+      {query && !isProcessing ? (
         <div
-          className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] shadow-sm"
+          className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] shadow-sm"
           style={{
             background: "hsl(var(--background))",
             borderColor: palette.border,
@@ -123,53 +193,75 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
         </div>
       ) : null}
 
-      <div className="h-full overflow-y-auto overflow-x-hidden pb-3 pt-4">
-        <div className="relative min-h-full">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-13 w-px"
-            style={{ backgroundColor: palette.border }}
-          />
-          {model.lines.map((line) => {
-            const isActive = matches[currentIndex]?.lineNumber === line.lineNumber;
-            const isMatch = matchedLines.has(line.lineNumber);
+      <div
+        ref={parentRef}
+        className="h-full overflow-auto pb-3 pt-4 scroll-smooth no-scrollbar"
+        style={{
+          fontSize: fontScale === "sm" ? "11px" : fontScale === "lg" ? "13px" : "12px",
+          lineHeight: fontScale === "sm" ? "1.25rem" : fontScale === "lg" ? "1.75rem" : "1.5rem",
+        }}
+      >
+        <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+          {!isProcessing && format ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-13 w-px z-10"
+              style={{ backgroundColor: palette.border }}
+            />
+          ) : null}
+          {(!isProcessing || !format) &&
+            rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const line = model.lines[virtualItem.index];
+              if (!line) return null;
 
-            return (
-              <div
-                key={`${line.lineNumber}-line`}
-                ref={(nodeRef) => {
-                  lineRefs.current[line.lineNumber] = nodeRef;
-                }}
-                className={cn(
-                  "grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-0 px-3 py-0.5 font-mono",
-                  fontSizeClass,
-                )}
-                style={{ background: isActive ? palette.lineHover : "transparent" }}
-              >
-                <span
-                  className="select-none pr-1.5 text-right tabular-nums"
-                  style={{ color: isActive ? palette.gutterActive : palette.gutter }}
-                >
-                  {line.lineNumber}
-                </span>
+              const isActive = matches[currentIndex]?.lineNumber === line.lineNumber;
+              const isMatch = matchedLines.has(line.lineNumber);
+
+              return (
                 <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                    background: isActive ? palette.lineHover : "transparent",
+                  }}
                   className={cn(
-                    "min-w-0 pl-1.5 whitespace-pre-wrap wrap-anywhere",
-                    isMatch && "font-medium",
+                    "grid items-start gap-0 px-3 py-0.5 font-mono",
+                    format ? "grid-cols-[2.5rem_minmax(0,1fr)]" : "grid-cols-1",
                   )}
-                  style={{ color: palette.foreground }}
                 >
-                  {renderTokens(
-                    tokenLines[line.lineNumber - 1],
-                    query,
-                    palette,
-                    isActive,
-                    line.text,
+                  {format && (
+                    <span
+                      className="select-none pr-1.5 text-right tabular-nums"
+                      style={{ color: isActive ? palette.gutterActive : palette.gutter }}
+                    >
+                      {line.lineNumber}
+                    </span>
                   )}
+                  <div
+                    className={cn(
+                      "min-w-0 whitespace-pre-wrap wrap-anywhere",
+                      format && "pl-1.5",
+                      isMatch && "font-medium",
+                    )}
+                    style={{ color: palette.foreground }}
+                  >
+                    {renderTokens(
+                      tokenLines[line.lineNumber - 1],
+                      query,
+                      palette,
+                      isActive,
+                      line.text,
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </div>
@@ -184,7 +276,7 @@ function createPlainDocument(text: string) {
     ancestors: [] as string[],
     searchText: line,
   }));
-  return { formattedText: text, lines, nodes: {} as Record<string, never> };
+  return { formattedText: text, lines, nodes: {} as Record<string, JsonNodeMeta> };
 }
 
 function renderTokens(

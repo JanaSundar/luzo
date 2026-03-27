@@ -2,8 +2,8 @@ import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createJSONStorage } from "zustand/middleware";
 import { ResponseViewer } from "@/components/playground/ResponseViewer";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { render } from "@/test/utils";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { render } from "@/utils/test-utils";
 
 const memoryStorage = (() => {
   const store = new Map<string, string>();
@@ -56,33 +56,33 @@ describe("ResponseViewer", () => {
     expect(screen.getByText(/loading response/i)).toBeInTheDocument();
   });
 
-  it("shows 200 status badge for successful response", () => {
+  it("shows 200 status badge for successful response", async () => {
     setMockResponse({ status: 200 });
     render(<ResponseViewer />);
-    expect(screen.getByText(/200 OK/i)).toBeInTheDocument();
+    expect(await screen.findByText(/200 OK/i)).toBeInTheDocument();
   });
 
-  it("shows 404 status badge", () => {
+  it("shows 404 status badge", async () => {
     setMockResponse({ status: 404, statusText: "Not Found" });
     render(<ResponseViewer />);
-    expect(screen.getByText(/404 Not Found/i)).toBeInTheDocument();
+    expect(await screen.findByText(/404 Not Found/i)).toBeInTheDocument();
   });
 
-  it("shows response time", () => {
+  it("shows response time", async () => {
     setMockResponse({ time: 120 });
     render(<ResponseViewer />);
-    expect(screen.getByText(/120ms/)).toBeInTheDocument();
+    expect(await screen.findByText(/120ms/)).toBeInTheDocument();
   });
 
-  it("shows formatted JSON body", () => {
+  it("shows formatted JSON body", async () => {
     setMockResponse({ body: '{"name":"John","age":30}' });
     render(<ResponseViewer />);
-    expect(screen.getByText(/John/)).toBeInTheDocument();
+    expect(await screen.findByText(/John/)).toBeInTheDocument();
   });
 
-  it("shows response headers tab", () => {
+  it("shows response headers tab", async () => {
     setMockResponse();
     render(<ResponseViewer />);
-    expect(screen.getByRole("tab", { name: /headers/i })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: /headers/i })).toBeInTheDocument();
   });
 });

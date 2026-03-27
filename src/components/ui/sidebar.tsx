@@ -20,7 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 /** Days until the sidebar state cookie expires (matches previous max-age: 7d). */

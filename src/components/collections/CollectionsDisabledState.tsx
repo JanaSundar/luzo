@@ -3,7 +3,7 @@
 import { ArrowRight, Database, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 export function CollectionsDisabledState() {
   return (

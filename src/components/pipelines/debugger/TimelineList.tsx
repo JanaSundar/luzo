@@ -2,7 +2,7 @@
 
 import { Circle, Pause } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { TimelineEventRow } from "./TimelineEventRow";
 

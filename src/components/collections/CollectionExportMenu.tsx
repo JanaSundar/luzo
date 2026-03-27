@@ -8,9 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { exportCollectionToPostman } from "@/lib/exporters/pipeline-postman";
-import { exportCollectionToOpenApi } from "@/lib/exporters/pipeline-openapi";
-import { downloadTextFile, slugifyFilenamePart } from "@/lib/reports/export-download";
+import { exportCollectionToPostman } from "@/features/exporters/pipeline-postman";
+import { exportCollectionToOpenApi } from "@/features/exporters/pipeline-openapi";
+import { downloadTextFile, slugifyFilenamePart } from "@/features/reports/export-download";
 import type { Collection } from "@/types";
 
 interface CollectionExportMenuProps {

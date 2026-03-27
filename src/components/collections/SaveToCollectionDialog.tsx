@@ -24,8 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { useCollectionMutations, useCollectionsQuery } from "@/features/collections/useCollections";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { ApiRequest, ApiResponse } from "@/types";
 
 interface SaveToCollectionDialogProps {

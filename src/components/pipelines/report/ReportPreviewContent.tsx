@@ -1,6 +1,9 @@
 import { Streamdown } from "streamdown";
 import type { ExportReportModel } from "@/types/pipeline-report";
-import { getDefaultSectionOrder, type ReportTopLevelSectionKey } from "@/lib/reports/report-editor";
+import {
+  getDefaultSectionOrder,
+  type ReportTopLevelSectionKey,
+} from "@/features/reports/report-editor";
 import {
   PerformanceAppendixTable,
   ReportHeader,

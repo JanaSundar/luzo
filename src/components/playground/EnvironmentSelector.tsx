@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Plus, Trash2, Unlock } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/utils";
 
 export function EnvironmentSelector() {
   const {
@@ -32,14 +32,16 @@ export function EnvironmentSelector() {
     addEnvironment,
     deleteEnvironment,
     updateEnvironmentVariable,
+    toggleEnvironmentVariableSecret,
     deleteEnvironmentVariable,
   } = useEnvironmentStore();
 
   const [newEnvName, setNewEnvName] = useState("");
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
+  const [isNewSecret, setIsNewSecret] = useState(false);
   const [showNewValue, setShowNewValue] = useState(false);
-  const [maskedKeys, setMaskedKeys] = useState<Set<string>>(new Set());
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const variablesScrollRef = useRef<HTMLDivElement>(null);
   const activeEnv = environments.find((e) => e.id === activeEnvironmentId);
 
@@ -54,14 +56,15 @@ export function EnvironmentSelector() {
 
   const addVar = () => {
     if (!activeEnvironmentId || !newKey) return;
-    updateEnvironmentVariable(activeEnvironmentId, newKey, newValue);
+    updateEnvironmentVariable(activeEnvironmentId, newKey, newValue, isNewSecret);
     setNewKey("");
     setNewValue("");
+    setIsNewSecret(false);
     setShowNewValue(false);
   };
 
-  const toggleMask = (key: string) => {
-    setMaskedKeys((prev) => {
+  const toggleReveal = (key: string) => {
+    setRevealedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -196,26 +199,52 @@ export function EnvironmentSelector() {
                       className="h-8 text-[11px] font-mono rounded border-border/60 bg-background"
                     />
                   </div>
-                  <div className="relative flex-1">
-                    <Input
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addVar()}
-                      placeholder="Value"
-                      type={showNewValue ? "text" : "password"}
-                      className="h-8 text-[11px] font-mono rounded border-border/60 bg-background pr-8"
-                    />
+                  <div className="relative flex-[1.5] flex items-center gap-1">
+                    <div className="relative flex-1">
+                      <Input
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addVar()}
+                        placeholder="Value"
+                        type={isNewSecret && !showNewValue ? "password" : "text"}
+                        className="h-8 text-[11px] font-mono rounded border-border/60 bg-background pr-8"
+                      />
+                      {isNewSecret && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 rounded hover:bg-background border-transparent hover:border-border/30 transition-all opacity-60 hover:opacity-100"
+                          onClick={() => setShowNewValue(!showNewValue)}
+                          title={showNewValue ? "Hide value" : "Show value"}
+                        >
+                          {showNewValue ? (
+                            <EyeOff className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-3 w-3 text-primary" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 rounded hover:bg-background border-transparent hover:border-border/30 transition-all opacity-60 hover:opacity-100"
-                      onClick={() => setShowNewValue(!showNewValue)}
-                      title={showNewValue ? "Hide value" : "Show value"}
+                      className={cn(
+                        "h-8 w-8 rounded border border-border/40 transition-all",
+                        isNewSecret
+                          ? "bg-primary/10 border-primary/40 text-primary shadow-inner"
+                          : "text-muted-foreground opacity-60 hover:opacity-100",
+                      )}
+                      onClick={() => setIsNewSecret(!isNewSecret)}
+                      title={
+                        isNewSecret
+                          ? "Sensitive value (encrypted in storage)"
+                          : "Non-sensitive value"
+                      }
                     >
-                      {showNewValue ? (
-                        <EyeOff className="h-3 w-3 text-muted-foreground" />
+                      {isNewSecret ? (
+                        <Lock className="h-3.5 w-3.5" />
                       ) : (
-                        <Eye className="h-3 w-3 text-primary" />
+                        <Unlock className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
@@ -233,7 +262,9 @@ export function EnvironmentSelector() {
                   className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-2"
                 >
                   {activeEnv.variables.map((v) => {
-                    const isMasked = maskedKeys.has(v.key);
+                    const isSecret = v.secret;
+                    const isRevealed = revealedKeys.has(v.key);
+                    const isMasked = isSecret && !isRevealed;
                     const displayValue = isMasked ? "••••••••" : v.value;
                     return (
                       <div
@@ -263,16 +294,40 @@ export function EnvironmentSelector() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 rounded-md hover:bg-background border border-transparent hover:border-border/50 shadow-xs active:scale-90 transition-all"
-                            onClick={() => toggleMask(v.key)}
-                            title={isMasked ? "Show value" : "Hide value"}
+                            className={cn(
+                              "h-7 w-7 rounded-md border border-transparent transition-all",
+                              isSecret
+                                ? "text-primary opacity-100 hover:bg-primary/5"
+                                : "text-muted-foreground opacity-40 hover:opacity-100",
+                            )}
+                            onClick={() =>
+                              activeEnvironmentId &&
+                              toggleEnvironmentVariableSecret(activeEnvironmentId, v.key)
+                            }
+                            title={isSecret ? "Sensitive value" : "Mark as sensitive"}
                           >
-                            {isMasked ? (
-                              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                            {isSecret ? (
+                              <Lock className="h-3 w-3" />
                             ) : (
-                              <Eye className="h-3.5 w-3.5 text-primary" />
+                              <Unlock className="h-3 w-3" />
                             )}
                           </Button>
+
+                          {isSecret && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-md hover:bg-background border border-transparent hover:border-border/50 shadow-xs active:scale-90 transition-all"
+                              onClick={() => toggleReveal(v.key)}
+                              title={isRevealed ? "Hide value" : "Reveal sensitive value"}
+                            >
+                              {isRevealed ? (
+                                <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-3.5 w-3.5 text-primary" />
+                              )}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"

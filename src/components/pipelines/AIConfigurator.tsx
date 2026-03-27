@@ -2,12 +2,12 @@
 
 import { BrainCircuit, CheckCircle2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DEFAULT_PROMPTS } from "@/lib/pipeline/ai-constants";
-import { buildReducedContext } from "@/lib/pipeline/context-reducer";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { cn } from "@/lib/utils";
+import { DEFAULT_PROMPTS } from "@/features/pipeline/ai-constants";
+import { buildReducedContext } from "@/features/pipeline/context-reducer";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { cn } from "@/utils";
 import type { NarrativeTone } from "@/types";
 import { LengthSelection } from "./ai-configurator/LengthSelection";
 import { PromptEditor } from "./ai-configurator/PromptEditor";

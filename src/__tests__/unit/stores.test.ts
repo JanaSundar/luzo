@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createJSONStorage } from "zustand/middleware";
-import { useHistoryStore } from "@/lib/stores/useHistoryStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { useHistoryStore } from "@/stores/useHistoryStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 
 const memoryStorage = (() => {
   const store = new Map<string, string>();

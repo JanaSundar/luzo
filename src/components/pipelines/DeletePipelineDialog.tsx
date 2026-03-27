@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 
 interface DeletePipelineDialogProps {
   open: boolean;

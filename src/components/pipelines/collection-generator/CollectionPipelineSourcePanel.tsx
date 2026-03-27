@@ -5,8 +5,8 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { Collection } from "@/types";
 
 type SourceTab = "collection" | "upload";

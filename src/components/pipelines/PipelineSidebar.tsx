@@ -3,7 +3,7 @@
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
-import { ACTION_BUTTON_CLASSES_NO_HOVER, cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES_NO_HOVER, cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
 import type { Pipeline } from "@/types";
 
 interface PipelineSidebarProps {

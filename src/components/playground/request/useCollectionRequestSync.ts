@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useCollectionMutations } from "@/lib/collections/useCollections";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { useCollectionMutations } from "@/features/collections/useCollections";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { ApiRequest, ApiResponse } from "@/types";
 
 const AUTO_SAVE_DELAY_MS = 1500;

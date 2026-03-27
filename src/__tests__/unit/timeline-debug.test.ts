@@ -3,13 +3,13 @@ import {
   snapshotToTimelineEvent,
   snapshotsToTimelineEvents,
   mapStepStatus,
-} from "@/lib/pipeline/timeline/event-adapter";
+} from "@/features/pipeline/timeline/event-adapter";
 import {
   formatBytes,
   formatDuration,
   formatTimestamp,
   computeDuration,
-} from "@/lib/pipeline/timeline/format-utils";
+} from "@/features/pipeline/timeline/format-utils";
 import {
   derivePanelState,
   selectSortedEvents,
@@ -17,7 +17,7 @@ import {
   selectSelectedEvent,
   selectActiveEvent,
   selectTimelineStats,
-} from "@/lib/pipeline/timeline/timeline-selectors";
+} from "@/features/pipeline/timeline/timeline-selectors";
 import type { StepSnapshot } from "@/types/pipeline-runtime";
 import type { TimelineEvent } from "@/types/timeline-event";
 

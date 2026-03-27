@@ -7,9 +7,9 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { ResponseContent } from "@/components/playground/response/ResponseContent";
 import { ResponseToolbar } from "@/components/playground/response/ResponseToolbar";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { cn } from "@/utils";
 
 export function ResponseViewer() {
   const response = useExecutionStore((state) => state.activeRawResponse);
@@ -122,54 +122,65 @@ export function ResponseViewer() {
       : "Search response";
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <ResponseToolbar
-        status={response.status}
-        statusText={response.statusText}
-        time={response.time}
-        size={response.size}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder={searchPlaceholder}
-        searchDisabled={isBinaryPreview || bodyView === "raw" || !isJson}
-        onCopy={() => void copy()}
-        onDownload={download}
-        copied={copied}
-        fontScale={fontScale}
-        onFontScaleChange={setFontScale}
-      />
-
-      <div
-        role="tablist"
-        className={cn("inline-flex w-fit items-center", segmentedTabListClassName)}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={segmentedTabTriggerClassName(activeTab === tab.id, "h-8 px-3")}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      {/* Pane Header - Matches Request side */}
+      <div className="flex items-center gap-2 px-1">
+        <Activity className="h-3.5 w-3.5 text-muted-foreground/70" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+          Response Stream
+        </span>
       </div>
 
-      <div className="min-h-0 flex-1">
-        <ResponseContent
-          response={response}
-          bodyView={bodyView}
-          onBodyViewChange={setBodyView}
-          activeTab={activeTab}
+      <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden rounded-[1.25rem] border border-border/40 bg-background/50 p-4 shadow-sm backdrop-blur-sm">
+        <ResponseToolbar
+          status={response.status}
+          statusText={response.statusText}
+          time={response.time}
+          size={response.size}
           searchQuery={searchQuery}
-          isJson={isJson}
-          isBinaryPreview={isBinaryPreview}
-          dataUrl={dataUrl}
-          contentType={contentType}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={searchPlaceholder}
+          searchDisabled={isBinaryPreview || bodyView === "raw" || !isJson}
+          onCopy={() => void copy()}
+          onDownload={download}
+          copied={copied}
           fontScale={fontScale}
+          onFontScaleChange={setFontScale}
         />
+
+        <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden">
+          <div
+            role="tablist"
+            className={cn("inline-flex w-fit items-center", segmentedTabListClassName)}
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={segmentedTabTriggerClassName(activeTab === tab.id, "h-8 px-4")}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/30 bg-background/60 shadow-inner">
+            <ResponseContent
+              response={response}
+              bodyView={bodyView}
+              onBodyViewChange={setBodyView}
+              activeTab={activeTab}
+              searchQuery={searchQuery}
+              isJson={isJson}
+              dataUrl={dataUrl}
+              contentType={contentType}
+              fontScale={fontScale}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

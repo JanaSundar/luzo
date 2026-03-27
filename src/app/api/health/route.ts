@@ -1,4 +1,4 @@
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 export async function GET() {
   logger.debug({ path: "/api/health" }, "Health check requested");

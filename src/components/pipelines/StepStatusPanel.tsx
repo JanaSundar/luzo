@@ -6,9 +6,9 @@ import {
   segmentedTabBadgeClassName,
   segmentedTabListClassName,
   segmentedTabTriggerClassName,
-} from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
-import { METHOD_COLORS } from "@/lib/utils/http";
+} from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
+import { METHOD_COLORS } from "@/utils/http";
 import type { StepSnapshot, StepStatus } from "@/types/pipeline-debug";
 
 function formatSize(bytes: number): string {

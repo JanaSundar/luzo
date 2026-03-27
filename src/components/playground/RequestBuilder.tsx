@@ -13,13 +13,14 @@ import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { Button } from "@/components/ui/button";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { useHistoryStore } from "@/lib/stores/useHistoryStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { buildEnvironmentVariableSuggestions } from "@/lib/utils/variableMetadata";
-import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { useHistoryStore } from "@/stores/useHistoryStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { buildEnvironmentVariableSuggestions } from "@/utils/variableMetadata";
+import { compilePreRequestRules, compileTestRules } from "@/utils/rule-compiler";
+import { cn } from "@/utils";
 
 export function RequestBuilder() {
   const { request, setMethod, setUrl, setRequest } = usePlaygroundStore();
@@ -43,15 +44,10 @@ export function RequestBuilder() {
 
   // Build env variable suggestions for {{}} autocomplete in the URL bar
   const urlSuggestions = useMemo(() => {
-    const values = Object.fromEntries(
-      environmentVariables
-        .filter((variable) => variable.enabled)
-        .map((variable) => [variable.key, variable.value]),
-    );
-    return buildEnvironmentVariableSuggestions(values);
+    return buildEnvironmentVariableSuggestions(environmentVariables.filter((v) => v.enabled));
   }, [environmentVariables]);
 
-  // Disable body tab for GET and HEAD requests (per HTTP standards - these methods should not have request body)
+  // Disable body tab for GET and HEAD requests
   const disabledTabs: TabId[] =
     request.method === "GET" || request.method === "HEAD" ? ["body"] : [];
 
@@ -155,36 +151,48 @@ export function RequestBuilder() {
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-4">
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <RequestUrlBar
-          method={request.method}
-          url={request.url}
-          suggestions={urlSuggestions}
-          onMethodChange={setMethod}
-          onUrlChange={setUrl}
-          onSend={send}
-          placeholder="Enter URL or {{variable}}/path"
-          className="min-w-[min(100%,30rem)] flex-[999_1_42rem] bg-transparent p-0"
-        />
-        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="flex flex-col gap-4 rounded-[1.25rem] border border-border/40 bg-background/50 p-4 shadow-sm backdrop-blur-sm">
+        {/* Method & URL Row */}
+        <div className="flex shrink-0 items-center">
+          <RequestUrlBar
+            method={request.method}
+            url={request.url}
+            suggestions={urlSuggestions}
+            onMethodChange={setMethod}
+            onUrlChange={setUrl}
+            onSend={send}
+            placeholder="Enter URL or {{variable}}/path"
+            className="w-full bg-background/80 shadow-inner px-1"
+          />
+        </div>
+
+        {/* Action Buttons Row - Centered alignment */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
           <ImportCurlDialog
-            onImport={(importedRequest) => {
-              setRequest(importedRequest);
-            }}
+            onImport={(importedRequest) => setRequest(importedRequest)}
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
+              >
+                <span className="font-mono opacity-60">()</span>
+                <span>cURL</span>
+              </Button>
+            }
           />
           <AddToPipelineDialog
-            pipelines={pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name }))}
+            pipelines={pipelines.map((p) => ({ id: p.id, name: p.name }))}
             onAddToPipeline={handleAddToPipeline}
             onCreateAndAdd={handleCreateAndAdd}
             trigger={
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 gap-2 rounded-lg border-border/40 bg-background px-2.5 text-sm font-medium"
+                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
               >
-                <GitBranch className="h-3.5 w-3.5" />
+                <GitBranch className="h-3.5 w-3.5 opacity-60" />
                 <span>Pipeline</span>
               </Button>
             }
@@ -195,12 +203,11 @@ export function RequestBuilder() {
             defaultName={`${request.method} ${request.url || "Request"}`}
             trigger={
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 gap-2 rounded-lg border-border/40 bg-background px-2.5 text-sm font-medium"
+                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
               >
-                <FolderPlus className="h-3.5 w-3.5" />
+                <FolderPlus className="h-3.5 w-3.5 opacity-60" />
                 <span>Save</span>
               </Button>
             }
@@ -209,81 +216,65 @@ export function RequestBuilder() {
             type="button"
             onClick={send}
             disabled={isLoading || !request.url}
-            className="h-9 min-w-[110px] gap-2 rounded-lg bg-foreground text-background hover:bg-foreground/90"
+            className="h-9 min-w-[110px] gap-2 rounded-full bg-foreground px-5 text-sm font-bold text-background shadow-md transition-all hover:bg-foreground/90 active:scale-[0.98]"
           >
             <Send className="h-3.5 w-3.5" />
             {isLoading ? "Sending..." : "Send"}
           </Button>
         </div>
-      </div>
 
-      {collectionSync.isLinked && collectionSync.canSync ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-background/60 px-2.5 py-2 shadow-sm">
-          <div className="mr-1 flex items-center gap-2 rounded-lg bg-muted/45 px-2 py-1">
-            <span
-              className={
-                collectionSync.isDirty
-                  ? "h-1.5 w-1.5 rounded-full bg-amber-500"
-                  : "h-1.5 w-1.5 rounded-full bg-emerald-500"
-              }
-            />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Collection
+        {/* Notification / Sync Bar */}
+        {collectionSync.isLinked && collectionSync.canSync && (
+          <div className="flex items-center gap-2 rounded-xl bg-muted/30 px-3 py-1.5 border border-border/30">
+            <div className="flex items-center gap-1.5 border-r border-border/40 pr-2">
+              <div
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  collectionSync.isDirty ? "bg-amber-500" : "bg-emerald-500",
+                )}
+              />
+              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                Sync
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground/60">
+              {collectionSync.autoSave ? "Auto-save active" : "Manual sync"}
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-6 w-6 rounded-md hover:bg-background/80"
+              onClick={() => void collectionSync.saveNow("manual")}
+              disabled={collectionSync.isSaving || !collectionSync.isDirty}
+            >
+              <FolderPlus className="h-3 w-3" />
+            </Button>
           </div>
-          <label className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45">
-            <input
-              type="checkbox"
-              checked={collectionSync.autoSave}
-              onChange={(event) => collectionSync.setAutoSave(event.target.checked)}
-              className="h-4 w-4 accent-primary"
-            />
-            Auto-save
-          </label>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="ml-auto h-7 rounded-lg px-2.5 text-xs"
-            disabled={collectionSync.isSaving || !collectionSync.isDirty}
-            onClick={() => void collectionSync.saveNow("manual")}
-          >
-            {collectionSync.isSaving ? "Saving..." : "Save"}
-          </Button>
-          <span className="text-[11px] text-muted-foreground">
-            {collectionSync.autoSave
-              ? collectionSync.isDirty
-                ? "Syncing after edit settles."
-                : collectionSync.lastSavedAt
-                  ? `Synced ${new Date(collectionSync.lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                  : "Auto-save on"
-              : collectionSync.isDirty
-                ? "Unsaved changes"
-                : "Up to date"}
-          </span>
-        </div>
-      ) : null}
+        )}
 
-      <RequestForm
-        headers={request.headers}
-        params={request.params}
-        body={request.body}
-        bodyType={request.bodyType}
-        formDataFields={request.formDataFields}
-        auth={request.auth}
-        preRequestEditorType={request.preRequestEditorType}
-        testEditorType={request.testEditorType}
-        preRequestRules={request.preRequestRules}
-        testRules={request.testRules}
-        preRequestScript={request.preRequestScript}
-        testScript={request.testScript}
-        testResults={response?.testResults}
-        suggestions={urlSuggestions}
-        onChange={(partial) => setRequest(partial)}
-        defaultTab="params"
-        disabledTabs={disabledTabs}
-        className="min-h-0 flex-1"
-      />
+        <div className="mt-2 min-h-0 flex-1">
+          <RequestForm
+            headers={request.headers}
+            params={request.params}
+            body={request.body}
+            bodyType={request.bodyType}
+            formDataFields={request.formDataFields}
+            auth={request.auth}
+            preRequestEditorType={request.preRequestEditorType}
+            testEditorType={request.testEditorType}
+            preRequestRules={request.preRequestRules}
+            testRules={request.testRules}
+            preRequestScript={request.preRequestScript}
+            testScript={request.testScript}
+            testResults={response?.testResults}
+            suggestions={urlSuggestions}
+            onChange={(partial) => setRequest(partial)}
+            defaultTab="params"
+            disabledTabs={disabledTabs}
+            className="border-none bg-transparent shadow-none"
+          />
+        </div>
+      </div>
     </div>
   );
 }

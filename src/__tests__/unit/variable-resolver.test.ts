@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveTemplate } from "@/lib/pipeline/variable-resolver";
+import { resolveTemplate } from "@/features/pipeline/variable-resolver";
 
 describe("resolveTemplate", () => {
   it("uses the latest runtime value instead of a stale cached value", () => {

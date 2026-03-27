@@ -3,7 +3,7 @@
 import { Plus, Search } from "lucide-react";
 import { CollectionEditorDialog } from "@/components/collections/CollectionEditorDialog";
 import { SidebarHeader, SidebarInput } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 type PlaygroundSidebarHeaderProps = {
   canCreateCollection: boolean;

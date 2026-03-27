@@ -18,9 +18,9 @@ import {
   DEFAULT_TEMPLATE_MENU_POSITION,
   getTemplateMenuPosition,
   type TemplateMenuPosition,
-} from "@/lib/utils/templateMenuPosition";
-import { applyTemplateSelection, getActiveTemplateToken } from "@/lib/utils/templateTokens";
-import { cn } from "@/lib/utils";
+} from "@/utils/templateMenuPosition";
+import { applyTemplateSelection, getActiveTemplateToken } from "@/utils/templateTokens";
+import { cn } from "@/utils";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function TemplateTextarea({

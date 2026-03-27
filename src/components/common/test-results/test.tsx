@@ -1,7 +1,7 @@
 import { CheckCircle2, Circle, CircleDot, XCircle } from "lucide-react";
 import type React from "react";
 import { useContext, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { TestContext, type TestStatus } from "./context";
 
 const statusStyles: Record<TestStatus, string> = {

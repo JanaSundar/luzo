@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { generateReportPdf } from "@/lib/server/pdf-service";
+import { generateReportPdf } from "@/services/server/pdf-service";
 import type { ExportReportModel } from "@/types/pipeline-report";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
