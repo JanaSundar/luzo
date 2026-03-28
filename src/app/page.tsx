@@ -16,10 +16,10 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 
 function RequestPane() {
   return (

@@ -8,8 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TemplateInput } from "@/components/ui/template-input";
-import { cn } from "@/lib/utils";
-import { HTTP_METHODS, METHOD_COLORS } from "@/lib/utils/http";
+import { cn } from "@/utils";
+import { HTTP_METHODS, METHOD_COLORS } from "@/utils/http";
 import type { HttpMethod } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 

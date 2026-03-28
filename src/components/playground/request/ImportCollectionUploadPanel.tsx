@@ -3,7 +3,7 @@
 import { FolderPlus, Upload, X } from "lucide-react";
 import type { DropzoneInputProps, DropzoneRootProps } from "react-dropzone";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface ImportCollectionUploadPanelProps {
   activeDescription: string;

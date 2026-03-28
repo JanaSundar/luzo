@@ -4,10 +4,11 @@ import { Loader2, Pencil, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
 import { PipelineHeader } from "./PipelineHeader";
@@ -67,6 +68,7 @@ export function PipelineLayout({
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const activePipeline = pipelines.find((p) => p.id === activePipelineId);
+  const executionSupport = activePipeline ? getPipelineExecutionSupport(activePipeline) : null;
   const canPersistToDb = dbStatus === "connected" && dbSchemaReady;
   const hasGeneratedReport = activePipelineId
     ? Boolean(reportsByPipelineId[activePipelineId])
@@ -99,12 +101,11 @@ export function PipelineLayout({
     if (canPersistToDb && dbUrl) {
       await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch("/api/db/collections", {
-            method: "POST",
+          const response = await fetch("/api/db/pipelines", {
+            method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               dbUrl,
-              action: "delete-pipeline",
               id,
             }),
           });
@@ -215,6 +216,9 @@ export function PipelineLayout({
           currentView={currentView}
           isExecuting={isAnyExecuting}
           activePipelineId={activePipelineId}
+          executionBlockedReason={
+            executionSupport?.supported === false ? executionSupport.reason : null
+          }
           snapshotsCount={snapshots.length}
           onSetView={setView}
           onRun={onRun || (() => {})}

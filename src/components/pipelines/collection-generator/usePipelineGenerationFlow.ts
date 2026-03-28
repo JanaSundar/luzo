@@ -2,18 +2,18 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { analyzeCollectionToDraft } from "@/lib/collection-to-pipeline/analyze";
-import { compileDraftToPipeline } from "@/lib/collection-to-pipeline/compile";
+import { analyzeCollectionToDraft } from "@/features/collection-to-pipeline/analyze";
+import { compileDraftToPipeline } from "@/features/collection-to-pipeline/compile";
 import {
   ignoreDraftDependency,
   moveDraftStep,
   removeDraftStep,
   renameDraftStep,
   setDraftGrouping,
-} from "@/lib/collection-to-pipeline/draft-edits";
-import { loadCollectionGenerationSource } from "@/lib/collection-to-pipeline/normalize-source";
-import { useCollectionsQuery } from "@/lib/collections/useCollections";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+} from "@/features/collection-to-pipeline/draft-edits";
+import { loadCollectionGenerationSource } from "@/features/collection-to-pipeline/normalize-source";
+import { useCollectionsQuery } from "@/features/collections/useCollections";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineGenerationDraft, PreviewGrouping } from "@/types";
 
 export function usePipelineGenerationFlow(requestedCollectionId?: string | null) {

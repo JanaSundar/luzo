@@ -2,19 +2,20 @@
 
 import { Bug, Database, Loader2, Play, RefreshCw, Settings2, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { PipelineView } from "@/types";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { ReportExportMenu } from "./ReportExportMenu";
 import { PipelineExportMenu } from "./PipelineExportMenu";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 
 interface PipelineHeaderProps {
   activePipelineName: string | null;
   currentView: PipelineView;
   isExecuting: boolean;
   activePipelineId: string | null;
+  executionBlockedReason?: string | null;
   snapshotsCount?: number;
   onSetView: (view: PipelineView) => void;
   onRun: () => void;
@@ -43,6 +44,7 @@ export function PipelineHeader({
   currentView,
   isExecuting,
   activePipelineId,
+  executionBlockedReason = null,
   snapshotsCount = 0,
   onSetView,
   onRun,
@@ -150,7 +152,8 @@ export function PipelineHeader({
                 size="sm"
                 className="gap-1.5 h-8 font-bold"
                 onClick={onDebug}
-                disabled={!activePipelineId}
+                disabled={!activePipelineId || Boolean(executionBlockedReason)}
+                title={executionBlockedReason ?? undefined}
               >
                 <Bug className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Debug</span>
@@ -160,7 +163,8 @@ export function PipelineHeader({
                 size="sm"
                 className="gap-1.5 h-8 bg-foreground text-background hover:bg-foreground/90 font-bold"
                 onClick={onRun}
-                disabled={!activePipelineId}
+                disabled={!activePipelineId || Boolean(executionBlockedReason)}
+                title={executionBlockedReason ?? undefined}
               >
                 <Play className="h-3.5 w-3.5 fill-current" />
                 <span className="hidden sm:inline">Run</span>

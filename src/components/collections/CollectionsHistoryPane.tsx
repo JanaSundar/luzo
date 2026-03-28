@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
-import { ACTION_BUTTON_CLASSES } from "@/lib/utils";
+import { ACTION_BUTTON_CLASSES } from "@/utils";
 import type { Collection } from "@/types";
 
 interface CollectionsHistoryPaneProps {

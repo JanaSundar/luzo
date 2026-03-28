@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 import type { AiProvider } from "@/types";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 const PROVIDER_API_ENDPOINTS: Record<AiProvider, string> = {
   openai: "https://api.openai.com/v1/models",

@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, ChevronDown, GripVertical, Pencil, Zap } from "lucide-react";
+import { Check, GripVertical, Pencil, Zap } from "lucide-react";
 import { type DragControls, motion } from "motion/react";
 import type { RefObject } from "react";
 import { PipelineBadge } from "@/components/pipelines/PipelineBadge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface StepCardHeaderProps {
   executionHint?: {
@@ -14,13 +14,12 @@ interface StepCardHeaderProps {
   };
   index: number;
   name: string;
-  isExpanded: boolean;
+  isSelected: boolean;
   renamingId: string | null;
   stepId: string;
   renameValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   dragControls: DragControls;
-  onToggleExpand: () => void;
   onRenameStart: () => void;
   onRenameSave: () => void;
   onRenameCancel: () => void;
@@ -32,13 +31,12 @@ export function StepCardHeader({
   executionHint,
   index,
   name,
-  isExpanded,
+  isSelected,
   renamingId,
   stepId,
   renameValue,
   renameInputRef,
   dragControls,
-  onToggleExpand,
   onRenameStart,
   onRenameSave,
   onRenameCancel,
@@ -62,12 +60,12 @@ export function StepCardHeader({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <motion.div
           animate={{
-            scale: isExpanded ? 1.1 : 1,
-            backgroundColor: isExpanded ? "var(--primary-foreground)" : "var(--muted)",
-            borderColor: isExpanded ? "var(--primary)" : "var(--border)",
+            scale: isSelected ? 1.05 : 1,
+            backgroundColor: isSelected ? "var(--foreground)" : "var(--muted)",
+            color: isSelected ? "var(--background)" : "var(--muted-foreground)",
           }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/50 bg-muted text-[10px] font-bold text-muted-foreground shadow-inner"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/50 text-[10px] font-bold shadow-inner"
         >
           {index + 1}
         </motion.div>
@@ -91,7 +89,7 @@ export function StepCardHeader({
               </Button>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <div className="flex min-w-0 items-center gap-2 group/title">
                 <span className="min-w-0 truncate text-sm font-bold leading-snug text-foreground">
                   {name || `Request ${index + 1}`}
@@ -134,25 +132,6 @@ export function StepCardHeader({
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={onToggleExpand}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          aria-expanded={isExpanded}
-        >
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="flex items-center justify-center"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </motion.div>
-        </Button>
       </div>
     </header>
   );

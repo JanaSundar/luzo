@@ -1,10 +1,10 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { JsonView } from "@/components/ui/JsonView";
-import { render } from "@/test/utils";
+import { render } from "@/utils/test-utils";
 
 describe("JsonView", () => {
-  it("reports match counts for exact substring search", () => {
+  it("reports match counts for exact substring search", async () => {
     const onMatchChange = vi.fn();
     render(
       <JsonView
@@ -14,11 +14,13 @@ describe("JsonView", () => {
       />,
     );
 
-    expect(onMatchChange).toHaveBeenLastCalledWith(2, 0);
-    expect(screen.getByText("1/2")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(onMatchChange).toHaveBeenLastCalledWith(2, 0);
+    });
+    expect(await screen.findByText("1/2")).toBeInTheDocument();
   });
 
-  it("does not return fuzzy matches", () => {
+  it("does not return fuzzy matches", async () => {
     const onMatchChange = vi.fn();
     render(
       <JsonView
@@ -28,15 +30,17 @@ describe("JsonView", () => {
       />,
     );
 
-    expect(onMatchChange).toHaveBeenLastCalledWith(0, 0);
-    expect(screen.getByText("0/0")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(onMatchChange).toHaveBeenLastCalledWith(0, 0);
+    });
+    expect(await screen.findByText("0/0")).toBeInTheDocument();
   });
 
-  it("renders nested JSON lines without fold summaries", () => {
+  it("renders nested JSON lines without fold summaries", async () => {
     render(<JsonView text={JSON.stringify({ profile: { name: "Ada", city: "London" } })} />);
 
-    expect(screen.getByText(/profile/)).toBeInTheDocument();
-    expect(screen.getByText(/city/)).toBeInTheDocument();
+    expect(await screen.findByText(/profile/)).toBeInTheDocument();
+    expect(await screen.findByText(/city/)).toBeInTheDocument();
     expect(screen.queryByText(/1 key/)).not.toBeInTheDocument();
   });
 });

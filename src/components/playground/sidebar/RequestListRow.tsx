@@ -12,9 +12,9 @@ import {
 import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEllipsisText";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIsTruncated } from "@/lib/hooks/useIsTruncated";
-import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/lib/utils";
-import { stripMethodPrefixFromRequestName } from "@/lib/utils/requestDisplayName";
+import { useIsTruncated } from "@/hooks/useIsTruncated";
+import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/utils";
+import { stripMethodPrefixFromRequestName } from "@/utils/requestDisplayName";
 
 type RequestListRowProps = {
   method: string;

@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TemplateInput } from "@/components/ui/template-input";
-import { cn } from "@/lib/utils";
-import { LIMITS } from "@/lib/utils/security";
+import { cn } from "@/utils";
+import { LIMITS } from "@/utils/security";
 import type { FormDataField } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 

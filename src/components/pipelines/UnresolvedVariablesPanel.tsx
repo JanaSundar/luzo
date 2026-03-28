@@ -1,51 +1,15 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { extractVariableRefs, getByPath } from "@/lib/pipeline/variable-resolver";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
-
-function collectTemplateStrings(step: PipelineStep): string[] {
-  const strings: string[] = [step.url ?? ""];
-  for (const h of step.headers ?? []) {
-    strings.push(h.key, h.value);
-  }
-  for (const p of step.params ?? []) {
-    strings.push(p.key, p.value);
-  }
-  if (step.body) strings.push(step.body);
-  for (const f of step.formDataFields ?? []) {
-    if (f.type === "text") strings.push(f.key, f.value);
-  }
-  return strings;
-}
-
-function getUnresolvedPaths(
-  step: PipelineStep,
-  runtimeVariables: Record<string, unknown>,
-  envVariables: Record<string, string>,
-): string[] {
-  const allRefs = new Set<string>();
-  for (const s of collectTemplateStrings(step)) {
-    for (const path of extractVariableRefs(s)) {
-      allRefs.add(path);
-    }
-  }
-
-  const unresolved: string[] = [];
-  for (const path of allRefs) {
-    const runtimeValue = getByPath(runtimeVariables, path);
-    if (runtimeValue !== undefined) continue;
-    const envValue = envVariables[path];
-    if (envValue !== undefined) continue;
-    unresolved.push(path);
-  }
-  return unresolved.sort();
-}
+import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
+import { analysisWorkerClient } from "@/workers/client/analysis-client";
+import type { Result, VariableAnalysisOutput } from "@/types/worker-results";
 
 export function UnresolvedVariablesPanel() {
   const { activePipelineId, pipelines } = usePipelineStore();
@@ -55,25 +19,75 @@ export function UnresolvedVariablesPanel() {
   const status = usePipelineExecutionStore((s) => s.status);
   const getActiveEnvironmentVariables = useEnvironmentStore((s) => s.getActiveEnvironmentVariables);
 
-  const { nextStep, unresolvedPaths } = useMemo(() => {
-    const pipeline = pipelines.find((p) => p.id === activePipelineId);
-    const envVars = getActiveEnvironmentVariables();
-    const nextIndex = currentStepIndex;
-    const nextStep = pipeline?.steps[nextIndex] as PipelineStep | undefined;
+  const [unresolvedPaths, setUnresolvedPaths] = useState<string[]>([]);
 
-    if (!nextStep) {
-      return { nextStep: undefined, unresolvedPaths: [] as string[] };
+  const pipeline = useMemo(
+    () => pipelines.find((p) => p.id === activePipelineId),
+    [pipelines, activePipelineId],
+  );
+  const envVars = getActiveEnvironmentVariables();
+  const nextStep = pipeline?.steps[currentStepIndex] as PipelineStep | undefined;
+
+  useEffect(() => {
+    if (!pipeline || !nextStep) {
+      setUnresolvedPaths([]);
+      return;
     }
 
-    const unresolved = getUnresolvedPaths(nextStep, runtimeVariables, envVars);
-    return { nextStep, unresolvedPaths: unresolved };
-  }, [
-    activePipelineId,
-    pipelines,
-    currentStepIndex,
-    runtimeVariables,
-    getActiveEnvironmentVariables,
-  ]);
+    let active = true;
+    const bundle = buildWorkflowBundleFromPipeline(pipeline);
+
+    analysisWorkerClient
+      .callLatest("unresolved-panel", async (api) => {
+        const result = (await api.analyzeVariables({
+          workflow: bundle.workflow,
+          registry: bundle.registry,
+        })) as Result<VariableAnalysisOutput>;
+        return result;
+      })
+      .then((res) => {
+        if (!active || !res || !res.ok) return;
+
+        // Extract unresolved paths from the analysis
+        const allUnresolved = res.data.unresolved
+          .filter((ref) => ref.nodeId === nextStep.id)
+          .map((ref) => ref.rawRef);
+
+        const actuallyUnresolved = allUnresolved.filter((path) => {
+          // It's resolved if it's in runtime variables
+          let current: unknown = runtimeVariables;
+          let foundInRuntime = false;
+          if (path.includes(".")) {
+            // Very simple path check for runtime array/object
+            const parts = path.split(".");
+            for (const part of parts) {
+              if (current == null || typeof current !== "object") {
+                foundInRuntime = false;
+                break;
+              }
+              current = (current as Record<string, unknown>)[part];
+              foundInRuntime = current !== undefined;
+            }
+          } else {
+            foundInRuntime = (runtimeVariables as Record<string, unknown>)[path] !== undefined;
+          }
+
+          if (foundInRuntime) return false;
+
+          // Or if it's in envVars
+          if (envVars[path] !== undefined) return false;
+
+          return true;
+        });
+
+        setUnresolvedPaths(Array.from(new Set(actuallyUnresolved)).sort());
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [pipeline, nextStep, envVars, runtimeVariables]);
 
   const showPanel = status === "paused" && nextStep && unresolvedPaths.length > 0;
 

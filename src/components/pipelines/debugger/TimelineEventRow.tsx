@@ -12,15 +12,15 @@ import {
   XCircle,
 } from "lucide-react";
 import { memo } from "react";
-import { cn } from "@/lib/utils";
-import { METHOD_COLORS } from "@/lib/utils/http";
+import { cn } from "@/utils";
+import { METHOD_COLORS } from "@/utils/http";
 import type { TimelineEvent } from "@/types/timeline-event";
-import { formatBytes, formatDuration } from "@/lib/pipeline/timeline/format-utils";
+import { formatBytes, formatDuration } from "@/features/pipeline/timeline/format-utils";
 import {
   type StatusIcon,
   getHttpStatusColor,
   getStatusVisual,
-} from "@/lib/pipeline/timeline/status-config";
+} from "@/features/pipeline/timeline/status-config";
 
 // ─── Icon resolver ──────────────────────────────────────────────────
 const ICON_MAP: Record<StatusIcon, React.ReactNode> = {

@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { generateCurl } from "@/lib/utils/code-generator/curl";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { generateCurl } from "@/utils/code-generator/curl";
 import type { CodeGenerationOptions } from "@/types";
 
 const LANGUAGES: { value: CodeGenerationOptions["language"]; label: string }[] = [

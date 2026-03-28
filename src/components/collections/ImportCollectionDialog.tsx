@@ -18,10 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useCollectionMutations } from "@/lib/collections/useCollections";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { useCollectionMutations } from "@/features/collections/useCollections";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import {
   getImportPlaceholder,
   importStructuredCollection,

@@ -16,14 +16,14 @@ import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspacePane } from "@/components/ui/workspace-pane";
-import { useCollectionMutations, useCollectionsQuery } from "@/lib/collections/useCollections";
-import { sortSavedRequestsByRecencyDesc } from "@/lib/history/sortSavedRequests";
-import { collectionToPipelineHref } from "@/lib/pipeline/collectionToPipelineHref";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { useHistoryStore } from "@/lib/stores/useHistoryStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/lib/utils";
+import { useCollectionMutations, useCollectionsQuery } from "@/features/collections/useCollections";
+import { sortSavedRequestsByRecencyDesc } from "@/features/history/sortSavedRequests";
+import { collectionToPipelineHref } from "@/features/pipeline/collectionToPipelineHref";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { useHistoryStore } from "@/stores/useHistoryStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
 import type { Collection } from "@/types";
 
 export function CollectionsWorkspace() {

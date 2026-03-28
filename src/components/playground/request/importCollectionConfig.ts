@@ -1,4 +1,4 @@
-import { importOpenApiCollection, importPostmanCollection } from "@/lib/utils/collection-import";
+import { importOpenApiCollection, importPostmanCollection } from "@/utils/collection-import";
 
 export type ImportMode = "curl" | "openapi" | "postman";
 

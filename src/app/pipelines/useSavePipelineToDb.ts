@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { Pipeline } from "@/types";
 
 export function useSavePipelineToDb() {
@@ -14,12 +14,11 @@ export function useSavePipelineToDb() {
     setIsSaving(true);
 
     try {
-      const response = await fetch("/api/db/collections", {
+      const response = await fetch("/api/db/pipelines", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dbUrl,
-          action: "save-pipeline",
           id: pipeline.id,
           name: pipeline.name,
           data: pipeline,

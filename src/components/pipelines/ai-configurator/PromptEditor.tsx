@@ -3,8 +3,8 @@
 import { RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { TemplateTextarea } from "@/components/ui/template-textarea";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { createVariableSuggestion } from "@/lib/utils/variableMetadata";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { createVariableSuggestion } from "@/utils/variableMetadata";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 interface PromptEditorProps {

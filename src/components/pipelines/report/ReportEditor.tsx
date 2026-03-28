@@ -12,7 +12,7 @@ import {
   updateReportSectionOrder,
   updateReportTextSection,
   type ReportTopLevelSectionKey,
-} from "@/lib/reports/report-editor";
+} from "@/features/reports/report-editor";
 import { CustomSectionEditorCard } from "./report-editor/CustomSectionEditorCard";
 import { ListSectionEditorCard, TextSectionEditorCard } from "./report-editor/SectionCards";
 import { ReorderHandle } from "./report-editor/ReorderHandle";

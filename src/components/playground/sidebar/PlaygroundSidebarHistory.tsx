@@ -12,11 +12,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { groupSavedRequestsByDay } from "@/lib/history/historyDayBuckets";
-import { sortSavedRequestsByRecencyDesc } from "@/lib/history/sortSavedRequests";
-import { useHistoryStore } from "@/lib/stores/useHistoryStore";
-import { cn } from "@/lib/utils";
-import { formatRelativeTime } from "@/lib/utils/relativeTime";
+import { groupSavedRequestsByDay } from "@/features/history/historyDayBuckets";
+import { sortSavedRequestsByRecencyDesc } from "@/features/history/sortSavedRequests";
+import { useHistoryStore } from "@/stores/useHistoryStore";
+import { cn } from "@/utils";
+import { formatRelativeTime } from "@/utils/relativeTime";
 import type { ApiRequest } from "@/types";
 
 type PlaygroundSidebarHistoryProps = {

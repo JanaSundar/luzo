@@ -1,17 +1,15 @@
 "use client";
 
-import { AnimatePresence, Reorder, motion, useDragControls } from "motion/react";
+import { Reorder, motion, useDragControls } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
 import { ImportCurlDialog } from "@/components/playground/request/ImportCurlDialog";
-import { RequestForm } from "@/components/shared/RequestForm";
-import type { TabId } from "@/components/shared/RequestFormTabs";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
-import { getAutocompleteSuggestions } from "@/lib/pipeline/autocomplete";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { cn } from "@/lib/utils";
+import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { cn } from "@/utils";
 import type { PipelineStep } from "@/types";
 import { StepCardHeader } from "./StepCardHeader";
 import { StepCardMenu } from "./StepCardMenu";
@@ -26,8 +24,8 @@ interface StepCardProps {
   };
   step: PipelineStep;
   index: number;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
+  isSelected: boolean;
+  onSelect: () => void;
   onUpdate: (updates: Partial<PipelineStep>) => void;
   onRunFromHere: () => void;
   onRunFromHereFresh: () => void;
@@ -39,8 +37,8 @@ export function StepCard({
   executionHint,
   step,
   index,
-  isExpanded,
-  onToggleExpand,
+  isSelected,
+  onSelect,
   onUpdate,
   onRunFromHere,
   onRunFromHereFresh,
@@ -66,7 +64,6 @@ export function StepCard({
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [activeTab, setActiveTab] = useState<TabId>("params");
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -75,14 +72,12 @@ export function StepCard({
     }
   }, [renamingId]);
 
-  const suggestions = useMemo(() => {
-    return getAutocompleteSuggestions(
-      pipeline ?? undefined,
-      step.id,
-      envVars,
-      runtimeVariables as Record<string, unknown>,
-    );
-  }, [pipeline, step.id, envVars, runtimeVariables]);
+  const suggestions = useVariableSuggestions(
+    pipeline ?? undefined,
+    step.id,
+    envVars,
+    runtimeVariables as Record<string, unknown>,
+  );
 
   const handleRenameStart = () => {
     setRenamingId(step.id);
@@ -96,40 +91,33 @@ export function StepCard({
     setRenamingId(null);
   };
 
-  const disabledTabs: TabId[] = step.method === "GET" || step.method === "HEAD" ? ["body"] : [];
-
-  const commonFormProps = useMemo(
-    () => ({
-      ...step,
-      suggestions,
-      onChange: onUpdate,
-      activeTab,
-      onTabChange: setActiveTab,
-      disabledTabs,
-      mockConfig: step.mockConfig ?? {
-        enabled: false,
-        statusCode: 200,
-        body: "",
-        latencyMs: 0,
-      },
-    }),
-    [step, suggestions, onUpdate, activeTab, disabledTabs],
-  );
-
   return (
     <Reorder.Item
       value={step}
       dragControls={dragControls}
       dragListener={false}
       layout
-      className="relative w-full min-w-0 max-w-full"
+      transition={{
+        layout: { type: "spring", stiffness: 450, damping: 35 },
+      }}
+      className={cn("relative w-full min-w-0 max-w-full", isSelected ? "z-10" : "z-0")}
     >
       <motion.div
-        layout="position"
-        animate={{ borderRadius: 22 }}
-        style={{ borderRadius: 22, backfaceVisibility: "hidden" }}
+        layout
+        onClick={(e) => {
+          if (
+            (e.target as HTMLElement).closest(
+              "button, input, a, [role='dialog'], [role='menu'], [role='option'], [role='listbox'], [cmdk-list]",
+            )
+          )
+            return;
+          onSelect();
+        }}
         className={cn(
-          "relative isolate flex w-full flex-col overflow-hidden border bg-background text-left shadow-sm transition-colors hover:border-primary/30",
+          "relative isolate flex w-full flex-col overflow-hidden border bg-background text-left shadow-sm transition-all rounded-[22px] cursor-pointer",
+          isSelected
+            ? "border-border/80 shadow-xl transform scale-[1.012] z-10"
+            : "hover:border-border/40 hover:shadow-md",
         )}
       >
         <motion.div layout="position">
@@ -137,13 +125,12 @@ export function StepCard({
             executionHint={executionHint}
             index={index}
             name={step.name || `Request ${index + 1}`}
-            isExpanded={isExpanded}
+            isSelected={isSelected}
             renamingId={renamingId}
             stepId={step.id}
             renameValue={renameValue}
             renameInputRef={renameInputRef}
             dragControls={dragControls}
-            onToggleExpand={onToggleExpand}
             onRenameStart={handleRenameStart}
             onRenameSave={handleRenameSave}
             onRenameCancel={() => setRenamingId(null)}
@@ -154,7 +141,7 @@ export function StepCard({
 
         <motion.div
           layout="position"
-          className="flex min-w-0 flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 sm:flex-nowrap"
+          className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap"
         >
           <div className="min-w-0 w-full flex-1 sm:w-auto">
             <RequestUrlBar
@@ -180,30 +167,6 @@ export function StepCard({
             />
           </div>
         </motion.div>
-
-        <AnimatePresence>
-          {isExpanded ? (
-            <motion.div
-              layout="position"
-              initial={{ opacity: 0, height: 0, y: -10 }}
-              animate={{ opacity: 1, height: "auto", y: 0 }}
-              exit={{ opacity: 0, height: 0, y: -10 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden px-4 pb-4 pt-3"
-            >
-              <motion.div
-                layout="position"
-                className="min-h-0 min-w-0 flex-1 overflow-hidden [scrollbar-gutter:stable]"
-              >
-                <RequestForm
-                  {...commonFormProps}
-                  animateTabContent={false}
-                  className="max-h-[430px]"
-                />
-              </motion.div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
       </motion.div>
     </Reorder.Item>
   );

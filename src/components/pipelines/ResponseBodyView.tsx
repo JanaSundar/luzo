@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { maskSensitiveValue } from "@/lib/pipeline/sensitivity";
+import { maskSensitiveValue } from "@/features/pipeline/sensitivity";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 
 function JsonSyntaxHighlight({ text }: { text: string }) {

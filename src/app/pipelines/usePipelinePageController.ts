@@ -2,26 +2,27 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import type { ArtifactInput } from "@/lib/pipeline/partial-run";
+import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
+import type { ArtifactInput } from "@/features/pipeline/partial-run";
 import {
   buildExecutionResultFromArtifact,
   buildRuntimeVariablesFromArtifact,
   buildSnapshotsFromArtifact,
-} from "@/lib/pipeline/execution-artifacts";
-import { planPartialPipelineRun } from "@/lib/pipeline/partial-run";
-import type { CheckpointArtifact } from "@/lib/pipeline/pipeline-persistence";
+} from "@/features/pipeline/execution-artifacts";
+import { planPartialPipelineRun } from "@/features/pipeline/partial-run";
+import type { CheckpointArtifact } from "@/features/pipeline/pipeline-persistence";
 import type { PersistedExecutionArtifact } from "@/types/pipeline-debug";
 import {
   buildCheckpointArtifact,
   restoreFromCheckpoint,
-} from "@/lib/pipeline/pipeline-persistence";
-import { useDebugController } from "@/lib/pipeline/use-debug-controller";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { usePipelineArtifactsStore } from "@/lib/stores/usePipelineArtifactsStore";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+} from "@/features/pipeline/pipeline-persistence";
+import { useDebugController } from "@/features/pipeline/use-debug-controller";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { usePipelineReportActions } from "./usePipelineReportActions";
 
 export function usePipelinePageController() {
@@ -267,6 +268,11 @@ export function usePipelinePageController() {
 
   const handleRun = useCallback(async () => {
     if (!activePipeline) return;
+    const executionSupport = getPipelineExecutionSupport(activePipeline);
+    if (!executionSupport.supported) {
+      toast.error(executionSupport.reason);
+      return;
+    }
     setExecuting(true);
     setExecutionResult(null);
     setView("stream");
@@ -300,6 +306,11 @@ export function usePipelinePageController() {
 
   const handleDebug = useCallback(() => {
     if (!activePipeline) return;
+    const executionSupport = getPipelineExecutionSupport(activePipeline);
+    if (!executionSupport.supported) {
+      toast.error(executionSupport.reason);
+      return;
+    }
     resetExecution();
     setView("stream");
     setExecutionResult(null);
@@ -330,6 +341,11 @@ export function usePipelinePageController() {
   const handleRunFromStep = useCallback(
     async (stepId: string, mode: "partial-previous" | "partial-fresh") => {
       if (!activePipeline) return;
+      const executionSupport = getPipelineExecutionSupport(activePipeline);
+      if (!executionSupport.supported) {
+        toast.error(executionSupport.reason);
+        return;
+      }
       const artifact = usePipelineArtifactsStore
         .getState()
         .getExecutionArtifact(activePipeline.id) as ArtifactInput;

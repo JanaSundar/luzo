@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReportEditorSectionKey } from "@/lib/reports/report-editor";
+import type { ReportEditorSectionKey } from "@/features/reports/report-editor";
 import type { StructuredReport } from "@/types/pipeline-debug";
 
 export interface ReportEditorProps {

@@ -5,7 +5,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/utils/logger";
+import { logger } from "@/utils/logger";
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();

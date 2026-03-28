@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { getPipelineExecutionLayout } from "@/lib/pipeline/execution-plan";
 import {
   derivePanelState,
   selectActiveEvent,
   selectSelectedEvent,
   selectSortedEvents,
-} from "@/lib/pipeline/timeline/timeline-selectors";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { useTimelineStore } from "@/lib/stores/useTimelineStore";
+} from "@/features/pipeline/timeline/timeline-selectors";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useTimelineStore } from "@/stores/useTimelineStore";
 import { TimelineDetailPane } from "./debugger/TimelineDetailPane";
 import { TimelineEmpty, TimelineError, TimelineLoading } from "./debugger/TimelineEmptyState";
 import { TimelineList } from "./debugger/TimelineList";
@@ -27,19 +26,14 @@ export function TimelinePanel() {
     s.activePipelineId ? s.pipelines.find((p) => p.id === s.activePipelineId) : null,
   );
 
-  const layoutByStep = useMemo(
-    () => (pipeline ? getPipelineExecutionLayout(pipeline.steps) : new Map()),
-    [pipeline],
-  );
-
   const syncFromExecution = useTimelineStore((s) => s.syncFromExecution);
   const selectEvent = useTimelineStore((s) => s.selectEvent);
   const selectedEventId = useTimelineStore((s) => s.selectedEventId);
 
   useEffect(() => {
-    if (!executionId || snapshots.length === 0) return;
-    syncFromExecution(snapshots, executionId, layoutByStep);
-  }, [executionId, layoutByStep, snapshots, syncFromExecution]);
+    if (!executionId || snapshots.length === 0 || !pipeline) return;
+    syncFromExecution(snapshots, executionId, pipeline.steps);
+  }, [executionId, pipeline, snapshots, syncFromExecution]);
 
   const syncGeneration = useTimelineStore((s) => s.syncGeneration);
   const storeState = useTimelineStore.getState();

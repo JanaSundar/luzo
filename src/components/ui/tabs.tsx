@@ -4,7 +4,7 @@ import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { type VariantProps, cva } from "class-variance-authority";
 import { LayoutGroup, motion } from "motion/react";
 import { createContext, useContext, useId } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 const TabsContext = createContext<{ layoutId: string }>({ layoutId: "tabs" });
 

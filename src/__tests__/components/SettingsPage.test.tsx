@@ -2,9 +2,9 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import SettingsPage from "@/app/settings/page";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { render } from "@/test/utils";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { render } from "@/utils/test-utils";
 
 describe("SettingsPage", () => {
   it("renders the settings workspace without the old shell card", async () => {

@@ -2,7 +2,7 @@ import { CheckCircle2, ChevronRight, Circle, CircleDot, XCircle } from "lucide-r
 import type React from "react";
 import { useContext, useMemo } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { type TestStatus, TestSuiteContext } from "./context";
 
 const statusStyles: Record<TestStatus, string> = {

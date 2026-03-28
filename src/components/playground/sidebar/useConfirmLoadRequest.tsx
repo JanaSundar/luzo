@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useExecutionStore } from "@/lib/stores/useExecutionStore";
-import { usePlaygroundStore } from "@/lib/stores/usePlaygroundStore";
+import { useExecutionStore } from "@/stores/useExecutionStore";
+import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
 import type { ApiRequest, SavedRequest } from "@/types";
 
 export function useConfirmLoadRequest() {

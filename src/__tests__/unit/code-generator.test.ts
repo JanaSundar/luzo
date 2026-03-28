@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateCode } from "@/lib/utils/code-generator";
+import { generateCode } from "@/utils/code-generator";
 import type { ApiRequest } from "@/types";
 
 const BASE_REQUEST: ApiRequest = {

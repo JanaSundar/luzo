@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { analyzeCollectionToDraft } from "@/lib/collection-to-pipeline/analyze";
-import { compileDraftToPipeline } from "@/lib/collection-to-pipeline/compile";
-import { loadCollectionGenerationSource } from "@/lib/collection-to-pipeline/normalize-source";
+import { analyzeCollectionToDraft } from "@/features/collection-to-pipeline/analyze";
+import { compileDraftToPipeline } from "@/features/collection-to-pipeline/compile";
+import { loadCollectionGenerationSource } from "@/features/collection-to-pipeline/normalize-source";
 import type { Collection } from "@/types";
 
 describe("collection to pipeline", () => {

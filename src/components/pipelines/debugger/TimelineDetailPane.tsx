@@ -4,12 +4,16 @@ import { Check, Copy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { JsonView } from "@/components/ui/JsonView";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
-import { METHOD_COLORS } from "@/lib/utils/http";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
+import { METHOD_COLORS } from "@/utils/http";
 import type { TimelineEvent } from "@/types/timeline-event";
-import { formatBytes, formatDuration, formatTimestamp } from "@/lib/pipeline/timeline/format-utils";
-import { getHttpStatusColor, getStatusVisual } from "@/lib/pipeline/timeline/status-config";
+import {
+  formatBytes,
+  formatDuration,
+  formatTimestamp,
+} from "@/features/pipeline/timeline/format-utils";
+import { getHttpStatusColor, getStatusVisual } from "@/features/pipeline/timeline/status-config";
 
 // ─── Tab types ──────────────────────────────────────────────────────
 type DetailTab = "overview" | "request" | "response" | "error";
@@ -219,7 +223,7 @@ function ResponseTab({ event }: { event: TimelineEvent }) {
   if (!output) return <p className="text-xs text-muted-foreground italic">No response data</p>;
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full flex-col gap-3">
       <PayloadSummaryCard
         title="Response summary"
         items={[
@@ -234,7 +238,7 @@ function ResponseTab({ event }: { event: TimelineEvent }) {
         ]}
       />
       <HeaderBlock headers={output.headers} />
-      <BodyBlock title="Body" body={output.body} />
+      <BodyBlock title="Body" body={output.body} className="flex-1" />
     </div>
   );
 }
@@ -317,7 +321,15 @@ function HeaderBlock({ headers }: { headers: Record<string, string> }) {
   );
 }
 
-function BodyBlock({ title, body }: { title: string; body: string | null }) {
+function BodyBlock({
+  title,
+  body,
+  className,
+}: {
+  title: string;
+  body: string | null;
+  className?: string;
+}) {
   if (!body)
     return <p className="text-xs text-muted-foreground italic">No {title.toLowerCase()} data</p>;
 
@@ -325,7 +337,7 @@ function BodyBlock({ title, body }: { title: string; body: string | null }) {
   const displayText = parsed ? JSON.stringify(parsed, null, 2) : body;
 
   return (
-    <div className="rounded-lg border bg-muted/10 p-3">
+    <div className={cn("rounded-lg border bg-muted/10 p-3 flex flex-col min-h-0", className)}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -335,11 +347,11 @@ function BodyBlock({ title, body }: { title: string; body: string | null }) {
         </div>
         <CopyButton label={title} value={displayText} />
       </div>
-      <div className="max-h-[420px] overflow-hidden rounded-lg border bg-background">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-background">
         {parsed ? (
-          <JsonView text={displayText} className="h-[320px]" fontScale="sm" />
+          <JsonView text={displayText} className="h-full" fontScale="sm" />
         ) : (
-          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-all p-3 text-xs font-mono">
+          <pre className="h-full overflow-auto whitespace-pre-wrap break-all p-3 text-xs font-mono">
             {body}
           </pre>
         )}

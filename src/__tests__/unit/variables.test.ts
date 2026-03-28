@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  extractVariables,
-  hasUnresolvedVariables,
-  interpolateVariables,
-} from "@/lib/utils/variables";
+import { extractVariables, hasUnresolvedVariables, interpolateVariables } from "@/utils/variables";
 
 describe("interpolateVariables", () => {
   it("replaces {{var}} with value from context", () => {

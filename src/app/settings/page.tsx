@@ -7,10 +7,10 @@ import { DatabaseConfigView } from "@/components/settings/DatabaseConfigView";
 import { IntegrationsOverview } from "@/components/settings/IntegrationsOverview";
 import { ProviderConfigView } from "@/components/settings/ProviderConfigView";
 import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
-import { usePipelineDebugStore } from "@/lib/stores/usePipelineDebugStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
-import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/lib/ui/segmentedTabs";
-import { cn } from "@/lib/utils";
+import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
+import { cn } from "@/utils";
 import type { AiProvider } from "@/types";
 
 const TABS = [

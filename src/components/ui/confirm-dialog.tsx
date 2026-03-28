@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DESTRUCTIVE_BUTTON_CLASSES, cn } from "@/lib/utils";
+import { DESTRUCTIVE_BUTTON_CLASSES, cn } from "@/utils";
 
 interface ConfirmDialogProps {
   open: boolean;
