@@ -73,8 +73,10 @@ pnpm dev
 Build workflows, not just isolated calls.
 
 - Dependency-aware pipeline builder with step references like `{{req1.response.body.token}}`
+- Reorder-safe positional aliases so `req1`, `req2`, and related references stay correct when steps move
 - DAG validation to keep execution order explicit and deterministic
 - Stage-aware planning for sequential dependencies and independent parallel work
+- Per-request success and failure routing from the pipeline inspector
 - Real-time execution stream tied directly to the selected pipeline
 
 ### Live execution timeline
@@ -117,8 +119,10 @@ Your keys. Your data. Your infrastructure.
 Add logic around any request.
 
 - Pre-request scripting in a sandboxed Node vm
+- Post-request scripting before assertions run
 - Assertions with `lz.test()` and `lz.expect()`
 - Request and response inspection during execution and debugging
+- Environment mutation and response shaping during scripted execution
 
 ### Reports and export
 

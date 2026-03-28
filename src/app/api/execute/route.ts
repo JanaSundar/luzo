@@ -1,76 +1,18 @@
 import type { NextRequest } from "next/server";
 import { fetch as undiciFetch } from "undici";
-import { runPreRequestScript, runTestScript } from "@/services/http/scripts";
-import { checkRateLimit } from "@/utils/rate-limit";
+import { runPostRequestScript, runPreRequestScript, runTestScript } from "@/services/http/scripts";
 import {
-  LIMITS,
-  sanitizeHeaders,
-  validateHeaders,
-  validateMethod,
-  validateParams,
-  validateScript,
-  validateUrl,
-} from "@/utils/security";
+  CONFIG_KEY,
+  applyAuth,
+  buildFormPayload,
+  getClientIp,
+  type ExecuteConfig,
+  validateExecuteConfig,
+} from "./execute-form-helpers";
+import { checkRateLimit } from "@/utils/rate-limit";
+import { LIMITS, sanitizeHeaders, validateUrl } from "@/utils/security";
 import { interpolateVariables } from "@/utils/variables";
-import type { AuthConfig, KeyValuePair } from "@/types";
 import { logger } from "@/utils/logger";
-
-const CONFIG_KEY = "__config";
-
-interface ExecuteConfig {
-  method: string;
-  url: string;
-  headers: KeyValuePair[];
-  params: KeyValuePair[];
-  auth: AuthConfig;
-  envVariables: Record<string, string>;
-  preRequestScript?: string;
-  testScript?: string;
-}
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
-
-function applyAuth(
-  auth: AuthConfig,
-  headers: Record<string, string>,
-  envVariables: Record<string, string>,
-): void {
-  const normalizeBearerToken = (token: string) =>
-    token
-      .trim()
-      .replace(/^Bearer\s+/i, "")
-      .trim();
-
-  switch (auth.type) {
-    case "bearer":
-      if (auth.bearer?.token) {
-        const resolvedToken = normalizeBearerToken(
-          interpolateVariables(auth.bearer.token, envVariables),
-        );
-        if (resolvedToken) {
-          headers.Authorization = `Bearer ${resolvedToken}`;
-        }
-      }
-      break;
-    case "basic":
-      if (auth.basic?.username) {
-        const creds = btoa(`${auth.basic.username}:${auth.basic.password ?? ""}`);
-        headers.Authorization = `Basic ${creds}`;
-      }
-      break;
-    case "api-key":
-      if (auth.apiKey && auth.apiKey.placement === "header") {
-        headers[auth.apiKey.key] = interpolateVariables(auth.apiKey.value, envVariables);
-      }
-      break;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -134,33 +76,15 @@ export async function POST(request: NextRequest) {
     auth,
     envVariables,
     preRequestScript,
+    postRequestScript,
     testScript,
   } = config;
 
   logger.info({ requestId, method, url }, "Executing remote request");
 
-  if (!validateMethod(method)) {
-    return Response.json({ error: "Invalid HTTP method" }, { status: 400 });
-  }
-
-  const headersResult = validateHeaders(headerPairs);
-  if (!headersResult.valid) {
-    return Response.json({ error: headersResult.error }, { status: 400 });
-  }
-
-  const paramsResult = validateParams(params);
-  if (!paramsResult.valid) {
-    return Response.json({ error: paramsResult.error }, { status: 400 });
-  }
-
-  const preScriptResult = validateScript(preRequestScript ?? "");
-  if (!preScriptResult.valid) {
-    return Response.json({ error: preScriptResult.error }, { status: 400 });
-  }
-
-  const testScriptResult = validateScript(testScript ?? "");
-  if (!testScriptResult.valid) {
-    return Response.json({ error: testScriptResult.error }, { status: 400 });
+  const validationError = validateExecuteConfig(config);
+  if (validationError) {
+    return Response.json({ error: validationError }, { status: 400 });
   }
 
   const fullUrl = interpolateVariables(url, envVariables);
@@ -189,33 +113,11 @@ export async function POST(request: NextRequest) {
   }
   applyAuth(auth, headers, envVariables);
 
-  const bodyFormData = new FormData();
-  let totalSize = 0;
-  for (const [key, value] of formData.entries()) {
-    if (key === CONFIG_KEY) continue;
-    if (value instanceof File) {
-      if (value.size > LIMITS.MAX_FILE_SIZE_BYTES) {
-        return Response.json(
-          {
-            error: `File "${value.name}" exceeds maximum size of ${LIMITS.MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
-          },
-          { status: 413 },
-        );
-      }
-      totalSize += value.size;
-      bodyFormData.append(key, value);
-    } else {
-      const str = String(value);
-      totalSize += new TextEncoder().encode(str).length;
-      bodyFormData.append(key, str);
-    }
-    if (totalSize > LIMITS.MAX_FORMDATA_BYTES) {
-      return Response.json(
-        { error: `FormData exceeds maximum size of ${LIMITS.MAX_FORMDATA_BYTES / 1024 / 1024}MB` },
-        { status: 413 },
-      );
-    }
+  const payload = buildFormPayload(formData);
+  if (payload.error) {
+    return Response.json({ error: payload.error }, { status: payload.status });
   }
+  const bodyFormData = payload.bodyFormData;
 
   let mutatedEnv = { ...envVariables };
   let finalHeaders = { ...headers };
@@ -284,6 +186,25 @@ export async function POST(request: NextRequest) {
       time,
       size,
     };
+    let finalResponse = apiResponse;
+    let postRequestResult: { logs: string[]; error: string | null; durationMs: number } | undefined;
+
+    if (postRequestScript?.trim()) {
+      const postStartTime = Date.now();
+      logger.debug({ requestId }, "Running post-request script");
+      const result = runPostRequestScript(postRequestScript, {
+        request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
+        response: apiResponse,
+        envVariables: mutatedEnv,
+      });
+      finalResponse = result.response;
+      mutatedEnv = result.envVariables;
+      postRequestResult = {
+        logs: result.result.logs,
+        error: result.result.error,
+        durationMs: Date.now() - postStartTime,
+      };
+    }
 
     let testResults: Array<{ name: string; passed: boolean; error?: string }> | undefined;
     let testExecution: { logs: string[]; error: string | null } | undefined;
@@ -292,7 +213,7 @@ export async function POST(request: NextRequest) {
       logger.debug({ requestId }, "Running test script");
       const result = runTestScript(testScript, {
         request: { method, url: targetUrl, headers: headerPairs, params, auth } as never,
-        response: apiResponse,
+        response: finalResponse,
         envVariables: mutatedEnv,
       });
       testResults = result.testResults;
@@ -302,8 +223,9 @@ export async function POST(request: NextRequest) {
     logger.info({ requestId, status: res.status, time }, "Remote request completed successfully");
 
     return Response.json({
-      ...apiResponse,
+      ...finalResponse,
       preRequestResult,
+      postRequestResult,
       testResults,
       testExecution,
     });

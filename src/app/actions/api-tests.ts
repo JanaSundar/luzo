@@ -9,6 +9,7 @@ export async function executeRequest(
 ): Promise<
   ApiResponse & {
     preRequestResult?: { logs: string[]; error: string | null; durationMs: number };
+    postRequestResult?: { logs: string[]; error: string | null; durationMs: number };
     testResult?: {
       logs: string[];
       error: string | null;
@@ -19,6 +20,7 @@ export async function executeRequest(
 > {
   return executeApiRequest(request, envVariables, {
     preRequestScript: request.preRequestScript,
+    postRequestScript: request.postRequestScript,
     testScript: request.testScript,
   });
 }

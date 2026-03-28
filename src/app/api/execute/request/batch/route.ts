@@ -33,6 +33,7 @@ export async function POST(req: Request) {
       payload.requests.map((request) =>
         executeApiRequest(request, payload.envVariables ?? {}, {
           preRequestScript: request.preRequestScript,
+          postRequestScript: request.postRequestScript,
           testScript: request.testScript,
         }),
       ),

@@ -16,7 +16,9 @@ export function ResponseViewer() {
   const isLoading = useExecutionStore((state) => state.isLoading);
   const [searchQuery, setSearchQuery] = useState("");
   const [bodyView, setBodyView] = useState<"preview" | "raw">("preview");
-  const [activeTab, setActiveTab] = useState<"body" | "headers" | "pre-request" | "tests">("body");
+  const [activeTab, setActiveTab] = useState<
+    "body" | "headers" | "pre-request" | "post-request" | "tests"
+  >("body");
   const [fontScale, setFontScale] = useState<"sm" | "md" | "lg">("md");
   const [copied, setCopied] = useState(false);
 
@@ -102,6 +104,14 @@ export function ResponseViewer() {
           {
             id: "pre-request" as const,
             label: `Pre-request (${response.preRequestResult.durationMs}ms)`,
+          },
+        ]
+      : []),
+    ...(response.postRequestResult
+      ? [
+          {
+            id: "post-request" as const,
+            label: `Post-request (${response.postRequestResult.durationMs}ms)`,
           },
         ]
       : []),

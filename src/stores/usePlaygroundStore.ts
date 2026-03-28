@@ -30,9 +30,12 @@ const DEFAULT_REQUEST: ApiRequest = {
   formDataFields: [],
   auth: { type: "none" },
   preRequestEditorType: "visual",
+  postRequestEditorType: "visual",
   testEditorType: "visual",
   preRequestRules: [],
+  postRequestRules: [],
   testRules: [],
+  postRequestScript: "",
 };
 
 interface PlaygroundState {

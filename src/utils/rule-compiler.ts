@@ -1,4 +1,4 @@
-import type { PreRequestRule, TestRule } from "@/types";
+import type { PostRequestRule, PreRequestRule, TestRule } from "@/types";
 
 /**
  * Mappings for Pre-request actions
@@ -12,6 +12,19 @@ const PRE_REQUEST_TEMPLATES: Record<
   set_header: (k, v) =>
     `lz.request.headers.upsert(${JSON.stringify(k)}, ${JSON.stringify(v || "")});`,
   delete_header: (k) => `lz.request.headers.remove(${JSON.stringify(k)});`,
+};
+
+const POST_REQUEST_TEMPLATES: Record<
+  PostRequestRule["type"],
+  (key: string, value?: string) => string
+> = {
+  set_env_var: (key, value) =>
+    `lz.env.set(${JSON.stringify(key)}, ${JSON.stringify(value || "")});`,
+  clear_env_var: (key) => `lz.env.unset(${JSON.stringify(key)});`,
+  set_response_header: (key, value) =>
+    `lz.response.headers.upsert(${JSON.stringify(key)}, ${JSON.stringify(value || "")});`,
+  delete_response_header: (key) => `lz.response.headers.remove(${JSON.stringify(key)});`,
+  set_response_body: (_, value) => `lz.response.body = ${JSON.stringify(value || "")};`,
 };
 
 /**
@@ -51,6 +64,11 @@ const OPERATOR_CHAI_MAP: Record<TestRule["operator"], (val: string, target: stri
 export function compilePreRequestRules(rules: PreRequestRule[] | undefined): string {
   if (!rules || rules.length === 0) return "";
   return rules.map((r) => PRE_REQUEST_TEMPLATES[r.type](r.key, r.value)).join("\n");
+}
+
+export function compilePostRequestRules(rules: PostRequestRule[] | undefined): string {
+  if (!rules || rules.length === 0) return "";
+  return rules.map((rule) => POST_REQUEST_TEMPLATES[rule.type](rule.key, rule.value)).join("\n");
 }
 
 export function compileTestRules(rules: TestRule[] | undefined): string {

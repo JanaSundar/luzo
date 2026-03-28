@@ -6,6 +6,11 @@ import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectio
 import { ImportCurlDialog } from "@/components/playground/request/ImportCurlDialog";
 import { RequestUrlBar } from "@/components/shared/RequestUrlBar";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
+import {
+  buildRequestRouteOptions,
+  getRequestRouteTargets,
+  resolveRequestRouteDisplay,
+} from "@/features/pipeline/request-routing";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
@@ -77,6 +82,21 @@ export function StepCard({
     step.id,
     envVars,
     runtimeVariables as Record<string, unknown>,
+  );
+  const routeTargets = getRequestRouteTargets(pipeline?.flowDocument, step.id);
+  const routeOptions = buildRequestRouteOptions(pipeline?.steps ?? [], step.id);
+  const hasRouting = routeTargets.success != null || routeTargets.failure != null;
+  const successDisplay = resolveRequestRouteDisplay(
+    routeTargets.success,
+    routeOptions,
+    "Default flow",
+    "Continue in order",
+  );
+  const failureDisplay = resolveRequestRouteDisplay(
+    routeTargets.failure,
+    routeOptions,
+    "Stop",
+    "Stop on failure",
   );
 
   const handleRenameStart = () => {
@@ -167,7 +187,42 @@ export function StepCard({
             />
           </div>
         </motion.div>
+        {hasRouting ? (
+          <motion.div
+            layout="position"
+            className="flex flex-wrap gap-2 border-t border-border/30 px-4 pb-4 pt-1"
+          >
+            <RouteChip label="Success" tone="success" value={successDisplay.label} />
+            <RouteChip label="Failure" tone="failure" value={failureDisplay.label} />
+          </motion.div>
+        ) : null}
       </motion.div>
     </Reorder.Item>
+  );
+}
+
+function RouteChip({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: "failure" | "success";
+  value: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+        tone === "success"
+          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+          : "border-rose-500/20 bg-rose-500/10 text-rose-700",
+      )}
+    >
+      <span>{label}</span>
+      <span className="max-w-[180px] truncate text-[11px] normal-case tracking-normal">
+        {value}
+      </span>
+    </span>
   );
 }

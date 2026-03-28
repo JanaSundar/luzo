@@ -114,6 +114,9 @@ export function snapshotToTimelineEvent(
     preRequestPassed: snapshot.preRequestResult
       ? snapshot.preRequestResult.status === "success" && !snapshot.preRequestResult.error
       : null,
+    postRequestPassed: snapshot.postRequestResult
+      ? snapshot.postRequestResult.status === "success" && !snapshot.postRequestResult.error
+      : null,
     testsPassed: snapshot.testResult
       ? snapshot.testResult.status === "success" && !snapshot.testResult.error
       : null,

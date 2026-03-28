@@ -4,6 +4,7 @@ import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pip
 import { reduceResponse } from "./context-reducer";
 import {
   toErrorMessage,
+  toPostRequestResult,
   toPreRequestResult,
   toStepStatus,
   toTestResult,
@@ -185,6 +186,7 @@ export function buildSuccessSnapshot(
       : null,
     resolvedRequest,
     toPreRequestResult(resolvedResponse),
+    toPostRequestResult(resolvedResponse),
     toTestResult(resolvedResponse),
     { body: resolvedResponse.body, headers: resolvedResponse.headers },
     "done",
@@ -218,6 +220,7 @@ function createErrorSnapshot(
     runtimeVariables,
     error,
     resolvedRequest,
+    undefined,
     undefined,
     undefined,
     fullResponse,

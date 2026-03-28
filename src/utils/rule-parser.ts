@@ -1,4 +1,4 @@
-import type { PreRequestRule, TestRule } from "@/types";
+import type { PostRequestRule, PreRequestRule, TestRule } from "@/types";
 
 /**
  * Parses raw pre-request scripts back into PreRequestRule objects.
@@ -53,6 +53,78 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
     );
     if (removeHeaderMatch) {
       rules.push({ id: crypto.randomUUID(), type: "delete_header", key: removeHeaderMatch[2] });
+    }
+  }
+
+  return rules;
+}
+
+export function parsePostRequestScript(script: string | undefined): PostRequestRule[] {
+  if (!script) return [];
+
+  const rules: PostRequestRule[] = [];
+  const lines = script.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const setEnvMatch = trimmed.match(
+      /(?:pm|lz)\.env\.set\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
+    );
+    if (setEnvMatch) {
+      rules.push({
+        id: crypto.randomUUID(),
+        type: "set_env_var",
+        key: setEnvMatch[2],
+        value: setEnvMatch[4],
+      });
+      continue;
+    }
+
+    const unsetEnvMatch = trimmed.match(
+      /(?:pm|lz)\.env\.unset\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
+    );
+    if (unsetEnvMatch) {
+      rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key: unsetEnvMatch[2] });
+      continue;
+    }
+
+    const setHeaderMatch = trimmed.match(
+      /(?:pm|lz)\.response\.headers\.(?:upsert|set)\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
+    );
+    if (setHeaderMatch) {
+      rules.push({
+        id: crypto.randomUUID(),
+        type: "set_response_header",
+        key: setHeaderMatch[2],
+        value: setHeaderMatch[4],
+      });
+      continue;
+    }
+
+    const removeHeaderMatch = trimmed.match(
+      /(?:pm|lz)\.response\.headers\.(?:remove|delete)\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
+    );
+    if (removeHeaderMatch) {
+      rules.push({
+        id: crypto.randomUUID(),
+        type: "delete_response_header",
+        key: removeHeaderMatch[2],
+      });
+      continue;
+    }
+
+    const setBodyMatch = trimmed.match(
+      /(?:pm|lz)\.response\.body\s*=\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1;?/,
+    );
+    if (setBodyMatch) {
+      rules.push({
+        id: crypto.randomUUID(),
+        type: "set_response_body",
+        key: "",
+        value: setBodyMatch[2],
+      });
     }
   }
 

@@ -7,7 +7,7 @@ import {
 } from "@/utils/ui/segmentedTabs";
 import { cn } from "@/utils";
 
-export type TabId = "params" | "headers" | "body" | "auth" | "scripts" | "mock";
+export type TabId = "params" | "headers" | "body" | "auth" | "scripts" | "routing" | "mock";
 
 interface RequestFormTabsProps {
   activeTab: TabId;
@@ -17,7 +17,9 @@ interface RequestFormTabsProps {
   hasTestResults: boolean;
   instanceId?: string;
   disabledTabs?: TabId[];
+  routingConfigured?: boolean;
   showMockTab?: boolean;
+  showRoutingTab?: boolean;
   mockEnabled?: boolean;
 }
 
@@ -29,7 +31,9 @@ export function RequestFormTabs({
   hasTestResults,
   instanceId = "global",
   disabledTabs = [],
+  routingConfigured = false,
   showMockTab = false,
+  showRoutingTab = false,
   mockEnabled = false,
 }: RequestFormTabsProps) {
   const tabs: { id: TabId; label: string; count?: number; dot?: boolean }[] = [
@@ -39,6 +43,10 @@ export function RequestFormTabs({
     { id: "auth", label: "Auth" },
     { id: "scripts", label: "Scripts", count: hasTestResults ? 1 : 0 },
   ];
+
+  if (showRoutingTab) {
+    tabs.push({ id: "routing", label: "Routing", dot: routingConfigured });
+  }
 
   if (showMockTab) {
     tabs.push({ id: "mock", label: "Mock", dot: mockEnabled });

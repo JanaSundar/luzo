@@ -2,9 +2,16 @@
 
 import { X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PipelineRoutingPanel } from "@/components/pipelines/PipelineRoutingPanel";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
+import {
+  buildRequestRouteOptions,
+  getRequestRouteTargets,
+  resolveRequestRouteDisplay,
+  updateRequestRouteTargets,
+} from "@/features/pipeline/request-routing";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
@@ -24,7 +31,7 @@ export function PipelineSideInspector({
   onClose,
   className,
 }: PipelineSideInspectorProps) {
-  const { pipelines, updateStep } = usePipelineStore();
+  const { pipelines, replaceFlowDocument, updateStep } = usePipelineStore();
   const pipeline = useMemo(
     () => pipelines.find((p) => p.id === pipelineId),
     [pipelines, pipelineId],
@@ -52,10 +59,31 @@ export function PipelineSideInspector({
   );
 
   const [activeTab, setActiveTab] = useState<TabId>("params");
+  const routeTargets = useMemo(
+    () => getRequestRouteTargets(pipeline?.flowDocument, stepId),
+    [pipeline?.flowDocument, stepId],
+  );
+  const routeOptions = useMemo(
+    () => buildRequestRouteOptions(pipeline?.steps ?? [], stepId),
+    [pipeline?.steps, stepId],
+  );
 
   if (!step) return null;
 
   const disabledTabs: TabId[] = step.method === "GET" || step.method === "HEAD" ? ["body"] : [];
+  const routingConfigured = routeTargets.success != null || routeTargets.failure != null;
+  const successDisplay = resolveRequestRouteDisplay(
+    routeTargets.success,
+    routeOptions,
+    "Default flow",
+    "Continue with the pipeline's normal dependency order.",
+  );
+  const failureDisplay = resolveRequestRouteDisplay(
+    routeTargets.failure,
+    routeOptions,
+    "Stop pipeline",
+    "End this path when the request fails.",
+  );
 
   return (
     <aside
@@ -69,9 +97,16 @@ export function PipelineSideInspector({
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60">
             Request Inspector
           </span>
-          <h3 className="max-w-[320px] truncate text-lg font-bold tracking-tight text-foreground">
-            {step.name || "Untitled Request"}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="max-w-[320px] truncate text-lg font-bold tracking-tight text-foreground">
+              {step.name || "Untitled Request"}
+            </h3>
+            {routingConfigured ? (
+              <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700">
+                Routed
+              </span>
+            ) : null}
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -92,6 +127,7 @@ export function PipelineSideInspector({
             activeTab={activeTab}
             onTabChange={setActiveTab}
             disabledTabs={disabledTabs}
+            routingConfigured={routingConfigured}
             mockConfig={
               step.mockConfig ?? {
                 enabled: false,
@@ -100,8 +136,65 @@ export function PipelineSideInspector({
                 latencyMs: 0,
               }
             }
-            className="h-[500px]"
+            showRoutingTab
+            showTabsOnly
+            className="mb-4"
           />
+          {activeTab === "routing" && pipeline?.flowDocument ? (
+            <PipelineRoutingPanel
+              options={routeOptions}
+              successDisplay={successDisplay}
+              successTarget={routeTargets.success}
+              failureDisplay={failureDisplay}
+              failureTarget={routeTargets.failure}
+              onReset={() =>
+                replaceFlowDocument(
+                  pipelineId,
+                  updateRequestRouteTargets(pipeline.flowDocument!, stepId, {
+                    success: null,
+                    failure: null,
+                  }),
+                )
+              }
+              onSuccessChange={(success) =>
+                replaceFlowDocument(
+                  pipelineId,
+                  updateRequestRouteTargets(pipeline.flowDocument!, stepId, {
+                    success,
+                    failure: routeTargets.failure,
+                  }),
+                )
+              }
+              onFailureChange={(failure) =>
+                replaceFlowDocument(
+                  pipelineId,
+                  updateRequestRouteTargets(pipeline.flowDocument!, stepId, {
+                    success: routeTargets.success,
+                    failure,
+                  }),
+                )
+              }
+            />
+          ) : (
+            <RequestForm
+              {...step}
+              suggestions={suggestions}
+              onChange={(updates) => updateStep(pipelineId, stepId, updates)}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              disabledTabs={disabledTabs}
+              mockConfig={
+                step.mockConfig ?? {
+                  enabled: false,
+                  statusCode: 200,
+                  body: "",
+                  latencyMs: 0,
+                }
+              }
+              showContentOnly
+              className="h-[500px]"
+            />
+          )}
         </div>
       </div>
     </aside>

@@ -105,6 +105,18 @@ export const TimelineEventRow = memo(function TimelineEventRow({
               PRE {event.preRequestPassed ? "OK" : "ERR"}
             </span>
           )}
+          {event.postRequestPassed != null && (
+            <span
+              className={cn(
+                "rounded-md border px-1.5 py-0.5 font-mono text-[9px]",
+                event.postRequestPassed
+                  ? "border-sky-500/20 bg-sky-500/10 text-sky-600"
+                  : "border-destructive/20 bg-destructive/10 text-destructive",
+              )}
+            >
+              POST {event.postRequestPassed ? "OK" : "ERR"}
+            </span>
+          )}
           {event.testsPassed != null && (
             <span
               className={cn(

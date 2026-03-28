@@ -98,10 +98,13 @@ function normalizeRequestPayload(value: unknown): ApiRequest {
     formDataFields: payload.formDataFields ?? [],
     auth: payload.auth ?? { type: "none" },
     preRequestEditorType: payload.preRequestEditorType ?? "visual",
+    postRequestEditorType: payload.postRequestEditorType ?? "visual",
     testEditorType: payload.testEditorType ?? "visual",
     preRequestRules: payload.preRequestRules ?? [],
+    postRequestRules: payload.postRequestRules ?? [],
     testRules: payload.testRules ?? [],
     preRequestScript: payload.preRequestScript ?? "",
+    postRequestScript: payload.postRequestScript ?? "",
     testScript: payload.testScript ?? "",
   };
 }
