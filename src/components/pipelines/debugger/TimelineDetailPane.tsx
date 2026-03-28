@@ -223,7 +223,7 @@ function ResponseTab({ event }: { event: TimelineEvent }) {
   if (!output) return <p className="text-xs text-muted-foreground italic">No response data</p>;
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="space-y-3">
       <PayloadSummaryCard
         title="Response summary"
         items={[
@@ -321,15 +321,7 @@ function HeaderBlock({ headers }: { headers: Record<string, string> }) {
   );
 }
 
-function BodyBlock({
-  title,
-  body,
-  className,
-}: {
-  title: string;
-  body: string | null;
-  className?: string;
-}) {
+function BodyBlock({ title, body }: { title: string; body: string | null }) {
   if (!body)
     return <p className="text-xs text-muted-foreground italic">No {title.toLowerCase()} data</p>;
 
@@ -337,7 +329,7 @@ function BodyBlock({
   const displayText = parsed ? JSON.stringify(parsed, null, 2) : body;
 
   return (
-    <div className={cn("rounded-lg border bg-muted/10 p-3 flex flex-col min-h-0", className)}>
+    <div className="rounded-lg border bg-muted/10 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -347,11 +339,11 @@ function BodyBlock({
         </div>
         <CopyButton label={title} value={displayText} />
       </div>
-      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-background">
+      <div className="max-h-[420px] overflow-hidden rounded-lg border bg-background">
         {parsed ? (
-          <JsonView text={displayText} className="h-full" fontScale="sm" />
+          <JsonView text={displayText} className="h-[320px]" fontScale="sm" />
         ) : (
-          <pre className="h-full overflow-auto whitespace-pre-wrap break-all p-3 text-xs font-mono">
+          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-all p-3 text-xs font-mono">
             {body}
           </pre>
         )}
