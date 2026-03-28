@@ -1,9 +1,4 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "@/shared/lib/cn";
 
 export const ACTION_BUTTON_CLASSES =
   "h-8 gap-2 bg-slate-950 text-slate-50 hover:bg-slate-950/90 dark:bg-slate-50 dark:text-slate-950 dark:hover:bg-slate-50/90 font-bold border-none px-4 transition-colors";

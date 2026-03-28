@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./global.css";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell } from "@/features/shell/components/AppShell";
 import { Providers } from "./providers";
 
 function normalizeAppUrl(value?: string): URL {
