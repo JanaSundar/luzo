@@ -77,11 +77,11 @@ header, section, div, ul, li, table, tr, td, th { break-inside: auto !important;
 .text-muted-foreground, .text-muted-foreground\\/40 { color: var(--muted-foreground); }
 .bg-background, .bg-background\\/75, .bg-background\\/80, .bg-background\\/90 { background: var(--background); }
 .bg-muted\\/5, .bg-muted\\/10, .bg-muted\\/15, .bg-muted\\/20 { background: color-mix(in srgb, var(--muted) 60%, transparent); }
-.border, .border-b, .border-t, .border-r { border-color: var(--border); border-style: solid; }
-.border { border-width: 1px; }
-.border-b { border-bottom-width: 1px; }
-.border-t { border-top-width: 1px; }
-.border-r { border-right-width: 1px; }
+.border, .border-b, .border-t, .border-r {
+  border-color: transparent;
+  border-style: none;
+  border-width: 0;
+}
 .rounded-xl, .rounded-2xl, .rounded-\\[1\\.5rem\\], .rounded-\\[1\\.35rem\\], .rounded-\\[2rem\\] { border-radius: 16px; }
 .overflow-hidden { overflow: hidden; }
 .break-inside-avoid, .break-inside-avoid-page { break-inside: avoid !important; page-break-inside: avoid !important; }
