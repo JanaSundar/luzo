@@ -5,15 +5,16 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
-import { usePipelineStore } from "@/stores/usePipelineStore";
+import { usePipelineStore } from "@/features/pipelines/store/usePipelineStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSavePipelineToDb } from "./useSavePipelineToDb";
 import { usePipelinePageController } from "./usePipelinePageController";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { LoadingSpinner } from "@/shared/ui/LoadingSpinner";
 
 // Dynamically import heavy pipeline components
 const PipelineBuilder = dynamic(
-  () => import("@/components/pipelines/PipelineBuilder").then((mod) => mod.PipelineBuilder),
+  () =>
+    import("@/features/pipelines/components/PipelineBuilder").then((mod) => mod.PipelineBuilder),
   {
     ssr: false,
     loading: () => (
@@ -25,7 +26,7 @@ const PipelineBuilder = dynamic(
 );
 
 const DebuggerShell = dynamic(
-  () => import("@/components/pipelines/DebuggerShell").then((mod) => mod.DebuggerShell),
+  () => import("@/features/pipelines/components/DebuggerShell").then((mod) => mod.DebuggerShell),
   {
     ssr: false,
     loading: () => (
@@ -37,7 +38,7 @@ const DebuggerShell = dynamic(
 );
 
 const AIConfigurator = dynamic(
-  () => import("@/components/pipelines/AIConfigurator").then((mod) => mod.AIConfigurator),
+  () => import("@/features/pipelines/components/AIConfigurator").then((mod) => mod.AIConfigurator),
   {
     ssr: false,
     loading: () => (
@@ -49,7 +50,7 @@ const AIConfigurator = dynamic(
 );
 
 const ReportPreview = dynamic(
-  () => import("@/components/pipelines/ReportPreview").then((mod) => mod.ReportPreview),
+  () => import("@/features/pipelines/components/ReportPreview").then((mod) => mod.ReportPreview),
   {
     ssr: false,
     loading: () => (
@@ -61,7 +62,7 @@ const ReportPreview = dynamic(
 );
 
 // PipelineLayout remains static as it's the structural frame
-import { PipelineLayout } from "@/components/pipelines/PipelineLayout";
+import { PipelineLayout } from "@/features/pipelines/components/PipelineLayout";
 
 function PipelinesPageContent() {
   const pathname = usePathname();
