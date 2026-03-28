@@ -45,8 +45,16 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
       return null;
     })
     .filter((edge): edge is NonNullable<typeof edge> => edge !== null);
+  const requestNodesWithExplicitRoutes = new Set(
+    requestEdges
+      .filter((edge) => edge.semantics === "success" || edge.semantics === "failure")
+      .map((edge) => edge.source),
+  );
+  const normalizedRequestEdges = requestEdges.filter(
+    (edge) => !(edge.semantics === "control" && requestNodesWithExplicitRoutes.has(edge.source)),
+  );
   const incomingRequestEdges = new Map<string, number>();
-  for (const edge of requestEdges) {
+  for (const edge of normalizedRequestEdges) {
     incomingRequestEdges.set(edge.target, (incomingRequestEdges.get(edge.target) ?? 0) + 1);
   }
 
@@ -71,7 +79,7 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
         (step) => step.id === (node.requestRef ?? node.dataRef ?? node.id),
       )?.requestSource,
     })),
-    edges: requestEdges.map((edge) => ({ ...edge })),
+    edges: normalizedRequestEdges.map((edge) => ({ ...edge })),
   };
 
   return { flow, workflow, registry };

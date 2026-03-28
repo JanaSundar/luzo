@@ -61,9 +61,11 @@ vi.mock("@/workers/client/graph-client", () => ({
           ok: true,
           data: {
             plan: {
-              kind: "execution-plan",
+              kind: "compiled-pipeline-plan",
               version: 1,
               workflowId: "test",
+              entryNodeIds: [],
+              aliases: [],
               nodes: [],
               stages: [],
               order: [],

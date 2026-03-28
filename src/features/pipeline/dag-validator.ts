@@ -1,3 +1,5 @@
+"use client";
+
 import type { PipelineStep } from "@/types";
 import type { StepAlias, ValidationError, ValidationResult } from "@/types/pipeline-debug";
 import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
@@ -7,33 +9,10 @@ import { extractVariableRefs, resolveStepAlias } from "./variable-resolver";
 import { graphWorkerClient } from "@/workers/client/graph-client";
 import type { Result } from "@/types/worker-results";
 import type { DagValidationResult } from "@/types/worker-results";
-
-function slugifyStepName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
+import { buildAliasesFromSteps } from "./step-aliases";
 
 export function buildStepAliases(steps: PipelineStep[]): StepAlias[] {
-  const slugCounts = new Map<string, number>();
-  const stepSlugs = steps.map((step) => {
-    const slug = slugifyStepName(step.name || "");
-    if (slug) slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
-    return slug;
-  });
-
-  return steps.map((step, index) => ({
-    stepId: step.id,
-    alias: `req${index + 1}`,
-    index,
-    refs: [
-      `req${index + 1}`,
-      step.id,
-      ...(stepSlugs[index] && slugCounts.get(stepSlugs[index]) === 1 ? [stepSlugs[index]] : []),
-    ],
-  }));
+  return buildAliasesFromSteps(steps);
 }
 
 export function validatePipelineDag(steps: PipelineStep[]): ValidationResult & {

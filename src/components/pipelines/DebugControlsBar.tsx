@@ -10,7 +10,6 @@ interface DebugControlsBarProps {
   totalTime: number;
   runningCount: number;
   completedCount: number;
-  isActive: boolean;
   isDone: boolean;
   onStep?: () => void;
   onResume?: () => void;
@@ -36,7 +35,6 @@ export function DebugControlsBar({
   totalTime,
   runningCount,
   completedCount,
-  isActive,
   isDone,
   onStep,
   onResume,
@@ -82,7 +80,7 @@ export function DebugControlsBar({
           </div>
         )}
 
-        {isActive && (
+        {status === "paused" && (
           <div className="flex items-center gap-1.5">
             <Button
               type="button"
@@ -115,6 +113,21 @@ export function DebugControlsBar({
               Retry
             </Button>
 
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5 h-7 text-[10px] font-bold"
+              onClick={onStop}
+            >
+              <Square className="h-3 w-3 fill-current" />
+              Stop
+            </Button>
+          </div>
+        )}
+
+        {status === "running" && (
+          <div className="flex items-center gap-1.5">
             <Button
               type="button"
               variant="destructive"

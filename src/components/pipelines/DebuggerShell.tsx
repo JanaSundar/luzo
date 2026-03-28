@@ -46,7 +46,6 @@ export function DebuggerShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncGeneration]);
 
-  const isActive = status === "running" || status === "paused";
   const isDone =
     status === "completed" ||
     status === "error" ||
@@ -86,7 +85,6 @@ export function DebuggerShell({
         totalTime={stats.totalDurationMs}
         runningCount={stats.running}
         completedCount={stats.completed}
-        isActive={isActive}
         isDone={isDone}
         onStep={onStep}
         onResume={onResume}

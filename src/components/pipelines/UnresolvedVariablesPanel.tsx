@@ -17,7 +17,8 @@ export function UnresolvedVariablesPanel() {
   const variableOverrides = usePipelineExecutionStore((s) => s.variableOverrides);
   const currentStepIndex = usePipelineExecutionStore((s) => s.currentStepIndex);
   const status = usePipelineExecutionStore((s) => s.status);
-  const getActiveEnvironmentVariables = useEnvironmentStore((s) => s.getActiveEnvironmentVariables);
+  const environments = useEnvironmentStore((s) => s.environments);
+  const activeEnvironmentId = useEnvironmentStore((s) => s.activeEnvironmentId);
 
   const [unresolvedPaths, setUnresolvedPaths] = useState<string[]>([]);
 
@@ -25,12 +26,16 @@ export function UnresolvedVariablesPanel() {
     () => pipelines.find((p) => p.id === activePipelineId),
     [pipelines, activePipelineId],
   );
-  const envVars = getActiveEnvironmentVariables();
+  const envVars = useMemo(() => {
+    const env = environments.find((entry) => entry.id === activeEnvironmentId);
+    if (!env) return {};
+    return Object.fromEntries(env.variables.filter((v) => v.enabled).map((v) => [v.key, v.value]));
+  }, [environments, activeEnvironmentId]);
   const nextStep = pipeline?.steps[currentStepIndex] as PipelineStep | undefined;
 
   useEffect(() => {
     if (!pipeline || !nextStep) {
-      setUnresolvedPaths([]);
+      setUnresolvedPaths((current) => (current.length === 0 ? current : []));
       return;
     }
 
@@ -80,7 +85,13 @@ export function UnresolvedVariablesPanel() {
           return true;
         });
 
-        setUnresolvedPaths(Array.from(new Set(actuallyUnresolved)).sort());
+        const nextPaths = Array.from(new Set(actuallyUnresolved)).sort();
+        setUnresolvedPaths((current) =>
+          current.length === nextPaths.length &&
+          current.every((entry, index) => entry === nextPaths[index])
+            ? current
+            : nextPaths,
+        );
       })
       .catch(() => {});
 

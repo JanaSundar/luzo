@@ -1,10 +1,23 @@
+"use client";
+
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { ControllerSnapshot, StepSnapshot } from "@/types/pipeline-runtime";
+import {
+  cloneRuntimeRecord,
+  cloneSnapshot,
+  cloneSnapshots,
+} from "@/features/pipeline/pipeline-snapshot-utils";
+import type {
+  ControllerSnapshot,
+  ExecutionMode,
+  PipelineExecutionEvent,
+  StepSnapshot,
+} from "@/types/pipeline-runtime";
 
 interface ExecutionState {
   executionId: string | null;
   status: "idle" | "running" | "paused" | "error" | "completed" | "aborted" | "interrupted";
+  originExecutionMode: ExecutionMode;
   currentStepIndex: number;
   totalSteps: number;
   snapshots: StepSnapshot[];
@@ -18,6 +31,7 @@ interface ExecutionState {
   // Actions
   reset: () => void;
   setStatus: (status: ExecutionState["status"]) => void;
+  setOriginExecutionMode: (mode: ExecutionMode) => void;
   setSnapshots: (snapshots: StepSnapshot[]) => void;
   appendSnapshot: (snapshot: StepSnapshot) => void;
   updateSnapshot: (index: number, snapshot: Partial<StepSnapshot>) => void;
@@ -29,11 +43,13 @@ interface ExecutionState {
   setExecutionMeta: (meta: { executionId: string; totalSteps: number; startedAt: number }) => void;
   setHasPersistedExecution: (has: boolean) => void;
   applyControllerSnapshot: (snap: ControllerSnapshot) => void;
+  applyExecutionEvent: (event: PipelineExecutionEvent) => void;
 }
 
 const INITIAL_STATE = {
   executionId: null,
   status: "idle" as const,
+  originExecutionMode: "auto" as const,
   currentStepIndex: -1,
   totalSteps: 0,
   snapshots: [],
@@ -59,14 +75,19 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
         state.status = status;
       }),
 
+    setOriginExecutionMode: (mode) =>
+      set((state) => {
+        state.originExecutionMode = mode;
+      }),
+
     setSnapshots: (snapshots) =>
       set((state) => {
-        state.snapshots = snapshots;
+        state.snapshots = cloneSnapshots(snapshots);
       }),
 
     appendSnapshot: (snapshot) =>
       set((state) => {
-        state.snapshots.push(snapshot);
+        state.snapshots.push(cloneSnapshot(snapshot));
       }),
 
     updateSnapshot: (index, snapshot) =>
@@ -83,7 +104,7 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
 
     setRuntimeVariables: (vars) =>
       set((state) => {
-        state.runtimeVariables = vars;
+        state.runtimeVariables = cloneRuntimeRecord(vars);
       }),
 
     setVariableOverride: (path, value) =>
@@ -118,27 +139,101 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
         state.hasPersistedExecution = has;
       }),
 
+    applyExecutionEvent: (event) =>
+      set((state) => {
+        switch (event.type) {
+          case "execution_started":
+            state.status = "running";
+            state.startedAt = event.startedAt;
+            state.totalSteps = event.totalSteps;
+            state.errorMessage = null;
+            state.completedAt = null;
+            return;
+
+          case "step_ready": {
+            const existingIndex = state.snapshots.findIndex(
+              (snap) => snap.stepId === event.snapshot.stepId,
+            );
+            const nextSnapshot = cloneSnapshot(event.snapshot);
+            if (existingIndex === -1) {
+              state.snapshots.push(nextSnapshot);
+            } else {
+              state.snapshots[existingIndex] = nextSnapshot;
+            }
+            state.currentStepIndex = event.snapshot.stepIndex;
+            return;
+          }
+
+          case "step_stream_chunk": {
+            const index = state.snapshots.findIndex(
+              (snap) => snap.stepId === event.snapshot.stepId,
+            );
+            const nextSnapshot = cloneSnapshot(event.snapshot);
+            if (index === -1) {
+              state.snapshots.push(nextSnapshot);
+            } else {
+              state.snapshots[index] = nextSnapshot;
+            }
+            return;
+          }
+
+          case "step_completed":
+          case "step_failed": {
+            const index = state.snapshots.findIndex(
+              (snap) => snap.stepId === event.snapshot.stepId,
+            );
+            const nextSnapshot = cloneSnapshot(event.snapshot);
+            if (index === -1) {
+              state.snapshots.push(nextSnapshot);
+            } else {
+              state.snapshots[index] = nextSnapshot;
+            }
+            state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);
+            if (event.type === "step_failed") {
+              state.status = "error";
+              state.errorMessage = event.snapshot.error;
+            } else {
+              state.currentStepIndex = event.snapshot.stepIndex + 1;
+            }
+            return;
+          }
+
+          case "execution_completed":
+            state.status = "completed";
+            state.completedAt = event.completedAt;
+            return;
+
+          case "execution_interrupted":
+            state.status = "interrupted";
+            state.completedAt = event.completedAt;
+            state.errorMessage = event.reason;
+            return;
+        }
+      }),
+
     applyControllerSnapshot: (snap) =>
       set((state) => {
         if (
           state.executionId === snap.executionId &&
           state.status === snap.state &&
           state.currentStepIndex === snap.currentStepIndex &&
-          state.snapshots === snap.snapshots &&
           state.errorMessage === snap.errorMessage &&
           state.completedAt === snap.completedAt
         ) {
           return;
         }
 
-        // Direct assignment of references produced by the controller
         state.executionId = snap.executionId;
         state.status = snap.state;
+        state.originExecutionMode = snap.originExecutionMode;
         state.currentStepIndex = snap.currentStepIndex;
         state.totalSteps = snap.totalSteps;
-        state.snapshots = snap.snapshots;
-        state.runtimeVariables = snap.runtimeVariables;
-        state.variableOverrides = snap.variableOverrides;
+        state.snapshots = cloneSnapshots(snap.snapshots);
+        state.runtimeVariables = cloneRuntimeRecord(snap.runtimeVariables);
+        state.variableOverrides = cloneRuntimeRecord(snap.variableOverrides) as Record<
+          string,
+          string
+        >;
         state.errorMessage = snap.errorMessage;
         state.startedAt = snap.startedAt;
         state.completedAt = snap.completedAt;

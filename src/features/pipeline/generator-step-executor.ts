@@ -9,14 +9,14 @@ import {
   type RouteExecutionResponse,
 } from "@/services/http/execute-route-client";
 import type { PipelineStep } from "@/types";
-import type { GeneratorYield, StepAlias, StepSnapshot } from "@/types/pipeline-runtime";
+import type { PipelineExecutionEvent, StepAlias, StepSnapshot } from "@/types/pipeline-runtime";
 import { toRuntimeValue } from "./pipeline-execution-mappers";
 import {
   DEFAULT_STEP_TIMEOUT_MS,
   type GeneratorOptions,
+  buildExecutionEvent,
   buildResolvedRequest,
   buildSuccessSnapshot,
-  buildYield,
   clearStepAbort,
   cloneRuntimeVariables,
   createStepAbort,
@@ -24,7 +24,7 @@ import {
   limitStreamChunks,
   resolveStep,
 } from "./generator-executor-shared";
-import { createInitialSnapshot } from "./pipeline-snapshot-utils";
+import { cloneSnapshot, createInitialSnapshot } from "./pipeline-snapshot-utils";
 import {
   executeMockStep,
   buildStageEntry,
@@ -40,12 +40,15 @@ export async function* executeStepGenerator(
   envVariables: Record<string, string>,
   snapshots: StepSnapshot[],
   options: GeneratorOptions,
-): AsyncGenerator<GeneratorYield, void, Record<string, string> | undefined> {
-  const pendingSnapshot = createInitialSnapshot(step, stepIndex, "running", runtimeVariables, null);
-  pendingSnapshot.startedAt = Date.now();
+): AsyncGenerator<PipelineExecutionEvent, void, Record<string, string> | undefined> {
+  let pendingSnapshot: StepSnapshot = {
+    ...createInitialSnapshot(step, stepIndex, "running", runtimeVariables, null),
+    startedAt: Date.now(),
+  };
   snapshots.push(pendingSnapshot);
+  const snapshotIndex = snapshots.length - 1;
 
-  const variableOverrides = (yield buildYield("step_ready", pendingSnapshot, snapshots)) ?? {};
+  const variableOverrides = (yield buildExecutionEvent("step_ready", pendingSnapshot)) ?? {};
   const stepAbort = createStepAbort(
     step.id,
     options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
@@ -57,21 +60,24 @@ export async function* executeStepGenerator(
   try {
     const resolvedStep = resolveStep(step, runtimeVariables, envVariables, variableOverrides);
     const resolvedRequest = buildResolvedRequest(resolvedStep);
-
-    const resolvedResponse = resolvedStep.mockConfig?.enabled
-      ? await executeMockStep(resolvedStep)
-      : options.useStream
-        ? normalizeStreamResult(
-            yield* runStreamExecution(
-              resolvedStep,
-              envVariables,
-              pendingSnapshot,
-              snapshots,
-              stepAbort,
-              options.masterAbort,
-            ),
-          )
-        : await executeRequest(resolvedStep, envVariables);
+    let resolvedResponse;
+    if (resolvedStep.mockConfig?.enabled) {
+      resolvedResponse = await executeMockStep(resolvedStep);
+    } else if (options.useStream) {
+      const streamed = yield* runStreamExecution(
+        resolvedStep,
+        envVariables,
+        pendingSnapshot,
+        snapshots,
+        snapshotIndex,
+        stepAbort,
+        options.masterAbort,
+      );
+      pendingSnapshot = streamed.snapshot;
+      resolvedResponse = normalizeStreamResult(streamed.response);
+    } else {
+      resolvedResponse = await executeRequest(resolvedStep, envVariables);
+    }
 
     clearStepAbort(step.id, stepAbort, options.abortControls, options.masterAbort, onMasterAbort);
     yield* completeSingleStep(
@@ -105,7 +111,7 @@ export async function* executeParallelStage(
   envVariables: Record<string, string>,
   snapshots: StepSnapshot[],
   options: GeneratorOptions,
-): AsyncGenerator<GeneratorYield, void, Record<string, string> | undefined> {
+): AsyncGenerator<PipelineExecutionEvent, void, Record<string, string> | undefined> {
   const stage = stageStepIds
     .map((stepId, index) =>
       buildStageEntry(
@@ -119,7 +125,7 @@ export async function* executeParallelStage(
     .filter((entry): entry is NonNullable<ReturnType<typeof buildStageEntry>> => entry !== null);
 
   for (const entry of stage) {
-    yield buildYield("step_ready", entry.pendingSnapshot, snapshots);
+    yield buildExecutionEvent("step_ready", entry.pendingSnapshot);
   }
 
   const requests = stage.map((entry) =>
@@ -170,7 +176,7 @@ export async function* executeParallelStage(
         resolvedRequest,
       );
       snapshots[entry.snapshotIndex] = snapshot;
-      yield buildYield("step_complete", snapshot, snapshots);
+      yield buildExecutionEvent("step_completed", snapshot, runtimeVariables);
     }
   } catch (error) {
     for (const entry of stage) {
@@ -191,11 +197,20 @@ async function* runStreamExecution(
   envVariables: Record<string, string>,
   pendingSnapshot: StepSnapshot,
   snapshots: StepSnapshot[],
+  snapshotIndex: number,
   stepAbort: ReturnType<typeof createStepAbort>,
   masterAbort: AbortController,
-): AsyncGenerator<ReturnType<typeof buildYield>, StreamResult, Record<string, string> | undefined> {
-  pendingSnapshot.streamStatus = "streaming";
-  pendingSnapshot.streamChunks = [];
+): AsyncGenerator<
+  PipelineExecutionEvent,
+  { response: StreamResult; snapshot: StepSnapshot },
+  Record<string, string> | undefined
+> {
+  let currentSnapshot: StepSnapshot = {
+    ...cloneSnapshot(pendingSnapshot),
+    streamStatus: "streaming" as const,
+    streamChunks: [],
+  };
+  snapshots[snapshotIndex] = currentSnapshot;
   const stream = executeStream(resolvedStep, envVariables, {
     abortSignal: stepAbort.controller.signal,
   });
@@ -203,15 +218,25 @@ async function* runStreamExecution(
 
   while (!next.done) {
     if (isAborted(stepAbort, masterAbort)) throw new Error("Request aborted");
-    pendingSnapshot.streamChunks = limitStreamChunks([
-      ...pendingSnapshot.streamChunks,
+    currentSnapshot = {
+      ...cloneSnapshot(currentSnapshot),
+      streamStatus: "streaming",
+      streamChunks: limitStreamChunks([
+        ...currentSnapshot.streamChunks,
+        (next.value as StreamChunk).chunk,
+      ]),
+    };
+    snapshots[snapshotIndex] = currentSnapshot;
+    yield buildExecutionEvent(
+      "step_stream_chunk",
+      currentSnapshot,
+      undefined,
       (next.value as StreamChunk).chunk,
-    ]);
-    yield buildYield("stream_chunk", pendingSnapshot, snapshots);
+    );
     next = await stream.next();
   }
 
-  return next.value as StreamResult;
+  return { response: next.value as StreamResult, snapshot: currentSnapshot };
 }
 
 function normalizeStreamResult(res: StreamResult) {

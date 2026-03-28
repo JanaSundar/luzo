@@ -9,22 +9,24 @@ import type {
 } from "@/types/pipeline-runtime";
 import { reduceResponse } from "./context-reducer";
 
+export function clonePipelineValue<T>(value: T): T {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function cloneRuntimeRecord(value?: Record<string, unknown>): Record<string, unknown> {
+  if (!value) return {};
+  return clonePipelineValue(value);
+}
+
 export function cloneSnapshots(snapshots: StepSnapshot[]): StepSnapshot[] {
   return snapshots.map(cloneSnapshot);
 }
 
 export function cloneSnapshot(snapshot: StepSnapshot): StepSnapshot {
-  if (typeof structuredClone === "function") {
-    return structuredClone(snapshot);
-  }
-  return {
-    ...snapshot,
-    variables: { ...snapshot.variables },
-    resolvedRequest: {
-      ...snapshot.resolvedRequest,
-      headers: { ...snapshot.resolvedRequest.headers },
-    },
-  };
+  return clonePipelineValue(snapshot);
 }
 
 export function createInitialSnapshot(

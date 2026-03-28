@@ -65,11 +65,11 @@ export function TimelinePanel() {
       : false;
 
     if (!hasValidSelection) {
-      selectEvent(sortedEvents[0]!.eventId);
+      selectEvent(autoFollowEventId ?? sortedEvents.at(-1)!.eventId);
       return;
     }
 
-    if (executionStatus === "running" && autoFollowEventId) {
+    if (autoFollowEventId && selectedEventId !== autoFollowEventId && executionStatus !== "idle") {
       selectEvent(autoFollowEventId);
     }
   }, [autoFollowEventId, executionStatus, selectEvent, selectedEventId, sortedEvents]);

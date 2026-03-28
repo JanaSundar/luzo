@@ -1,6 +1,11 @@
 import type { executeRequest } from "@/app/actions/api-tests";
 import type { PipelineStep } from "@/types";
-import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";
+import type { CompiledPipelinePlan } from "@/types/workflow";
+import type {
+  PipelineExecutionEvent,
+  StepAbortControl,
+  StepSnapshot,
+} from "@/types/pipeline-runtime";
 import { reduceResponse } from "./context-reducer";
 import {
   toErrorMessage,
@@ -9,7 +14,8 @@ import {
   toStepStatus,
   toTestResult,
 } from "./pipeline-execution-mappers";
-import { cloneSnapshot, cloneSnapshots, createCompletedSnapshot } from "./pipeline-snapshot-utils";
+import { cloneSnapshot, createCompletedSnapshot } from "./pipeline-snapshot-utils";
+import { resolveStepAuth } from "./resolve-step-auth";
 import { resolveTemplate } from "./variable-resolver";
 
 export const DEFAULT_STEP_TIMEOUT_MS = 30_000;
@@ -21,6 +27,7 @@ export interface GeneratorOptions {
   stepTimeoutMs?: number;
   abortControls: Map<string, StepAbortControl>;
   masterAbort: AbortController;
+  compiledPlan?: CompiledPipelinePlan;
   startStepId?: string;
   initialRuntimeVariables?: Record<string, unknown>;
   useStream?: boolean;
@@ -52,39 +59,6 @@ export function resolveStep(
 ) {
   const resolve = (value: string) =>
     resolveTemplate(value, runtimeVars, envVars, variableOverrides);
-  const resolvedAuth =
-    step.auth.type === "bearer" && step.auth.bearer
-      ? { ...step.auth, bearer: { token: resolve(step.auth.bearer.token ?? "") } }
-      : step.auth.type === "basic" && step.auth.basic
-        ? {
-            ...step.auth,
-            basic: {
-              username: resolve(step.auth.basic.username ?? ""),
-              password: resolve(step.auth.basic.password ?? ""),
-            },
-          }
-        : step.auth.type === "api-key" && step.auth.apiKey
-          ? {
-              ...step.auth,
-              apiKey: {
-                ...step.auth.apiKey,
-                key: resolve(step.auth.apiKey.key ?? ""),
-                value: resolve(step.auth.apiKey.value ?? ""),
-              },
-            }
-          : step.auth.type === "oauth2" && step.auth.oauth2
-            ? { ...step.auth, oauth2: { accessToken: resolve(step.auth.oauth2.accessToken ?? "") } }
-            : step.auth.type === "aws-sigv4" && step.auth.awsSigv4
-              ? {
-                  ...step.auth,
-                  awsSigv4: {
-                    accessKey: resolve(step.auth.awsSigv4.accessKey ?? ""),
-                    secretKey: resolve(step.auth.awsSigv4.secretKey ?? ""),
-                    region: resolve(step.auth.awsSigv4.region ?? ""),
-                    service: resolve(step.auth.awsSigv4.service ?? ""),
-                  },
-                }
-              : step.auth;
 
   return {
     ...step,
@@ -92,7 +66,7 @@ export function resolveStep(
     headers: step.headers.map((h) => ({ ...h, key: resolve(h.key), value: resolve(h.value) })),
     params: step.params.map((p) => ({ ...p, key: resolve(p.key), value: resolve(p.value) })),
     body: step.body ? resolve(step.body) : step.body,
-    auth: resolvedAuth,
+    auth: resolveStepAuth(step, resolve),
   };
 }
 
@@ -113,16 +87,37 @@ export function buildResolvedRequest(resolvedStep: PipelineStep): ResolvedReques
   };
 }
 
-export function buildYield(
-  type: GeneratorYield["type"],
+export function buildExecutionEvent(
+  type: Extract<
+    PipelineExecutionEvent["type"],
+    "step_ready" | "step_stream_chunk" | "step_completed" | "step_failed"
+  >,
   snapshot: StepSnapshot,
-  snapshots: StepSnapshot[],
+  runtimeVariables?: Record<string, unknown>,
+  chunk?: string,
 ) {
+  const snapshotCopy = cloneSnapshot(snapshot);
+
+  if (type === "step_stream_chunk") {
+    return {
+      type,
+      snapshot: snapshotCopy,
+      chunk: chunk ?? "",
+    } satisfies PipelineExecutionEvent;
+  }
+
+  if (type === "step_completed" || type === "step_failed") {
+    return {
+      type,
+      snapshot: snapshotCopy,
+      runtimeVariables: cloneRuntimeVariables(runtimeVariables ?? {}),
+    } satisfies PipelineExecutionEvent;
+  }
+
   return {
     type,
-    snapshot: cloneSnapshot(snapshot),
-    allSnapshots: cloneSnapshots(snapshots),
-  } satisfies GeneratorYield;
+    snapshot: snapshotCopy,
+  } satisfies PipelineExecutionEvent;
 }
 
 export function createStepAbort(
@@ -175,9 +170,11 @@ export function buildSuccessSnapshot(
   resolvedRequest: ResolvedRequest,
 ) {
   const stepStatus = toStepStatus(resolvedResponse.status);
-  pendingSnapshot.streamStatus = "done";
   return createCompletedSnapshot(
-    pendingSnapshot,
+    {
+      ...pendingSnapshot,
+      streamStatus: "done",
+    },
     stepStatus,
     reduceResponse(resolvedResponse),
     runtimeVariables,

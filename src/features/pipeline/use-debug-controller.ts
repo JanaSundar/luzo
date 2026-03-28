@@ -11,20 +11,28 @@ export function useDebugController() {
   }
 
   const start = useCallback(
-    (pipeline: Pipeline, envVars: Record<string, string>, options: ControllerOptions) => {
+    async (pipeline: Pipeline, envVars: Record<string, string>, options: ControllerOptions) => {
       const controller = controllerRef.current;
       if (!controller) {
         return { valid: false, errors: ["Controller not initialized"] };
       }
-      return controller.start(pipeline, envVars, options);
+      return await controller.start(pipeline, envVars, options);
     },
     [],
   );
 
-  const step = useCallback(() => controllerRef.current?.step(), []);
-  const resume = useCallback(() => controllerRef.current?.resume(), []);
-  const stop = useCallback(() => controllerRef.current?.stop(), []);
-  const retry = useCallback(() => controllerRef.current?.retry(), []);
+  const step = useCallback(async () => {
+    await controllerRef.current?.step();
+  }, []);
+  const resume = useCallback(async () => {
+    await controllerRef.current?.resume();
+  }, []);
+  const stop = useCallback(() => {
+    controllerRef.current?.stop();
+  }, []);
+  const retry = useCallback(async () => {
+    await controllerRef.current?.retry();
+  }, []);
 
   return { start, step, resume, stop, retry };
 }

@@ -1,6 +1,6 @@
-import type { StepAlias } from "@/types/pipeline-runtime";
 import type { CompilePlanInput, CompilePlanOutput } from "@/types/worker-results";
-import type { ExecutionPlan, ExecutionPlanNode } from "@/types/workflow";
+import type { CompiledPipelinePlan, CompiledPipelineNode, RuntimeRoute } from "@/types/workflow";
+import { buildAliasesFromNodeIds } from "@/features/pipeline/step-aliases";
 import { validateWorkflowDag } from "../validation/validateWorkflowDag";
 
 export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput {
@@ -8,7 +8,7 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
   const warnings = [...validation.errors];
   const nodeMap = new Map(input.workflow.nodes.map((node) => [node.id, node]));
   const outgoingByNode = groupOutgoingEdges(input.workflow.edges);
-  const aliases = buildAliases(input.workflow.nodes.map((node) => node.id));
+  const aliases = buildAliasesFromNodeIds(validation.order);
 
   for (const node of input.workflow.nodes) {
     if (
@@ -25,6 +25,7 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
 
     if (node.kind === "request") {
       const outgoing = outgoingByNode.get(node.id) ?? [];
+      const controlEdges = outgoing.filter((edge) => edge.semantics === "control");
       const successEdges = outgoing.filter((edge) => edge.semantics === "success");
       const failureEdges = outgoing.filter((edge) => edge.semantics === "failure");
 
@@ -45,6 +46,15 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
           severity: "error",
         });
       }
+
+      if (controlEdges.length > 0 && (successEdges.length > 0 || failureEdges.length > 0)) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Request node "${node.id}" mixes control edges with explicit success/failure routes`,
+          severity: "error",
+        });
+      }
     }
   }
 
@@ -52,31 +62,51 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
   validation.stages.forEach((stage, index) => {
     for (const nodeId of stage) stageByNodeId.set(nodeId, index);
   });
+  const entryNodeIds = validation.order.filter(
+    (nodeId) => (validation.adjacency[nodeId]?.length ?? 0) === 0,
+  );
 
-  const nodes: ExecutionPlanNode[] = validation.order.map((nodeId) => {
+  const nodes: CompiledPipelineNode[] = validation.order.map((nodeId, orderIndex) => {
     const workflowNode = nodeMap.get(nodeId);
     const outgoing = outgoingByNode.get(nodeId) ?? [];
-    const downstreamIds = outgoing.map((edge) => edge.target);
+    const runtimeRoutes: RuntimeRoute[] = outgoing.map((edge) => ({
+      semantics: edge.semantics,
+      targetId: edge.target,
+    }));
+    const downstreamIds = runtimeRoutes.map((route) => route.targetId);
+    const routeTargets = {
+      control: runtimeRoutes
+        .filter((route) => route.semantics === "control")
+        .map((route) => route.targetId),
+      success: runtimeRoutes
+        .filter((route) => route.semantics === "success")
+        .map((route) => route.targetId),
+      failure: runtimeRoutes
+        .filter((route) => route.semantics === "failure")
+        .map((route) => route.targetId),
+    };
     return {
       nodeId,
       kind: workflowNode?.kind ?? "request",
+      orderIndex,
       stageIndex: stageByNodeId.get(nodeId) ?? 0,
       dependencyIds: validation.adjacency[nodeId] ?? [],
+      activationIds: validation.adjacency[nodeId] ?? [],
       downstreamIds,
+      entry: entryNodeIds.includes(nodeId),
       requestRef: workflowNode?.requestRef,
-      routes: {
-        control: outgoing.filter((edge) => edge.semantics === "control").map((edge) => edge.target),
-        success: outgoing.filter((edge) => edge.semantics === "success").map((edge) => edge.target),
-        failure: outgoing.filter((edge) => edge.semantics === "failure").map((edge) => edge.target),
-      },
+      routes: routeTargets,
+      runtimeRoutes,
       branch: inferBranch(workflowNode?.kind, outgoing),
     };
   });
 
-  const plan: ExecutionPlan = {
-    kind: "execution-plan",
+  const plan: CompiledPipelinePlan = {
+    kind: "compiled-pipeline-plan",
     version: 1,
     workflowId: input.workflow.id,
+    entryNodeIds,
+    aliases,
     nodes,
     stages: validation.stages.map((nodeIds, stageIndex) => ({ stageIndex, nodeIds })),
     order: validation.order,
@@ -87,17 +117,8 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
   return { plan, aliases, warnings };
 }
 
-function buildAliases(nodeIds: string[]): StepAlias[] {
-  return nodeIds.map((stepId, index) => ({
-    stepId,
-    alias: `req${index + 1}`,
-    index,
-    refs: [`req${index + 1}`, stepId],
-  }));
-}
-
 function inferBranch(
-  kind: ExecutionPlanNode["kind"] | undefined,
+  kind: CompiledPipelineNode["kind"] | undefined,
   outgoing: Array<{ semantics: string }>,
 ) {
   if (kind === "condition" && outgoing.length >= 2) {

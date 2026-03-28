@@ -1,17 +1,40 @@
+"use client";
+
+import * as Comlink from "comlink";
+
 export interface WorkerClient<T> {
   callLatest<R>(key: string, invoke: (api: T) => Promise<R>): Promise<R | null>;
   dispose(): Promise<void>;
   get(): Promise<T>;
 }
 
-export function createComlinkWorker<T>(loadApi: () => Promise<T>): WorkerClient<T> {
+interface CreateWorkerClientOptions<T> {
+  createWorker: () => Worker;
+  loadApi?: () => Promise<T>;
+}
+
+export function createComlinkWorker<T>({
+  createWorker,
+  loadApi,
+}: CreateWorkerClientOptions<T>): WorkerClient<T> {
   let apiPromise: Promise<T> | null = null;
+  let workerInstance: Worker | null = null;
   const sequences = new Map<string, number>();
 
   return {
     async get(): Promise<T> {
       if (!apiPromise) {
-        apiPromise = loadApi();
+        apiPromise = (async () => {
+          const canUseWorker = typeof window !== "undefined" && typeof Worker !== "undefined";
+          if (canUseWorker) {
+            workerInstance = createWorker();
+            return Comlink.wrap<T>(workerInstance) as T;
+          }
+          if (!loadApi) {
+            throw new Error("Worker API is unavailable in this environment");
+          }
+          return loadApi();
+        })();
       }
       return apiPromise;
     },
@@ -26,6 +49,17 @@ export function createComlinkWorker<T>(loadApi: () => Promise<T>): WorkerClient<
     },
     async dispose() {
       sequences.clear();
+      const remote = apiPromise ? await apiPromise : null;
+      if (remote && typeof remote === "object") {
+        try {
+          const releasable = remote as Comlink.Remote<T> & {
+            [Comlink.releaseProxy]?: () => void;
+          };
+          releasable[Comlink.releaseProxy]?.();
+        } catch {}
+      }
+      workerInstance?.terminate();
+      workerInstance = null;
       apiPromise = null;
     },
   };

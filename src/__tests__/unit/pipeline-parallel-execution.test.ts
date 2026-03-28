@@ -90,6 +90,7 @@ describe("parallel pipeline execution", () => {
       },
     );
 
+    expect((await generator.next()).value?.type).toBe("execution_started");
     expect((await generator.next()).value?.type).toBe("step_ready");
     expect((await generator.next()).value?.type).toBe("step_ready");
 
@@ -110,6 +111,6 @@ describe("parallel pipeline execution", () => {
       result = await generator.next();
     }
 
-    expect(yields.filter((type) => type === "step_complete")).toHaveLength(2);
+    expect(yields.filter((type) => type === "step_completed")).toHaveLength(2);
   });
 });

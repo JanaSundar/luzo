@@ -1,9 +1,13 @@
+"use client";
+
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { PipelineStep } from "@/types";
+import type { PipelineExecutionLayout } from "@/features/pipeline/execution-plan";
+import { snapshotToTimelineEvent } from "@/features/pipeline/timeline/event-adapter";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
-import type { StepSnapshot } from "@/types/pipeline-runtime";
+import type { PipelineExecutionEvent, StepSnapshot } from "@/types/pipeline-runtime";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { timelineWorkerClient } from "@/workers/client/timeline-client";
 import type { Result } from "@/types/worker-results";
@@ -23,6 +27,11 @@ interface TimelineActions {
     executionId: string,
     steps: PipelineStep[],
   ) => Promise<void>;
+  applyExecutionEvent: (
+    event: PipelineExecutionEvent,
+    executionId: string | null,
+    layoutByStep?: Map<string, PipelineExecutionLayout>,
+  ) => void;
   selectEvent: (eventId: string | null) => void;
   reset: () => void;
 }
@@ -63,6 +72,46 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
       });
     },
 
+    applyExecutionEvent: (event, executionId, layoutByStep) =>
+      set((state) => {
+        if (!executionId) return;
+
+        if (event.type === "execution_started") {
+          state.executionId = executionId;
+          state.selectedEventId = null;
+          return;
+        }
+
+        if (
+          event.type !== "step_ready" &&
+          event.type !== "step_stream_chunk" &&
+          event.type !== "step_completed" &&
+          event.type !== "step_failed"
+        ) {
+          return;
+        }
+
+        const timelineEvent = snapshotToTimelineEvent(
+          event.snapshot,
+          executionId,
+          layoutByStep?.get(event.snapshot.stepId),
+        );
+        const isNew = !state.eventById.has(timelineEvent.eventId);
+        state.eventById.set(timelineEvent.eventId, timelineEvent);
+        if (isNew) {
+          state.orderedIds.push(timelineEvent.eventId);
+          state.orderedIds.sort((a, b) => {
+            const left = state.eventById.get(a);
+            const right = state.eventById.get(b);
+            if (!left || !right) return a.localeCompare(b);
+            return (
+              left.sequenceNumber - right.sequenceNumber || left.stepId.localeCompare(right.stepId)
+            );
+          });
+        }
+        state.syncGeneration += 1;
+      }),
+
     selectEvent: (eventId) =>
       set((state) => {
         state.selectedEventId = eventId;
@@ -79,13 +128,10 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
   })),
 );
 
-let lastSnapshotRef: StepSnapshot[] | null = null;
-
-usePipelineExecutionStore.subscribe((execState) => {
+usePipelineExecutionStore.subscribe((execState, prevState) => {
   const { snapshots, executionId } = execState;
 
-  if (snapshots === lastSnapshotRef) return;
-  lastSnapshotRef = snapshots;
+  if (snapshots === prevState.snapshots && executionId === prevState.executionId) return;
 
   if (!executionId || snapshots.length === 0) {
     const timelineState = useTimelineStore.getState();
@@ -102,5 +148,9 @@ usePipelineExecutionStore.subscribe((execState) => {
 
   if (!activePipeline) return;
 
-  void useTimelineStore.getState().syncFromExecution(snapshots, executionId, activePipeline.steps);
+  if (snapshots.length < prevState.snapshots.length || executionId !== prevState.executionId) {
+    void useTimelineStore
+      .getState()
+      .syncFromExecution(snapshots, executionId, activePipeline.steps);
+  }
 });
