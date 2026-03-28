@@ -62,6 +62,18 @@ export interface PreRequestRule {
   value?: string;
 }
 
+export interface PostRequestRule {
+  id: string;
+  type:
+    | "set_env_var"
+    | "clear_env_var"
+    | "set_response_header"
+    | "delete_response_header"
+    | "set_response_body";
+  key: string;
+  value?: string;
+}
+
 export interface ApiRequest {
   method: HttpMethod;
   url: string;
@@ -73,17 +85,22 @@ export interface ApiRequest {
   formDataFields?: FormDataField[];
   auth: AuthConfig;
 
-  /** Editor types for pre-request and tests (visual or raw) */
+  /** Editor types for request scripts (visual or raw) */
   preRequestEditorType?: "visual" | "raw";
+  postRequestEditorType?: "visual" | "raw";
   testEditorType?: "visual" | "raw";
 
   /** Visual rules for pre-request */
   preRequestRules?: PreRequestRule[];
+  /** Visual rules for post-request */
+  postRequestRules?: PostRequestRule[];
   /** Visual rules for tests */
   testRules?: TestRule[];
 
   /** Pre-request script (Luzo API). Runs before request. */
   preRequestScript?: string;
+  /** Post-request script. Runs after the response and before tests. */
+  postRequestScript?: string;
   /** Test script. Runs after response for assertions. */
   testScript?: string;
 }
@@ -100,6 +117,8 @@ export interface PreRequestResult {
   durationMs: number;
 }
 
+export interface PostRequestResult extends PreRequestResult {}
+
 export interface ApiResponse {
   status: number;
   statusText: string;
@@ -111,6 +130,8 @@ export interface ApiResponse {
   testResults?: TestResult[];
   /** Pre-request script result when preRequestScript is used */
   preRequestResult?: PreRequestResult;
+  /** Post-request script result when postRequestScript is used */
+  postRequestResult?: PostRequestResult;
 }
 
 export interface EnvironmentSource {
@@ -210,60 +231,8 @@ export interface PipelineExecutionResult {
 
 export type ResponseLayout = "vertical" | "horizontal";
 
-export interface CodeGenerationOptions {
-  language:
-    | "curl"
-    | "ansible"
-    | "c"
-    | "cfml"
-    | "clojure"
-    | "csharp"
-    | "dart"
-    | "elixir"
-    | "go"
-    | "har"
-    | "http"
-    | "httpie"
-    | "java"
-    | "java-httpurlconnection"
-    | "java-jsoup"
-    | "java-okhttp"
-    | "javascript"
-    | "javascript-jquery"
-    | "javascript-xhr"
-    | "typescript"
-    | "json"
-    | "julia"
-    | "kotlin"
-    | "lua"
-    | "matlab"
-    | "node"
-    | "node-http"
-    | "node-axios"
-    | "node-got"
-    | "node-ky"
-    | "node-request"
-    | "node-superagent"
-    | "objc"
-    | "ocaml"
-    | "perl"
-    | "php"
-    | "php-guzzle"
-    | "php-requests"
-    | "powershell"
-    | "powershell-webrequest"
-    | "python"
-    | "python-http"
-    | "r"
-    | "r-httr2"
-    | "ruby"
-    | "ruby-httparty"
-    | "rust"
-    | "swift"
-    | "wget";
-}
-
 export * from "./pipeline-generation";
+export * from "./code-generation";
 export * from "./worker-results";
 export * from "./workflow";
 export * from "./workers";

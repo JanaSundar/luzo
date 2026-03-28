@@ -51,6 +51,7 @@ export interface TimelineEvent {
 
   /** Pre-request and test script results */
   preRequestPassed: boolean | null;
+  postRequestPassed?: boolean | null;
   testsPassed: boolean | null;
 }
 

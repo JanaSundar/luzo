@@ -1,13 +1,12 @@
 "use client";
 
-import { FolderPlus, GitBranch, Send } from "lucide-react";
+import { FolderPlus, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { executeRequest } from "@/app/actions/api-tests";
-import { SaveToCollectionDialog } from "@/components/collections/SaveToCollectionDialog";
-import { AddToPipelineDialog } from "@/components/playground/request/AddToPipelineDialog";
-import { ImportCurlDialog } from "@/components/playground/request/ImportCurlDialog";
+import { RequestBuilderActions } from "@/components/playground/request/RequestBuilderActions";
+import { prepareExecutionScripts } from "@/components/playground/request/prepareExecutionScripts";
 import { useCollectionRequestSync } from "@/components/playground/request/useCollectionRequestSync";
 import { RequestForm } from "@/components/shared/RequestForm";
 import type { TabId } from "@/components/shared/RequestFormTabs";
@@ -19,7 +18,6 @@ import { useHistoryStore } from "@/stores/useHistoryStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
 import { buildEnvironmentVariableSuggestions } from "@/utils/variableMetadata";
-import { compilePreRequestRules, compileTestRules } from "@/utils/rule-compiler";
 import { cn } from "@/utils";
 
 export function RequestBuilder() {
@@ -58,16 +56,7 @@ export function RequestBuilder() {
 
     try {
       const envVars = getActiveEnvironmentVariables();
-
-      let finalTestScript = request.testScript;
-      if (request.testEditorType === "visual") {
-        finalTestScript = compileTestRules(request.testRules);
-      }
-
-      let finalPreRequestScript = request.preRequestScript;
-      if (request.preRequestEditorType === "visual") {
-        finalPreRequestScript = compilePreRequestRules(request.preRequestRules);
-      }
+      const { preRequestScript, postRequestScript, testScript } = prepareExecutionScripts(request);
 
       if (request.bodyType === "form-data") {
         const formData = new FormData();
@@ -78,8 +67,9 @@ export function RequestBuilder() {
           params: request.params,
           auth: request.auth,
           envVariables: envVars,
-          preRequestScript: finalPreRequestScript,
-          testScript: finalTestScript,
+          preRequestScript,
+          postRequestScript,
+          testScript,
         };
         formData.append("__config", JSON.stringify(config));
 
@@ -98,7 +88,12 @@ export function RequestBuilder() {
         setResponse(data);
       } else {
         const resp = await executeRequest(
-          { ...request, preRequestScript: finalPreRequestScript, testScript: finalTestScript },
+          {
+            ...request,
+            preRequestScript,
+            postRequestScript,
+            testScript,
+          },
           envVars,
         );
         setResponse({
@@ -168,60 +163,17 @@ export function RequestBuilder() {
         </div>
 
         {/* Action Buttons Row - Centered alignment */}
-        <div className="flex flex-wrap items-center justify-end gap-2.5">
-          <ImportCurlDialog
-            onImport={(importedRequest) => setRequest(importedRequest)}
-            trigger={
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
-              >
-                <span className="font-mono opacity-60">()</span>
-                <span>cURL</span>
-              </Button>
-            }
-          />
-          <AddToPipelineDialog
-            pipelines={pipelines.map((p) => ({ id: p.id, name: p.name }))}
-            onAddToPipeline={handleAddToPipeline}
-            onCreateAndAdd={handleCreateAndAdd}
-            trigger={
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
-              >
-                <GitBranch className="h-3.5 w-3.5 opacity-60" />
-                <span>Pipeline</span>
-              </Button>
-            }
-          />
-          <SaveToCollectionDialog
-            request={request}
-            response={response}
-            defaultName={`${request.method} ${request.url || "Request"}`}
-            trigger={
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-full border-border/40 bg-background/80 px-4 text-xs font-semibold shadow-sm hover:bg-background"
-              >
-                <FolderPlus className="h-3.5 w-3.5 opacity-60" />
-                <span>Save</span>
-              </Button>
-            }
-          />
-          <Button
-            type="button"
-            onClick={send}
-            disabled={isLoading || !request.url}
-            className="h-9 min-w-[110px] gap-2 rounded-full bg-foreground px-5 text-sm font-bold text-background shadow-md transition-all hover:bg-foreground/90 active:scale-[0.98]"
-          >
-            <Send className="h-3.5 w-3.5" />
-            {isLoading ? "Sending..." : "Send"}
-          </Button>
-        </div>
+        <RequestBuilderActions
+          isLoading={isLoading}
+          pipelines={pipelines}
+          request={request}
+          response={response}
+          onCreateAndAdd={handleCreateAndAdd}
+          onAddToPipeline={handleAddToPipeline}
+          onImport={(importedRequest) => setRequest(importedRequest)}
+          onSend={() => void send()}
+          sendIcon={<Send className="h-3.5 w-3.5" />}
+        />
 
         {/* Notification / Sync Bar */}
         {collectionSync.isLinked && collectionSync.canSync && (
@@ -261,10 +213,13 @@ export function RequestBuilder() {
             formDataFields={request.formDataFields}
             auth={request.auth}
             preRequestEditorType={request.preRequestEditorType}
+            postRequestEditorType={request.postRequestEditorType}
             testEditorType={request.testEditorType}
             preRequestRules={request.preRequestRules}
+            postRequestRules={request.postRequestRules}
             testRules={request.testRules}
             preRequestScript={request.preRequestScript}
+            postRequestScript={request.postRequestScript}
             testScript={request.testScript}
             testResults={response?.testResults}
             suggestions={urlSuggestions}

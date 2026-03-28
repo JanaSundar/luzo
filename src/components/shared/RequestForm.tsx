@@ -10,6 +10,7 @@ import type {
   AuthConfig,
   FormDataField,
   KeyValuePair,
+  PostRequestRule,
   PreRequestRule,
   TestResult,
   TestRule,
@@ -31,10 +32,13 @@ type RequestFormFields = Pick<
   | "formDataFields"
   | "auth"
   | "preRequestEditorType"
+  | "postRequestEditorType"
   | "testEditorType"
   | "preRequestRules"
+  | "postRequestRules"
   | "testRules"
   | "preRequestScript"
+  | "postRequestScript"
   | "testScript"
 > & { mockConfig?: MockConfig };
 
@@ -46,10 +50,13 @@ interface RequestFormProps {
   formDataFields?: FormDataField[];
   auth: AuthConfig;
   preRequestEditorType?: "visual" | "raw";
+  postRequestEditorType?: "visual" | "raw";
   testEditorType?: "visual" | "raw";
   preRequestRules?: PreRequestRule[];
+  postRequestRules?: PostRequestRule[];
   testRules?: TestRule[];
   preRequestScript?: string;
+  postRequestScript?: string;
   testScript?: string;
   testResults?: TestResult[];
   mockConfig?: MockConfig;
@@ -64,6 +71,8 @@ interface RequestFormProps {
   showContentOnly?: boolean;
   animateTabContent?: boolean;
   disabledTabs?: TabId[];
+  routingConfigured?: boolean;
+  showRoutingTab?: boolean;
 }
 
 function TabPanel({
@@ -87,10 +96,13 @@ export function RequestForm({
   formDataFields,
   auth,
   preRequestEditorType = "visual",
+  postRequestEditorType = "visual",
   testEditorType = "visual",
   preRequestRules = [],
+  postRequestRules = [],
   testRules = [],
   preRequestScript = "",
+  postRequestScript = "",
   testScript = "",
   testResults,
   mockConfig,
@@ -105,6 +117,8 @@ export function RequestForm({
   showContentOnly = false,
   animateTabContent = true,
   disabledTabs = [],
+  routingConfigured = false,
+  showRoutingTab = false,
 }: RequestFormProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<TabId>(defaultTab);
   const activeTab = externalActiveTab ?? internalActiveTab;
@@ -126,7 +140,9 @@ export function RequestForm({
             hasTestResults={hasTestResults}
             instanceId={instanceId}
             disabledTabs={disabledTabs}
+            routingConfigured={routingConfigured}
             showMockTab={!!mockConfig}
+            showRoutingTab={showRoutingTab}
             mockEnabled={mockConfig?.enabled}
           />
         </div>
@@ -199,10 +215,13 @@ export function RequestForm({
               >
                 <RequestScriptsPanel
                   preRequestEditorType={preRequestEditorType}
+                  postRequestEditorType={postRequestEditorType}
                   testEditorType={testEditorType}
                   preRequestRules={preRequestRules}
+                  postRequestRules={postRequestRules}
                   testRules={testRules}
                   preRequestScript={preRequestScript}
+                  postRequestScript={postRequestScript}
                   testScript={testScript}
                   onChange={onChange}
                 />

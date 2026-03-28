@@ -21,11 +21,12 @@ import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils
 import { cn } from "@/utils";
 import type { StepSnapshot } from "@/types/pipeline-debug";
 
-export type ResponsePanelTab = "response" | "pre-request" | "tests";
+export type ResponsePanelTab = "response" | "pre-request" | "post-request" | "tests";
 
 const RESPONSE_TABS = [
   { id: "response" as const, label: "Response" },
   { id: "pre-request" as const, label: "Pre-request" },
+  { id: "post-request" as const, label: "Post-request" },
   { id: "tests" as const, label: "Tests" },
 ];
 
@@ -163,6 +164,42 @@ export function TestOutputPanel({ snapshot }: { snapshot?: StepSnapshot }) {
             snapshot
               ? "No test script or results for this step"
               : "Select a step to view test results"
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+export function PostRequestOutputPanel({ snapshot }: { snapshot?: StepSnapshot }) {
+  return (
+    <div className="custom-scrollbar lg:col-span-12 flex-1 min-h-0 overflow-auto p-4">
+      {snapshot?.postRequestResult ? (
+        <div className="space-y-3">
+          {snapshot.postRequestResult.error ? (
+            <div className="rounded-md bg-destructive/5 px-3 py-2 font-mono text-xs text-destructive">
+              {snapshot.postRequestResult.error}
+            </div>
+          ) : null}
+          <div className="text-[10px] font-bold uppercase text-muted-foreground">
+            Duration: {snapshot.postRequestResult.durationMs}ms
+          </div>
+          {snapshot.postRequestResult.logs.length > 0 ? (
+            <pre className="whitespace-pre-wrap break-all rounded-md bg-muted/30 p-3 font-mono text-xs leading-relaxed">
+              {snapshot.postRequestResult.logs.join("\n")}
+            </pre>
+          ) : (
+            <p className="text-xs italic text-muted-foreground">
+              No console output from post-request script
+            </p>
+          )}
+        </div>
+      ) : (
+        <EmptyPanelState
+          message={
+            snapshot
+              ? "No post-request script or result for this step"
+              : "Select a step to view post-request output"
           }
         />
       )}

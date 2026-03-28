@@ -8,6 +8,7 @@ export interface RouteExecutionResponse {
   time: number;
   size: number;
   preRequestResult?: { logs: string[]; error: string | null; durationMs: number };
+  postRequestResult?: { logs: string[]; error: string | null; durationMs: number };
   testResult?: {
     logs: string[];
     error: string | null;
@@ -80,6 +81,7 @@ function buildFormDataConfig(request: ApiRequest, envVariables: Record<string, s
     auth: request.auth,
     envVariables,
     preRequestScript: request.preRequestScript,
+    postRequestScript: request.postRequestScript,
     testScript: request.testScript,
   };
 }

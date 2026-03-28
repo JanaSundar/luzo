@@ -34,6 +34,16 @@ export function toPreRequestResult(response: ExecutionResponse): ScriptResult | 
   };
 }
 
+export function toPostRequestResult(response: ExecutionResponse): ScriptResult | undefined {
+  if (!response.postRequestResult) return undefined;
+  return {
+    status: response.postRequestResult.error ? "error" : "success",
+    logs: response.postRequestResult.logs,
+    error: response.postRequestResult.error,
+    durationMs: response.postRequestResult.durationMs,
+  };
+}
+
 export function toTestResult(response: ExecutionResponse): ScriptResult | undefined {
   if (!response.testResult) return undefined;
   return {

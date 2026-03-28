@@ -37,7 +37,7 @@ export function ResponseContent({
   response: ApiResponse;
   bodyView: "preview" | "raw";
   onBodyViewChange: (value: "preview" | "raw") => void;
-  activeTab: "body" | "headers" | "pre-request" | "tests";
+  activeTab: "body" | "headers" | "pre-request" | "post-request" | "tests";
   searchQuery: string;
   isJson: boolean;
   dataUrl: string | null;
@@ -47,6 +47,8 @@ export function ResponseContent({
   if (activeTab === "headers") return <HeadersTable headers={response.headers} />;
   if (activeTab === "pre-request" && response.preRequestResult)
     return <PreRequestPanel response={response} />;
+  if (activeTab === "post-request" && response.postRequestResult)
+    return <ScriptLogPanel title="Post-request" result={response.postRequestResult} />;
   if (activeTab === "tests" && response.testResults?.length)
     return <TestsPanel tests={response.testResults} />;
 
@@ -147,6 +149,18 @@ function PreRequestPanel({ response }: { response: ApiResponse }) {
   const result = response.preRequestResult;
   if (!result) return null;
 
+  return <ScriptLogPanel title="Pre-request" result={result} />;
+}
+
+function ScriptLogPanel({
+  title,
+  result,
+}: {
+  title: string;
+  result: NonNullable<ApiResponse["preRequestResult"]>;
+}) {
+  const emptyLabel = title.toLowerCase();
+
   return (
     <div className="h-full overflow-auto bg-background p-4">
       {result.error ? (
@@ -158,7 +172,9 @@ function PreRequestPanel({ response }: { response: ApiResponse }) {
         Duration {result.durationMs}ms
       </p>
       <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-muted/35 p-4 font-mono text-xs leading-6 [overflow-wrap:anywhere]">
-        {result.logs.length ? result.logs.join("\n") : "No console output from pre-request script"}
+        {result.logs.length
+          ? result.logs.join("\n")
+          : `No console output from ${emptyLabel} script`}
       </pre>
     </div>
   );

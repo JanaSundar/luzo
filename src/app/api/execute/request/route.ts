@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     const startTime = Date.now();
     const response = await executeApiRequest(payload.request, payload.envVariables ?? {}, {
       preRequestScript: payload.request.preRequestScript,
+      postRequestScript: payload.request.postRequestScript,
       testScript: payload.request.testScript,
     });
     const durationMs = Date.now() - startTime;

@@ -39,6 +39,7 @@ export function areRequestsHistoryEquivalent(a: ApiRequest, b: ApiRequest): bool
   if (JSON.stringify(a.auth) !== JSON.stringify(b.auth)) return false;
 
   if ((a.preRequestScript ?? "") !== (b.preRequestScript ?? "")) return false;
+  if ((a.postRequestScript ?? "") !== (b.postRequestScript ?? "")) return false;
   if ((a.testScript ?? "") !== (b.testScript ?? "")) return false;
 
   return true;

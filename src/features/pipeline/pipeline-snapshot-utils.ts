@@ -63,6 +63,7 @@ export function createCompletedSnapshot(
   error: string | null,
   resolvedRequest?: StepSnapshot["resolvedRequest"],
   preRequestResult?: ScriptResult,
+  postRequestResult?: ScriptResult,
   testResult?: ScriptResult,
   fullResponse?: { body: string; headers: Record<string, string> },
   streamStatus: StreamStatus = "done",
@@ -76,6 +77,7 @@ export function createCompletedSnapshot(
     error,
     completedAt: Date.now(),
     preRequestResult,
+    postRequestResult,
     testResult,
     ...(fullResponse && {
       fullBody: fullResponse.body,

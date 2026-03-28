@@ -19,6 +19,7 @@ import { cn } from "@/utils";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
 import { buildStepAliases } from "@/features/pipeline/dag-validator";
+import { reorderPipelineSteps } from "@/features/pipeline/rewrite-step-aliases";
 import { collectStepDependencies } from "@/features/pipeline/template-dependencies";
 
 export function PipelineBuilder({
@@ -39,7 +40,7 @@ export function PipelineBuilder({
     addStep,
     duplicateStep,
     removeStep,
-    reorderSteps,
+    updatePipeline,
     updateStep,
     selectedNodeIds,
     setSelectedNodeId,
@@ -149,9 +150,12 @@ export function PipelineBuilder({
   }, [pipeline]);
 
   const handleReorder = (nextSteps: PipelineStep[]) => {
-    reorderSteps(
+    updatePipeline(
       pipeline.id,
-      nextSteps.map((s) => s.id),
+      reorderPipelineSteps(
+        pipeline,
+        nextSteps.map((step) => step.id),
+      ),
     );
   };
 
