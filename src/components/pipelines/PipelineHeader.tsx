@@ -21,6 +21,7 @@ interface PipelineHeaderProps {
   onRun: () => void;
   onDebug: () => void;
   onStop: () => void;
+  onRetry?: () => void;
   onSaveToDb?: () => void;
   onGenerateReport?: (force?: boolean) => void;
   onExportReport?: (format: ExportFormat) => void;
@@ -50,6 +51,7 @@ export function PipelineHeader({
   onRun,
   onDebug,
   onStop,
+  onRetry,
   onSaveToDb,
   onGenerateReport,
   onExportReport,
@@ -123,16 +125,29 @@ export function PipelineHeader({
               <span className="hidden sm:inline">Stop</span>
             </Button>
           ) : isStreamView && hasPipelineRun ? (
-            <Button
-              type="button"
-              size="sm"
-              className="gap-1.5 h-8 bg-foreground text-background hover:bg-foreground/90 font-bold"
-              onClick={() => onSetView("ai-config")}
-              disabled={!activePipelineId}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Go to Configurator</span>
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-8 font-bold"
+                onClick={onRetry ?? onRun}
+                disabled={!activePipelineId}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Retry</span>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5 h-8 bg-foreground text-background hover:bg-foreground/90 font-bold"
+                onClick={() => onSetView("ai-config")}
+                disabled={!activePipelineId}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Go to Configurator</span>
+              </Button>
+            </>
           ) : isStreamView ? (
             <Button
               type="button"

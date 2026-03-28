@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { executeRequest } from "@/app/actions/api-tests";
 import { executeRequestStream } from "@/services/http/client";
 import type { AnalysisWorkerApi, GraphWorkerApi } from "@/types/workers";
@@ -6,7 +6,13 @@ import {
   type GeneratorExecutorModule,
   createPipelineGenerator,
 } from "@/features/pipeline/generator-executor";
+import { applyEvent, createInitialState } from "@/features/pipeline/debug-controller-state";
+import type { CheckpointArtifact } from "@/features/pipeline/pipeline-persistence";
+import { restoreFromCheckpoint } from "@/features/pipeline/pipeline-persistence";
+import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
 import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { useTimelineStore } from "@/stores/useTimelineStore";
 import type { Pipeline } from "@/types";
 import type { GeneratorYield, StepAbortControl, StepSnapshot } from "@/types/pipeline-runtime";
 
@@ -103,6 +109,37 @@ const mockResponse = {
   size: 20,
 };
 
+function makeStepSnapshot(overrides: Partial<StepSnapshot> = {}): StepSnapshot {
+  return {
+    stepId: "step-1",
+    stepIndex: 0,
+    stepName: "Step 1",
+    entryType: "request",
+    method: "GET",
+    url: "https://api.example.com",
+    resolvedRequest: {
+      method: "GET",
+      url: "https://api.example.com",
+      headers: {},
+      body: null,
+    },
+    status: "running",
+    reducedResponse: null,
+    variables: {},
+    error: null,
+    startedAt: Date.now(),
+    completedAt: null,
+    streamStatus: "idle",
+    streamChunks: [],
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  usePipelineExecutionStore.getState().reset();
+  useTimelineStore.getState().reset();
+});
+
 describe("Pipeline Execution Architecture", () => {
   it("uses normal execution (executeRequest) when useStream is false", async () => {
     vi.mocked(executeRequest).mockResolvedValue(mockResponse);
@@ -133,15 +170,17 @@ describe("Pipeline Execution Architecture", () => {
     // Verify yield types
     const types = yields.map((y) => y.type);
     expect(types).toContain("step_ready");
-    expect(types).toContain("step_complete");
-    expect(types).not.toContain("stream_chunk");
+    expect(types).toContain("execution_started");
+    expect(types).toContain("step_completed");
+    expect(types).not.toContain("step_stream_chunk");
 
     // Verify final snapshot consistency
-    const lastYield = yields[yields.length - 1];
-    expect(lastYield?.type).toBe("step_complete");
-    expect(lastYield?.snapshot.status).toBe("success");
+    const lastYield = yields.findLast((y) => y.type === "step_completed");
+    expect(lastYield?.type).toBe("step_completed");
+    if (!lastYield || lastYield.type !== "step_completed") throw new Error("missing completion");
+    expect(lastYield.snapshot.status).toBe("success");
 
-    const variables = lastYield?.snapshot.variables as unknown as MockStepVariables;
+    const variables = lastYield.snapshot.variables as unknown as MockStepVariables;
     expect(variables?.req1.response.body).toEqual({
       message: "success",
     });
@@ -180,22 +219,169 @@ describe("Pipeline Execution Architecture", () => {
     // Verify yield types
     const types = yields.map((y) => y.type);
     expect(types).toContain("step_ready");
-    expect(types).toContain("stream_chunk");
-    expect(types).toContain("step_complete");
+    expect(types).toContain("step_stream_chunk");
+    expect(types).toContain("step_completed");
 
     // Verify stream chunks were collected
-    const streamYields = yields.filter((y) => y.type === "stream_chunk");
+    const streamYields = yields.filter((y) => y.type === "step_stream_chunk");
     expect(streamYields.length).toBeGreaterThan(0);
 
     // Verify final snapshot consistency is identical to normal execution
-    const lastYield = yields[yields.length - 1];
-    expect(lastYield?.type).toBe("step_complete");
-    expect(lastYield?.snapshot.status).toBe("success");
+    const lastYield = yields.findLast((y) => y.type === "step_completed");
+    expect(lastYield?.type).toBe("step_completed");
+    if (!lastYield || lastYield.type !== "step_completed") throw new Error("missing completion");
+    expect(lastYield.snapshot.status).toBe("success");
 
-    const variables = lastYield?.snapshot.variables as unknown as MockStepVariables;
+    const variables = lastYield.snapshot.variables as unknown as MockStepVariables;
     expect(variables?.req1.response.body).toEqual({
       message: "success",
     });
+  });
+
+  it("keeps controller and store snapshots de-aliased during streaming debug updates", () => {
+    const state = createInitialState();
+    state.executionId = "exec-debug";
+    state.executionMode = "debug";
+
+    const liveSnapshot = makeStepSnapshot();
+
+    expect(() =>
+      applyEvent(state, {
+        type: "step_ready",
+        snapshot: liveSnapshot,
+      }),
+    ).not.toThrow();
+
+    const storeSnapshot = usePipelineExecutionStore.getState().snapshots[0];
+    expect(storeSnapshot).toBeDefined();
+    expect(storeSnapshot).not.toBe(liveSnapshot);
+    expect(state.snapshots[0]).not.toBe(liveSnapshot);
+    expect(state.snapshots[0]).not.toBe(storeSnapshot);
+
+    expect(() => {
+      liveSnapshot.streamStatus = "streaming";
+      liveSnapshot.streamChunks.push('{"partial":');
+    }).not.toThrow();
+
+    expect(() =>
+      applyEvent(state, {
+        type: "step_stream_chunk",
+        snapshot: liveSnapshot,
+        chunk: '{"partial":',
+      }),
+    ).not.toThrow();
+
+    const updatedStoreSnapshot = usePipelineExecutionStore.getState().snapshots[0];
+    expect(updatedStoreSnapshot?.streamStatus).toBe("streaming");
+    expect(updatedStoreSnapshot?.streamChunks).toEqual(['{"partial":']);
+    expect(storeSnapshot?.streamStatus).toBe("idle");
+
+    liveSnapshot.streamStatus = "done";
+    liveSnapshot.streamChunks.push('"ok"}');
+    liveSnapshot.status = "success";
+    liveSnapshot.completedAt = Date.now();
+    liveSnapshot.reducedResponse = {
+      status: 200,
+      statusText: "OK",
+      latencyMs: 100,
+      sizeBytes: 20,
+      summary: { ok: true },
+      headers: {},
+    };
+
+    expect(() =>
+      applyEvent(state, {
+        type: "step_completed",
+        snapshot: liveSnapshot,
+        runtimeVariables: { req1: { response: { body: { ok: true } } } },
+      }),
+    ).not.toThrow();
+
+    const completedStoreSnapshot = usePipelineExecutionStore.getState().snapshots[0];
+    expect(completedStoreSnapshot?.streamStatus).toBe("done");
+    expect(completedStoreSnapshot?.status).toBe("success");
+    expect(state.snapshots[0]?.streamStatus).toBe("done");
+  });
+
+  it("keeps restored controller snapshots mutable after hydrating the execution store", () => {
+    const artifact: CheckpointArtifact = {
+      executionId: "exec-restore",
+      pipelineId: "pipeline-1",
+      generatedAt: new Date().toISOString(),
+      pipelineStructureHash: "hash-1",
+      isDirty: true,
+      runtime: {
+        mode: "debug",
+        originExecutionMode: "debug",
+        startStepId: null,
+        reusedAliases: [],
+        staleContextWarning: null,
+        completedAt: null,
+        currentStepIndex: 0,
+        totalSteps: 1,
+        errorMessage: null,
+      },
+      steps: [
+        {
+          stepId: "step-1",
+          alias: "req1",
+          stepName: "Step 1",
+          method: "GET",
+          url: "https://api.example.com",
+          status: "success",
+          reducedResponse: {
+            status: 200,
+            statusText: "OK",
+            latencyMs: 100,
+            sizeBytes: 20,
+            summary: { ok: true },
+            headers: {},
+          },
+          resolvedRequestSummary: {
+            url: "https://api.example.com",
+            headers: {},
+            bodyPreview: null,
+          },
+          error: null,
+          completedAt: new Date().toISOString(),
+        },
+      ],
+      stepContextByAlias: {
+        req1: {
+          stepId: "step-1",
+          alias: "req1",
+          payload: { response: { body: { ok: true } } },
+        },
+      },
+      warnings: [],
+    };
+
+    const restored = restoreFromCheckpoint(artifact);
+    expect(restored.originExecutionMode).toBe("debug");
+    usePipelineExecutionStore.getState().applyControllerSnapshot(restored);
+
+    const liveSnapshot = restored.snapshots[0];
+    expect(liveSnapshot).toBeDefined();
+
+    expect(() => {
+      liveSnapshot!.streamStatus = "streaming";
+      liveSnapshot!.streamChunks.push('{"chunk":1}');
+    }).not.toThrow();
+
+    const state = createInitialState();
+    state.executionId = restored.executionId;
+    state.executionMode = "debug";
+
+    expect(() =>
+      applyEvent(state, {
+        type: "step_stream_chunk",
+        snapshot: liveSnapshot!,
+        chunk: '{"chunk":1}',
+      }),
+    ).not.toThrow();
+
+    expect(usePipelineExecutionStore.getState().snapshots[0]?.streamStatus).toBe("streaming");
+    expect(restored.snapshots[0]?.streamStatus).toBe("streaming");
   });
 
   it("populates resolvedRequest with fullUrl including query params", async () => {
@@ -228,7 +414,7 @@ describe("Pipeline Execution Architecture", () => {
 
     let result = await generator.next();
     while (!result.done) {
-      if (result.value.type === "step_complete") {
+      if (result.value.type === "step_completed") {
         expect(result.value.snapshot.resolvedRequest.url).toBe("https://api.example.com?foo=bar");
         expect(result.value.snapshot.resolvedRequest.method).toBe("GET");
       }
@@ -358,6 +544,115 @@ describe("Pipeline Execution Architecture", () => {
     expect(executeRequest).toHaveBeenCalledTimes(2);
   });
 
+  it("prefers explicit request routes over fallback control edges", () => {
+    const pipelineWithRoutes: Pipeline = {
+      id: "route-pipeline",
+      name: "Route Pipeline",
+      createdAt: "",
+      updatedAt: "",
+      narrativeConfig: { tone: "technical", prompt: "", enabled: true },
+      steps: [
+        {
+          id: "step-a",
+          name: "Login",
+          method: "POST",
+          url: "https://api.example.com/login",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+        {
+          id: "step-b",
+          name: "Sequential Fallback",
+          method: "GET",
+          url: "https://api.example.com/fallback",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+        {
+          id: "step-c",
+          name: "Success Route",
+          method: "GET",
+          url: "https://api.example.com/success",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+      ],
+      flowDocument: {
+        kind: "flow-document",
+        version: 1,
+        id: "route-pipeline",
+        name: "Route Pipeline",
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: "route-pipeline:start",
+            kind: "start",
+            position: { x: 0, y: 0 },
+            config: { kind: "start", label: "Start" },
+          },
+          {
+            id: "step-a",
+            kind: "request",
+            position: { x: 100, y: 0 },
+            dataRef: "step-a",
+            requestRef: "step-a",
+            config: { kind: "request", label: "Login" },
+          },
+          {
+            id: "step-b",
+            kind: "request",
+            position: { x: 200, y: 0 },
+            dataRef: "step-b",
+            requestRef: "step-b",
+            config: { kind: "request", label: "Sequential Fallback" },
+          },
+          {
+            id: "step-c",
+            kind: "request",
+            position: { x: 300, y: 0 },
+            dataRef: "step-c",
+            requestRef: "step-c",
+            config: { kind: "request", label: "Success Route" },
+          },
+        ],
+        edges: [
+          {
+            id: "step-a:step-b:control",
+            source: "step-a",
+            target: "step-b",
+            semantics: "control",
+          },
+          {
+            id: "step-a:success:step-c",
+            source: "step-a",
+            target: "step-c",
+            semantics: "success",
+          },
+        ],
+      },
+    };
+
+    const bundle = buildWorkflowBundleFromPipeline(pipelineWithRoutes);
+    const { plan, warnings } = compileExecutionPlan({
+      workflow: bundle.workflow,
+      registry: bundle.registry,
+    });
+
+    expect(warnings).toEqual([]);
+    const sourceNode = plan.nodes.find((node) => node.nodeId === "step-a");
+    expect(sourceNode?.routes.control).toEqual([]);
+    expect(sourceNode?.routes.success).toEqual(["step-c"]);
+  });
+
   it("DebugController critical 8-step retry protocol", async () => {
     const { createDebugController } = await import("@/features/pipeline/debug-controller");
     const controller = createDebugController();
@@ -370,11 +665,15 @@ describe("Pipeline Execution Architecture", () => {
         runtimeVariables: Record<string, unknown>;
         snapshots: StepSnapshot[];
         status: string;
+        originExecutionMode: "auto" | "debug";
+        executionMode: "auto" | "debug";
       };
     };
     const controllerImpl = (controller as ControllerWithState).__state;
     controllerImpl.pipeline = mockPipeline;
     controllerImpl.envVars = {};
+    controllerImpl.originExecutionMode = "debug";
+    controllerImpl.executionMode = "auto";
 
     // Simulate a failure at step 1 (0-indexed)
     controllerImpl.snapshots = [
@@ -439,7 +738,6 @@ describe("Pipeline Execution Architecture", () => {
     const mockYield: GeneratorYield = {
       type: "step_ready",
       snapshot: {} as StepSnapshot,
-      allSnapshots: [] as StepSnapshot[],
     };
     vi.mocked(createPipelineGenerator).mockImplementationOnce(() => {
       return (async function* (): AsyncGenerator<GeneratorYield> {
@@ -463,5 +761,6 @@ describe("Pipeline Execution Architecture", () => {
     await retryPromise;
     expect(controllerImpl.generator).not.toBeNull();
     expect(controllerImpl.runtimeVariables).toHaveProperty("req1");
+    expect(controllerImpl.originExecutionMode).toBe("debug");
   });
 });

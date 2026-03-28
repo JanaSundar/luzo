@@ -6,7 +6,7 @@ import type {
   StepAlias,
   StepSnapshot,
 } from "@/types/pipeline-debug";
-import { buildStepAliases } from "./dag-validator";
+import { buildAliasesFromSteps } from "./step-aliases";
 
 export interface CheckpointArtifact {
   executionId: string;
@@ -16,6 +16,7 @@ export interface CheckpointArtifact {
   isDirty: boolean;
   runtime: {
     mode: string;
+    originExecutionMode: "auto" | "debug";
     startStepId: string | null;
     reusedAliases: string[];
     staleContextWarning: string | null;
@@ -37,6 +38,7 @@ export function buildCheckpointArtifact(
   options: {
     isDirty: boolean;
     mode?: string;
+    originExecutionMode?: "auto" | "debug";
     startStepId?: string | null;
     reusedAliases?: string[];
     staleContextWarning?: string | null;
@@ -48,7 +50,7 @@ export function buildCheckpointArtifact(
   },
 ): CheckpointArtifact {
   const pipeline = options.pipeline;
-  const aliases = pipeline ? buildStepAliases(pipeline.steps) : [];
+  const aliases = pipeline ? buildAliasesFromSteps(pipeline.steps) : [];
   const aliasByStepId = new Map(aliases.map((alias) => [alias.stepId, alias.alias]));
 
   return {
@@ -59,6 +61,7 @@ export function buildCheckpointArtifact(
     isDirty: options.isDirty,
     runtime: {
       mode: options.mode ?? "full",
+      originExecutionMode: options.originExecutionMode ?? "auto",
       startStepId: options.startStepId ?? null,
       reusedAliases: options.reusedAliases ?? [],
       staleContextWarning: options.staleContextWarning ?? null,
@@ -119,6 +122,7 @@ export function restoreFromCheckpoint(artifact: CheckpointArtifact): ControllerS
   return {
     executionId: artifact.executionId,
     state,
+    originExecutionMode: artifact.runtime.originExecutionMode ?? "auto",
     currentStepIndex: artifact.runtime.currentStepIndex,
     totalSteps: artifact.runtime.totalSteps,
     snapshots,

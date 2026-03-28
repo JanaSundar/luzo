@@ -139,36 +139,55 @@ export interface RequestRegistry {
   requests: Record<string, RequestDefinition>;
 }
 
+export interface RuntimeRoute {
+  semantics: FlowEdgeSemantics;
+  targetId: string;
+}
+
 export interface ExecutionStage {
   stageIndex: number;
   nodeIds: string[];
 }
 
-export interface ExecutionPlanNode {
+export interface CompiledPipelineNode {
   nodeId: string;
   kind: WorkflowNodeKind;
+  orderIndex: number;
   stageIndex: number;
   dependencyIds: string[];
+  activationIds: string[];
   downstreamIds: string[];
+  entry: boolean;
   requestRef?: string;
-  routes?: {
+  routes: {
     control: string[];
     failure: string[];
     success: string[];
   };
+  runtimeRoutes: RuntimeRoute[];
   branch?: { mode: "all" | "true" | "false" | "success" | "failure" };
 }
 
-export interface ExecutionPlan {
-  kind: "execution-plan";
+export interface CompiledPipelinePlan {
+  kind: "compiled-pipeline-plan";
   version: 1;
   workflowId: string;
-  nodes: ExecutionPlanNode[];
+  entryNodeIds: string[];
+  aliases: Array<{
+    stepId: string;
+    alias: string;
+    index: number;
+    refs: string[];
+  }>;
+  nodes: CompiledPipelineNode[];
   stages: ExecutionStage[];
   order: string[];
   adjacency: Record<string, string[]>;
   reverseAdjacency: Record<string, string[]>;
 }
+
+export type ExecutionPlanNode = CompiledPipelineNode;
+export type ExecutionPlan = CompiledPipelinePlan;
 
 export interface TimelineIndex {
   executionId: string;

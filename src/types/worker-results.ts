@@ -1,7 +1,7 @@
 import type { StepAlias, ValidationError } from "./pipeline-runtime";
 import type { TimelineEvent, TimelineEventStatus } from "./timeline-event";
 import type {
-  ExecutionPlan,
+  CompiledPipelinePlan,
   FlowDocument,
   RequestRegistry,
   TimelineIndex,
@@ -46,7 +46,7 @@ export interface CompilePlanInput {
 }
 
 export interface CompilePlanOutput {
-  plan: ExecutionPlan;
+  plan: CompiledPipelinePlan;
   aliases: StepAlias[];
   warnings: ValidationError[];
 }

@@ -75,11 +75,10 @@ export function TemplateVariableMenu({
                     </div>
                   ) : null}
                   <div className="flex flex-col gap-0.5 px-1 pb-1">
-                    {group.items.map((item) => {
-                      const index = items.indexOf(item);
+                    {group.items.map(({ item, index }) => {
                       return (
                         <div
-                          key={item.path}
+                          key={`${group.stepId}:${item.path}:${index}`}
                           {...getItemProps({ item, index })}
                           className={cn(
                             "group cursor-pointer rounded-lg px-2 py-2 text-xs transition-all duration-75",
@@ -125,11 +124,11 @@ export function TemplateVariableMenu({
 }
 
 function groupSuggestions(items: VariableSuggestion[]) {
-  const groups = new Map<string, VariableSuggestion[]>();
-  for (const item of items) {
+  const groups = new Map<string, Array<{ item: VariableSuggestion; index: number }>>();
+  items.forEach((item, index) => {
     const key = item.stepId || "__env__";
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-  }
+    groups.set(key, [...(groups.get(key) ?? []), { item, index }]);
+  });
 
   return Array.from(groups.entries()).map(([stepId, groupItems]) => ({
     stepId,

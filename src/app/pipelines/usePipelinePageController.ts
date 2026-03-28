@@ -1,21 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
-import type { ArtifactInput } from "@/features/pipeline/partial-run";
-import {
-  buildExecutionResultFromArtifact,
-  buildRuntimeVariablesFromArtifact,
-  buildSnapshotsFromArtifact,
-} from "@/features/pipeline/execution-artifacts";
-import { planPartialPipelineRun } from "@/features/pipeline/partial-run";
-import type { CheckpointArtifact } from "@/features/pipeline/pipeline-persistence";
-import type { PersistedExecutionArtifact } from "@/types/pipeline-debug";
-import {
-  buildCheckpointArtifact,
-  restoreFromCheckpoint,
-} from "@/features/pipeline/pipeline-persistence";
+import { usePipelineReportActions } from "./usePipelineReportActions";
+import { usePipelinePageLifecycle } from "./usePipelinePageLifecycle";
+import { usePipelinePageActions } from "./usePipelinePageActions";
 import { useDebugController } from "@/features/pipeline/use-debug-controller";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
@@ -23,26 +10,33 @@ import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { usePipelineReportActions } from "./usePipelineReportActions";
 
 export function usePipelinePageController() {
   const pipelines = usePipelineStore((state) => state.pipelines);
   const activePipelineId = usePipelineStore((state) => state.activePipelineId);
+  const activePipeline = usePipelineStore(
+    (state) => state.pipelines.find((pipeline) => pipeline.id === state.activePipelineId) ?? null,
+  );
   const setExecuting = usePipelineStore((state) => state.setExecuting);
   const setExecutionResult = usePipelineStore((state) => state.setExecutionResult);
   const setView = usePipelineStore((state) => state.setView);
 
-  const snapshots = usePipelineExecutionStore((s) => s.snapshots);
-  const status = usePipelineExecutionStore((s) => s.status);
-  const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
-  const executionId = usePipelineExecutionStore((s) => s.executionId);
-  const completedAt = usePipelineExecutionStore((s) => s.completedAt);
-  const currentStepIndex = usePipelineExecutionStore((s) => s.currentStepIndex);
-  const totalSteps = usePipelineExecutionStore((s) => s.totalSteps);
-  const errorMessage = usePipelineExecutionStore((s) => s.errorMessage);
-  const resetExecution = usePipelineExecutionStore((s) => s.reset);
-  const applyControllerSnapshot = usePipelineExecutionStore((s) => s.applyControllerSnapshot);
-  const setHasPersistedExecution = usePipelineExecutionStore((s) => s.setHasPersistedExecution);
+  const snapshots = usePipelineExecutionStore((state) => state.snapshots);
+  const status = usePipelineExecutionStore((state) => state.status);
+  const runtimeVariables = usePipelineExecutionStore((state) => state.runtimeVariables);
+  const originExecutionMode = usePipelineExecutionStore((state) => state.originExecutionMode);
+  const executionId = usePipelineExecutionStore((state) => state.executionId);
+  const completedAt = usePipelineExecutionStore((state) => state.completedAt);
+  const currentStepIndex = usePipelineExecutionStore((state) => state.currentStepIndex);
+  const totalSteps = usePipelineExecutionStore((state) => state.totalSteps);
+  const errorMessage = usePipelineExecutionStore((state) => state.errorMessage);
+  const resetExecution = usePipelineExecutionStore((state) => state.reset);
+  const applyControllerSnapshot = usePipelineExecutionStore(
+    (state) => state.applyControllerSnapshot,
+  );
+  const setHasPersistedExecution = usePipelineExecutionStore(
+    (state) => state.setHasPersistedExecution,
+  );
 
   const refreshSignals = usePipelineDebugStore((state) => state.refreshSignals);
   const setReportConfig = usePipelineDebugStore((state) => state.setReportConfig);
@@ -58,243 +52,43 @@ export function usePipelinePageController() {
   const saveExecutionArtifact = usePipelineArtifactsStore((state) => state.saveExecutionArtifact);
 
   const controller = useDebugController();
-
-  const activePipeline = usePipelineStore(
-    (state) => state.pipelines.find((p) => p.id === activePipelineId) ?? null,
-  );
-  const lastPersistedIdRef = useRef<string | null>(null);
-  const lastAppliedIdRef = useRef<string | null>(null);
   const { handleGenerateReport, handleExportReport } = usePipelineReportActions({
     activePipeline: activePipeline ?? undefined,
     activePipelineId,
     pipelines,
   });
 
-  useEffect(() => {
-    const config = providers[activeProvider];
-    const apiKey = config?.apiKey?.trim();
-    if (!apiKey) return;
-    setAIProvider({ provider: activeProvider, model: config?.model ?? "", apiKey });
-  }, [activeProvider, providers, setAIProvider]);
-
-  useEffect(() => {
-    if (!activePipeline) return;
-    const prompt =
-      activePipeline.narrativeConfig.promptOverrides?.[activePipeline.narrativeConfig.tone] ??
-      activePipeline.narrativeConfig.prompt;
-    setReportConfig({
-      tone: activePipeline.narrativeConfig.tone,
-      prompt,
-      length: activePipeline.narrativeConfig.length ?? "medium",
-    });
-  }, [activePipeline, setReportConfig]);
-
-  useEffect(() => {
-    resetExecution();
-    setExecutionResult(null);
-    clearExecutionContext();
-    lastAppliedIdRef.current = null;
-
-    if (!activePipelineId || !activePipeline) {
-      setHasPersistedExecution(false);
-      return;
-    }
-
-    const artifact = usePipelineArtifactsStore.getState().getExecutionArtifact(activePipelineId) as
-      | (CheckpointArtifact | null)
-      | undefined;
-
-    if (artifact && "isDirty" in artifact) {
-      if (lastAppliedIdRef.current === artifact.executionId) return;
-      lastAppliedIdRef.current = artifact.executionId;
-      const restored = restoreFromCheckpoint(artifact);
-      applyControllerSnapshot(restored);
-      setHasPersistedExecution(true);
-      refreshSignals(activePipeline.steps);
-      return;
-    }
-
-    if (!artifact) {
-      setHasPersistedExecution(false);
-      return;
-    }
-
-    const persistedArtifact = artifact as PersistedExecutionArtifact;
-    const snapshots = buildSnapshotsFromArtifact(persistedArtifact);
-    const runtime = buildRuntimeVariablesFromArtifact(persistedArtifact);
-    const result = buildExecutionResultFromArtifact(persistedArtifact);
-    usePipelineExecutionStore.setState({
-      executionId: null,
-      status: result?.status === "failed" ? "error" : "completed",
-      currentStepIndex: snapshots.length > 0 ? snapshots.length - 1 : -1,
-      totalSteps: snapshots.length,
-      snapshots,
-      runtimeVariables: runtime,
-      variableOverrides: {},
-      errorMessage: result?.error ?? null,
-      startedAt: new Date(persistedArtifact.generatedAt).getTime(),
-      completedAt: persistedArtifact.runtime.completedAt
-        ? new Date(persistedArtifact.runtime.completedAt).getTime()
-        : null,
-      hasPersistedExecution: true,
-    });
-    setExecutionResult(result);
-    refreshSignals(activePipeline.steps);
-    setHasPersistedExecution(true);
-  }, [
+  usePipelinePageLifecycle({
     activePipeline,
     activePipelineId,
+    providers,
+    activeProvider,
+    snapshots,
+    status,
+    runtimeVariables,
+    originExecutionMode,
+    executionId,
+    completedAt,
+    currentStepIndex,
+    totalSteps,
+    errorMessage,
+    resetExecution,
     applyControllerSnapshot,
+    setHasPersistedExecution,
+    setExecutionResult,
     clearExecutionContext,
     refreshSignals,
-    resetExecution,
-    setExecutionResult,
-    setHasPersistedExecution,
-  ]);
-
-  // Stabilize derived state for checkpoint creation
-  const snapshotsLength = snapshots.length;
-  const isPipelineInProgress = status === "paused" || status === "running";
-  const activePipelineStepsLength = activePipeline?.steps.length ?? 0;
-
-  useEffect(() => {
-    if (!activePipeline || !isPipelineInProgress || snapshotsLength === 0 || !executionId) {
-      return;
-    }
-
-    const artifact = buildCheckpointArtifact(
-      executionId,
-      activePipeline.id,
-      snapshots,
-      runtimeVariables,
-      {
-        isDirty: true,
-        mode: "full",
-        startStepId: null,
-        reusedAliases: [],
-        staleContextWarning: null,
-        completedAt: null,
-        currentStepIndex,
-        totalSteps,
-        errorMessage: null,
-        pipeline: activePipeline,
-      },
-    );
-    saveExecutionArtifact(activePipeline.id, artifact);
-  }, [
-    activePipeline,
-    activePipelineStepsLength, // Use derived primitive instead of deep object
-    executionId,
-    isPipelineInProgress, // Primitive check
-    snapshotsLength, // Primitive check
-    currentStepIndex,
-    totalSteps,
+    setReportConfig,
+    setAIProvider,
     saveExecutionArtifact,
-    snapshots,
-    runtimeVariables,
-  ]);
+  });
 
-  // Check if pipeline has finished execution
-  const isPipelineDone = status === "completed" || status === "error" || status === "aborted";
-
-  useEffect(() => {
-    if (!activePipeline || !isPipelineDone || snapshotsLength === 0 || !executionId) {
-      return;
-    }
-
-    const persistenceKey = `${activePipeline.id}:${executionId}`;
-    if (lastPersistedIdRef.current === persistenceKey) {
-      return;
-    }
-
-    const artifact = buildCheckpointArtifact(
-      executionId,
-      activePipeline.id,
-      snapshots,
-      runtimeVariables,
-      {
-        isDirty: false,
-        mode: "full",
-        startStepId: null,
-        reusedAliases: [],
-        staleContextWarning: null,
-        completedAt,
-        currentStepIndex,
-        totalSteps,
-        errorMessage: errorMessage,
-        pipeline: activePipeline,
-      },
-    );
-    saveExecutionArtifact(activePipeline.id, artifact);
-    refreshSignals(activePipeline.steps);
-    lastPersistedIdRef.current = persistenceKey;
-  }, [
-    activePipeline,
-    activePipelineStepsLength, // Dependency stabilization
-    executionId,
-    isPipelineDone, // Primitive toggle status
-    snapshotsLength, // Minimize deep watch dependencies
-    completedAt,
-    errorMessage,
-    refreshSignals,
-    saveExecutionArtifact,
-    runtimeVariables,
-    currentStepIndex,
-    totalSteps,
-    snapshots,
-  ]);
-
-  const lastStatusRef = useRef(status);
-  useEffect(() => {
-    const wasRunning = lastStatusRef.current === "running";
-    const isDone = status === "completed" || status === "error";
-
-    if (wasRunning && isDone) {
-      const successCount = snapshots.filter(
-        (s) => s.status === "success" || s.status === "done",
-      ).length;
-      const failCount = snapshots.filter((s) => s.status === "error").length;
-
-      if (status === "completed" && failCount === 0) {
-        toast.success(`Pipeline Completed: ${successCount} steps succeeded`);
-      } else {
-        toast.error(
-          `Pipeline Finished with issues: ${successCount} Succeeded, ${failCount} Failed`,
-        );
-      }
-    }
-    lastStatusRef.current = status;
-  }, [status, snapshots]);
-
-  const handleRun = useCallback(async () => {
-    if (!activePipeline) return;
-    const executionSupport = getPipelineExecutionSupport(activePipeline);
-    if (!executionSupport.supported) {
-      toast.error(executionSupport.reason);
-      return;
-    }
-    setExecuting(true);
-    setExecutionResult(null);
-    setView("stream");
-    resetExecution();
-    if (activePipelineId) {
-      clearReport(activePipelineId);
-      setSelectedSignals([]);
-    }
-    const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
-      executionMode: "auto",
-    });
-    if (!result.valid) {
-      toast.error(`Validation failed: ${result.errors?.join(", ")}`);
-      setExecuting(false);
-      return;
-    }
-    // toast.success("Pipeline Executed Successfully"); // Removed: handling via useEffect summary
-    setExecuting(false);
-  }, [
+  const actions = usePipelinePageActions({
     activePipeline,
     activePipelineId,
     controller,
+    originExecutionMode,
+    activeExecutionId: executionId,
     resetExecution,
     getActiveEnvironmentVariables,
     setExecuting,
@@ -302,122 +96,10 @@ export function usePipelinePageController() {
     setView,
     clearReport,
     setSelectedSignals,
-  ]);
-
-  const handleDebug = useCallback(() => {
-    if (!activePipeline) return;
-    const executionSupport = getPipelineExecutionSupport(activePipeline);
-    if (!executionSupport.supported) {
-      toast.error(executionSupport.reason);
-      return;
-    }
-    resetExecution();
-    setView("stream");
-    setExecutionResult(null);
-    if (activePipelineId) {
-      clearReport(activePipelineId);
-      setSelectedSignals([]);
-    }
-    const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
-      executionMode: "debug",
-    });
-    if (!result.valid) {
-      toast.error(`Validation failed: ${result.errors?.join(", ")}`);
-      return;
-    }
-    toast.info("Debug mode started — use Step or Continue to execute");
-  }, [
-    activePipeline,
-    activePipelineId,
-    controller,
-    resetExecution,
-    getActiveEnvironmentVariables,
-    setExecutionResult,
-    setView,
-    clearReport,
-    setSelectedSignals,
-  ]);
-
-  const handleRunFromStep = useCallback(
-    async (stepId: string, mode: "partial-previous" | "partial-fresh") => {
-      if (!activePipeline) return;
-      const executionSupport = getPipelineExecutionSupport(activePipeline);
-      if (!executionSupport.supported) {
-        toast.error(executionSupport.reason);
-        return;
-      }
-      const artifact = usePipelineArtifactsStore
-        .getState()
-        .getExecutionArtifact(activePipeline.id) as ArtifactInput;
-      const plan = planPartialPipelineRun({
-        pipeline: activePipeline,
-        startStepId: stepId,
-        mode,
-        artifact,
-      });
-      if (!plan.valid) {
-        toast.error(plan.error);
-        return;
-      }
-      setExecuting(true);
-      setExecutionResult(null);
-      setView("stream");
-      resetExecution();
-      if (activePipelineId) {
-        clearReport(activePipelineId);
-        setSelectedSignals([]);
-      }
-      const result = controller.start(activePipeline, getActiveEnvironmentVariables(), {
-        ...plan.options,
-        executionMode: "auto",
-      });
-      if (!result.valid) {
-        toast.error(`Validation failed: ${result.errors?.join(", ")}`);
-        setExecuting(false);
-        return;
-      }
-      // toast.success("Partial Pipeline Run Completed"); // Removed: handling via useEffect summary
-      setExecuting(false);
-    },
-    [
-      activePipeline,
-      activePipelineId,
-      controller,
-      resetExecution,
-      getActiveEnvironmentVariables,
-      setExecuting,
-      setExecutionResult,
-      setView,
-      clearReport,
-      setSelectedSignals,
-    ],
-  );
-
-  const handleStop = useCallback(() => {
-    controller.stop();
-    setExecuting(false);
-  }, [controller, setExecuting]);
-
-  const handleRetry = useCallback(async () => {
-    await controller.retry();
-  }, [controller]);
-
-  const handleStep = useCallback(async () => {
-    await controller.step();
-  }, [controller]);
-
-  const handleResume = useCallback(async () => {
-    await controller.resume();
-  }, [controller]);
+  });
 
   return {
-    handleRun,
-    handleDebug,
-    handleRunFromStep,
-    handleStop,
-    handleRetry,
-    handleStep,
-    handleResume,
+    ...actions,
     controller,
     handleGenerateReport,
     handleExportReport,

@@ -77,6 +77,7 @@ Build workflows, not just isolated calls.
 - DAG validation to keep execution order explicit and deterministic
 - Stage-aware planning for sequential dependencies and independent parallel work
 - Per-request success and failure routing from the pipeline inspector
+- Explicit success and failure routes take precedence over fallback sequential control edges
 - Real-time execution stream tied directly to the selected pipeline
 
 ### Live execution timeline
@@ -87,6 +88,7 @@ Debug with a timeline instead of a flat log.
 - Track active, paused, completed, failed, skipped, and retried states
 - Open per-step details for request, response, error, timing, and payload metadata
 - Resume debugging with persisted execution artifacts and timeline state
+- Retry from the Response Stream page using the run's original mode, including debug-originated runs
 
 ### Collections to pipelines
 
@@ -103,6 +105,7 @@ Step through execution with control.
 
 - Pause and resume a pipeline run
 - Retry from failure instead of rerunning the whole workflow
+- Preserve the original run mode on retry, so debug runs retry in debug even after Continue
 - Async-generator based controller loop for deterministic UI synchronization
 - Parallel stage execution without breaking variable dependency flow
 

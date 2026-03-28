@@ -159,6 +159,7 @@ function PipelinesPageContent() {
       onRun={handleRun}
       onDebug={handleDebug}
       onStop={handleStop}
+      onRetry={handleRetry}
       onSaveToDb={() => void savePipelineToDb(activePipeline)}
       onGenerateReport={handleGenerateReport}
       onExportReport={handleExportReport}

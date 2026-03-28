@@ -4,11 +4,11 @@ import { toRuntimeValue } from "./pipeline-execution-mappers";
 import { createInitialSnapshot } from "./pipeline-snapshot-utils";
 import {
   type NormalizedResponse,
+  buildExecutionEvent,
   buildAbortedSnapshot,
   buildFailedSnapshot,
   buildResolvedRequest,
   buildSuccessSnapshot,
-  buildYield,
   isAborted,
 } from "./generator-executor-shared";
 import type { createStepAbort } from "./generator-executor-shared";
@@ -78,7 +78,7 @@ export async function* completeSingleStep(
       resolvedResponse,
     );
     snapshots[snapshots.length - 1] = aborted;
-    yield buildYield("step_complete", aborted, snapshots);
+    yield buildExecutionEvent("step_failed", aborted, runtimeVariables);
     return;
   }
 
@@ -93,7 +93,7 @@ export async function* completeSingleStep(
     resolvedRequest,
   );
   snapshots[snapshots.length - 1] = completed;
-  yield buildYield("step_complete", completed, snapshots);
+  yield buildExecutionEvent("step_completed", completed, runtimeVariables);
 }
 
 /** Emit failure snapshot. */
@@ -107,6 +107,5 @@ export async function* emitFailure(
 ) {
   const failed = buildFailedSnapshot(pendingSnapshot, runtimeVariables, error, aborted);
   snapshots[snapshotIndex] = failed;
-  yield buildYield("step_complete", failed, snapshots);
-  if (!aborted) yield buildYield("error", failed, snapshots);
+  yield buildExecutionEvent("step_failed", failed, runtimeVariables);
 }

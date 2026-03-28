@@ -157,16 +157,23 @@ export interface VariableSuggestion {
 }
 
 export type GeneratorYield =
-  | { type: "step_ready"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
-  | { type: "stream_chunk"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
-  | { type: "step_complete"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] }
-  | { type: "error"; snapshot: StepSnapshot; allSnapshots: StepSnapshot[] };
+  | { type: "execution_started"; totalSteps: number; startedAt: number }
+  | { type: "step_ready"; snapshot: StepSnapshot }
+  | { type: "step_stream_chunk"; snapshot: StepSnapshot; chunk: string }
+  | { type: "step_completed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
+  | { type: "step_failed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
+  | { type: "execution_completed"; completedAt: number }
+  | { type: "execution_interrupted"; completedAt: number; reason: string };
 
-export type PipelineGenerator = AsyncGenerator<
-  GeneratorYield,
+export type PipelineExecutionEvent = GeneratorYield;
+
+export type PipelineRuntime = AsyncGenerator<
+  PipelineExecutionEvent,
   void,
   Record<string, string> | undefined
 >;
+
+export type PipelineGenerator = PipelineRuntime;
 
 export interface StepAbortControl {
   controller: AbortController;
@@ -192,6 +199,7 @@ export interface DebugSessionOptions {
 export interface ControllerSnapshot {
   executionId: string | null;
   state: DebugStatus;
+  originExecutionMode: ExecutionMode;
   currentStepIndex: number;
   totalSteps: number;
   snapshots: StepSnapshot[];
