@@ -54,7 +54,7 @@ describe("TimelinePanel", () => {
     useTimelineStore.getState().reset();
   });
 
-  it("auto-follows the latest event when debug execution completes", async () => {
+  it("preserves manual selection after execution completes", async () => {
     const firstEvent = makeEvent();
     const lastEvent = makeEvent({
       eventId: "exec-1:step-2",
@@ -96,11 +96,11 @@ describe("TimelinePanel", () => {
     render(<TimelinePanel />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /final step/i })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: /step 1/i })).toHaveAttribute(
         "aria-pressed",
         "true",
       );
     });
-    expect(screen.getByText("https://api.example.com/final")).toBeInTheDocument();
+    expect(screen.getByText("https://api.example.com/step-1")).toBeInTheDocument();
   });
 });

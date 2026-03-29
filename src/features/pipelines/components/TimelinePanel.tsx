@@ -56,6 +56,7 @@ export function TimelinePanel() {
 
   const latestEventId = sortedEvents.at(-1)?.eventId ?? null;
   const autoFollowEventId = activeEvent?.eventId ?? latestEventId;
+  const shouldAutoFollow = executionStatus === "running" || executionStatus === "paused";
 
   useEffect(() => {
     if (sortedEvents.length === 0) return;
@@ -69,10 +70,10 @@ export function TimelinePanel() {
       return;
     }
 
-    if (autoFollowEventId && selectedEventId !== autoFollowEventId && executionStatus !== "idle") {
+    if (shouldAutoFollow && autoFollowEventId && selectedEventId !== autoFollowEventId) {
       selectEvent(autoFollowEventId);
     }
-  }, [autoFollowEventId, executionStatus, selectEvent, selectedEventId, sortedEvents]);
+  }, [autoFollowEventId, selectEvent, selectedEventId, shouldAutoFollow, sortedEvents]);
 
   const panelState = derivePanelState(executionStatus, sortedEvents.length);
 
