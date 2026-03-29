@@ -36,6 +36,11 @@ export interface JsonViewRef {
   goPrev: () => void;
 }
 
+interface SearchMatch {
+  lineNumber: number;
+  occurrenceIndexInLine: number;
+}
+
 const LINE_HEIGHTS = {
   sm: 20,
   md: 24,
@@ -59,6 +64,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
   const [currentIndex, setCurrentIndex] = useState(0);
   const query = searchQuery.trim();
   const parentRef = useRef<HTMLDivElement>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
 
   const clientId = useState(() => crypto.randomUUID())[0];
 
@@ -118,8 +124,32 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
 
   const matches = useMemo(() => {
     if (!query) return [];
+
     const normalizedQuery = query.toLowerCase();
-    return model.lines.filter((line) => line.searchText.toLowerCase().includes(normalizedQuery));
+    const nextMatches: SearchMatch[] = [];
+
+    for (const line of model.lines) {
+      const lineText = line.text.toLowerCase();
+      let fromIndex = 0;
+      let occurrenceIndexInLine = 0;
+
+      while (fromIndex < lineText.length) {
+        const matchIndex = lineText.indexOf(normalizedQuery, fromIndex);
+        if (matchIndex === -1) {
+          break;
+        }
+
+        nextMatches.push({
+          lineNumber: line.lineNumber,
+          occurrenceIndexInLine,
+        });
+
+        occurrenceIndexInLine += 1;
+        fromIndex = matchIndex + normalizedQuery.length;
+      }
+    }
+
+    return nextMatches;
   }, [model.lines, query]);
 
   useEffect(() => {
@@ -132,25 +162,71 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
   }, [currentIndex, matches.length, onMatchChange]);
 
   const itemSize = LINE_HEIGHTS[fontScale as keyof typeof LINE_HEIGHTS] || LINE_HEIGHTS.md;
+  const matchedLines = useMemo(() => new Set(matches.map((match) => match.lineNumber)), [matches]);
+  const activeMatch = matches[currentIndex] ?? null;
+  const activeLineNumber = activeMatch?.lineNumber ?? null;
 
   const rowVirtualizer = useVirtualizer({
     count: model.lines.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => itemSize,
     overscan: 10,
+    scrollToFn: (offset, { adjustments, behavior }, instance) => {
+      const scrollElement = instance.scrollElement;
+      if (!scrollElement || !(scrollElement instanceof Element)) return;
+
+      const targetOffset = Math.max(0, offset + (adjustments ?? 0));
+
+      if (scrollAnimationFrameRef.current != null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+
+      if (behavior !== "smooth") {
+        scrollElement.scrollTop = targetOffset;
+        return;
+      }
+
+      tweenScrollToOffset({
+        targetOffset,
+        element: scrollElement,
+        onFrame: (frameId) => {
+          scrollAnimationFrameRef.current = frameId;
+        },
+      });
+    },
   });
 
   useEffect(() => {
-    const activeMatch = matches[currentIndex];
-    if (!activeMatch) return;
-    rowVirtualizer.scrollToIndex(activeMatch.lineNumber - 1, { align: "center" });
-  }, [currentIndex, matches, rowVirtualizer]);
+    if (!activeLineNumber) return;
+
+    const targetIndex = activeLineNumber - 1;
+    const align =
+      targetIndex <= 1
+        ? "start"
+        : targetIndex >= Math.max(model.lines.length - 2, 0)
+          ? "end"
+          : "center";
+
+    rowVirtualizer.scrollToIndex(targetIndex, {
+      align,
+      behavior: "smooth",
+    });
+  }, [activeLineNumber, model.lines.length, rowVirtualizer]);
+
+  useEffect(
+    () => () => {
+      if (scrollAnimationFrameRef.current != null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+    },
+    [],
+  );
 
   const goNext = () =>
     setCurrentIndex((prev) => (matches.length ? (prev + 1) % matches.length : 0));
   const goPrev = () =>
     setCurrentIndex((prev) => (matches.length ? (prev - 1 + matches.length) % matches.length : 0));
-  const matchedLines = useMemo(() => new Set(matches.map((match) => match.lineNumber)), [matches]);
 
   useImperativeHandle(ref, () => ({ goNext, goPrev }), [matches.length]);
 
@@ -178,6 +254,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
             type="button"
             onClick={goPrev}
             disabled={matches.length < 2}
+            aria-label="Previous match"
             className="rounded p-0.5 disabled:opacity-40"
           >
             <ChevronUp className="h-3.5 w-3.5" />
@@ -186,6 +263,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
             type="button"
             onClick={goNext}
             disabled={matches.length < 2}
+            aria-label="Next match"
             className="rounded p-0.5 disabled:opacity-40"
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -195,7 +273,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
 
       <div
         ref={parentRef}
-        className="h-full overflow-auto pb-3 pt-4 scroll-smooth no-scrollbar"
+        className="h-full overflow-auto pb-3 pt-4 no-scrollbar"
         style={{
           fontSize: fontScale === "sm" ? "11px" : fontScale === "lg" ? "13px" : "12px",
           lineHeight: fontScale === "sm" ? "1.25rem" : fontScale === "lg" ? "1.75rem" : "1.5rem",
@@ -214,8 +292,12 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
               const line = model.lines[virtualItem.index];
               if (!line) return null;
 
-              const isActive = matches[currentIndex]?.lineNumber === line.lineNumber;
+              const isActive = activeLineNumber === line.lineNumber;
               const isMatch = matchedLines.has(line.lineNumber);
+              const activeOccurrenceIndexInLine =
+                activeMatch?.lineNumber === line.lineNumber
+                  ? activeMatch.occurrenceIndexInLine
+                  : null;
 
               return (
                 <div
@@ -255,7 +337,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
                       tokenLines[line.lineNumber - 1],
                       query,
                       palette,
-                      isActive,
+                      activeOccurrenceIndexInLine,
                       line.text,
                     )}
                   </div>
@@ -283,40 +365,151 @@ function renderTokens(
   tokens: ThemedToken[] | undefined,
   query: string,
   palette: typeof lightJsonPalette,
-  isActive: boolean,
+  activeOccurrenceIndexInLine: number | null,
   fallback = "",
 ) {
-  if (!tokens?.length) return highlightFragments(fallback, query, palette, isActive);
-  return tokens.map((token, index) => (
-    <span key={`${token.content}-${index}`} style={{ color: token.color ?? palette.foreground }}>
-      {highlightFragments(token.content, query, palette, isActive)}
-    </span>
-  ));
+  if (!tokens?.length) {
+    return highlightFragments({
+      text: fallback,
+      query,
+      palette,
+      activeOccurrenceIndexInLine,
+      occurrenceOffset: 0,
+    }).fragments;
+  }
+
+  let occurrenceOffset = 0;
+
+  return tokens.map((token, index) => {
+    const { fragments, nextOccurrenceOffset } = highlightFragments({
+      text: token.content,
+      query,
+      palette,
+      activeOccurrenceIndexInLine,
+      occurrenceOffset,
+    });
+
+    occurrenceOffset = nextOccurrenceOffset;
+
+    return (
+      <span key={`${token.content}-${index}`} style={{ color: token.color ?? palette.foreground }}>
+        {fragments}
+      </span>
+    );
+  });
 }
 
-function highlightFragments(
-  text: string,
-  query: string,
-  palette: typeof lightJsonPalette,
-  isActive: boolean,
-) {
-  if (!query) return text;
+function highlightFragments({
+  text,
+  query,
+  palette,
+  activeOccurrenceIndexInLine,
+  occurrenceOffset,
+}: {
+  text: string;
+  query: string;
+  palette: typeof lightJsonPalette;
+  activeOccurrenceIndexInLine: number | null;
+  occurrenceOffset: number;
+}) {
+  if (!query) {
+    return { fragments: text, nextOccurrenceOffset: occurrenceOffset };
+  }
+
   const parts = text.split(new RegExp(`(${escapeRegex(query)})`, "gi"));
-  return parts.map((part, index) =>
-    part.toLowerCase() === query.toLowerCase() ? (
-      <mark
-        key={`${part}-${index}`}
-        className="px-0 text-current"
-        style={{ background: isActive ? palette.searchActive : palette.search }}
-      >
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
+  let nextOccurrenceOffset = occurrenceOffset;
+
+  return {
+    fragments: parts.map((part, index) => {
+      if (part.toLowerCase() !== query.toLowerCase()) {
+        return part;
+      }
+
+      const isActive = activeOccurrenceIndexInLine === nextOccurrenceOffset;
+      nextOccurrenceOffset += 1;
+
+      return (
+        <mark
+          key={`${part}-${index}`}
+          className="px-0 text-current"
+          style={{ background: isActive ? palette.searchActive : palette.search }}
+        >
+          {part}
+        </mark>
+      );
+    }),
+    nextOccurrenceOffset,
+  };
 }
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function tweenScrollToOffset({
+  targetOffset,
+  element,
+  onFrame,
+}: {
+  targetOffset: number;
+  element: Element;
+  onFrame: (frameId: number | null) => void;
+}) {
+  const startOffset = element.scrollTop;
+  const distance = targetOffset - startOffset;
+
+  if (Math.abs(distance) < 1) {
+    element.scrollTop = targetOffset;
+    onFrame(null);
+    return;
+  }
+
+  let current = startOffset;
+  let lastTime = performance.now();
+  const totalDistance = Math.abs(distance);
+  const distanceBoost = Math.min(totalDistance / 1200, 1);
+  const shortDistanceFactor = Math.min(totalDistance / 220, 1);
+  const baseSmoothing = 0.085 + shortDistanceFactor * 0.115;
+  const minStep = 0.35;
+  const maxStep = 14 + shortDistanceFactor * 26 + distanceBoost * 72;
+  const easeOutThreshold = Math.max(140, totalDistance * 0.24);
+
+  const step = (now: number) => {
+    const deltaMs = Math.min(now - lastTime, 20);
+    lastTime = now;
+
+    const frames = deltaMs / (1000 / 60);
+    const displacement = targetOffset - current;
+    const remainingRatio = totalDistance > 0 ? Math.abs(displacement) / totalDistance : 0;
+    const cruiseBoost =
+      distanceBoost * Math.sin(Math.PI * Math.min(Math.max(remainingRatio, 0), 1));
+    const smoothing = baseSmoothing + cruiseBoost * 0.18;
+    const scaledStep = displacement * (1 - Math.pow(1 - smoothing, frames));
+    const rawStep = Math.sign(scaledStep) * Math.min(Math.abs(scaledStep), maxStep);
+    const nearTargetDistance = Math.abs(displacement);
+    const easeOutFactor =
+      nearTargetDistance >= easeOutThreshold
+        ? 1
+        : 0.28 + 0.72 * Math.pow(nearTargetDistance / easeOutThreshold, 1.15);
+    const boundedStep = rawStep * easeOutFactor;
+
+    if (Math.abs(displacement) <= minStep) {
+      current = targetOffset;
+    } else {
+      current += boundedStep;
+    }
+
+    element.scrollTop = current;
+
+    const isSettled = Math.abs(targetOffset - current) < 0.5;
+    if (isSettled) {
+      element.scrollTop = targetOffset;
+      onFrame(null);
+      return;
+    }
+
+    onFrame(requestAnimationFrame(step));
+  };
+
+  onFrame(requestAnimationFrame(step));
 }
