@@ -4,12 +4,7 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
-import {
-  buildRequestRouteOptions,
-  getRequestRouteTargets,
-  resolveRequestRouteDisplay,
-  updateRequestRouteTargets,
-} from "@/features/pipeline/request-routing";
+import { updateRequestRouteTargets } from "@/features/pipeline/request-routing";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
@@ -18,6 +13,7 @@ import { useTimelineStore } from "@/stores/useTimelineStore";
 import { cn } from "@/utils";
 import { PipelineInspectorEditorSections } from "./PipelineInspectorEditorSections";
 import {
+  PipelineInspectorLineageSection,
   PipelineInspectorMockSection,
   PipelineInspectorRoutingSection,
 } from "./PipelineInspectorUtilitySections";
@@ -25,6 +21,7 @@ import {
   type PipelineInspectorSection,
   type PipelineInspectorSectionItem,
 } from "./PipelineInspectorSectionNav";
+import { usePipelineSideInspectorState } from "./PipelineSideInspectorState";
 
 interface PipelineSideInspectorProps {
   pipelineId: string;
@@ -57,9 +54,8 @@ export function PipelineSideInspector({
     );
   }, [activeEnvironment]);
 
-  const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
   const syncGeneration = useTimelineStore((s) => s.syncGeneration);
-
+  const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
   const suggestions = useVariableSuggestions(
     pipeline ?? undefined,
     stepId,
@@ -68,52 +64,31 @@ export function PipelineSideInspector({
   );
 
   const [activeSection, setActiveSection] = useState<PipelineInspectorSection>("request");
-  const routeTargets = useMemo(
-    () => getRequestRouteTargets(pipeline?.flowDocument, stepId),
-    [pipeline?.flowDocument, stepId],
-  );
-  const routeOptions = useMemo(
-    () => buildRequestRouteOptions(pipeline?.steps ?? [], stepId),
-    [pipeline?.steps, stepId],
-  );
-  const runtimeRoute = useMemo(() => {
-    const events = Array.from(useTimelineStore.getState().eventById.values());
-    return (
-      events
-        .filter((event) => event.eventKind === "route_selected" && event.sourceStepId === stepId)
-        .sort((a, b) => b.sequenceNumber - a.sequenceNumber)[0] ?? null
-    );
-  }, [stepId, syncGeneration]);
-  const runtimeSkipped = useMemo(() => {
-    const events = Array.from(useTimelineStore.getState().eventById.values());
-    return (
-      events.find((event) => event.eventKind === "step_skipped" && event.sourceStepId === stepId) ??
-      null
-    );
-  }, [stepId, syncGeneration]);
+  const {
+    lineageView,
+    lineageByField,
+    stepNameById,
+    routeTargets,
+    routeOptions,
+    runtimeRoute,
+    runtimeSkipped,
+    showLineageSection,
+    successDisplay,
+    failureDisplay,
+  } = usePipelineSideInspectorState({ pipeline, stepId, syncGeneration });
 
   if (!step) return null;
 
   const isBodyDisabled = step.method === "GET" || step.method === "HEAD";
   const routingConfigured = routeTargets.success != null || routeTargets.failure != null;
+
   const sectionItems: PipelineInspectorSectionItem[] = [
     { id: "request", label: "Request", detail: "" },
     { id: "flow", label: "Flow", detail: "" },
     { id: "routing", label: "Routing", detail: "", highlighted: routingConfigured },
+    { id: "lineage", label: "Lineage", detail: "", highlighted: showLineageSection },
     { id: "mock", label: "Mock", detail: "", highlighted: Boolean(step.mockConfig?.enabled) },
   ];
-  const successDisplay = resolveRequestRouteDisplay(
-    routeTargets.success,
-    routeOptions,
-    "Default flow",
-    "Continue with the pipeline's normal dependency order.",
-  );
-  const failureDisplay = resolveRequestRouteDisplay(
-    routeTargets.failure,
-    routeOptions,
-    "Default failure",
-    "The pipeline stops if this request fails.",
-  );
 
   return (
     <aside
@@ -148,8 +123,8 @@ export function PipelineSideInspector({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-10 no-scrollbar">
-        <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <div className="flex min-h-0 flex-1 flex-col p-10">
+        <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-5">
           <div
             role="tablist"
             aria-label="Request inspector sections"
@@ -178,14 +153,24 @@ export function PipelineSideInspector({
             })}
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-h-0 min-w-0 flex-1">
             {activeSection === "request" || activeSection === "flow" ? (
               <PipelineInspectorEditorSections
                 section={activeSection}
                 step={step}
                 suggestions={suggestions}
+                lineageByField={lineageByField}
                 isBodyDisabled={isBodyDisabled}
                 onChange={(updates) => updateStep(pipelineId, stepId, updates)}
+              />
+            ) : null}
+
+            {activeSection === "lineage" ? (
+              <PipelineInspectorLineageSection
+                incoming={lineageView.incoming}
+                outgoing={lineageView.outgoing}
+                warnings={lineageView.warnings}
+                stepNameById={stepNameById}
               />
             ) : null}
 

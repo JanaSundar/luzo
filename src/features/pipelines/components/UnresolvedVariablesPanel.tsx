@@ -3,13 +3,11 @@
 import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { usePipelineLineage } from "@/features/pipelines/hooks/usePipelineLineage";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
-import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
-import { analysisWorkerClient } from "@/workers/client/analysis-client";
-import type { Result, VariableAnalysisOutput } from "@/types/worker-results";
 
 export function UnresolvedVariablesPanel() {
   const { activePipelineId, pipelines } = usePipelineStore();
@@ -32,6 +30,11 @@ export function UnresolvedVariablesPanel() {
     return Object.fromEntries(env.variables.filter((v) => v.enabled).map((v) => [v.key, v.value]));
   }, [environments, activeEnvironmentId]);
   const nextStep = pipeline?.steps[currentStepIndex] as PipelineStep | undefined;
+  const lineageAnalysis = usePipelineLineage(
+    pipeline ?? undefined,
+    runtimeVariables as Record<string, unknown>,
+    `unresolved:${nextStep?.id ?? "none"}`,
+  );
 
   useEffect(() => {
     if (!pipeline || !nextStep) {
@@ -40,23 +43,15 @@ export function UnresolvedVariablesPanel() {
     }
 
     let active = true;
-    const bundle = buildWorkflowBundleFromPipeline(pipeline);
+    Promise.resolve(lineageAnalysis)
+      .then((analysis) => {
+        if (!active || !analysis) return;
 
-    analysisWorkerClient
-      .callLatest("unresolved-panel", async (api) => {
-        const result = (await api.analyzeVariables({
-          workflow: bundle.workflow,
-          registry: bundle.registry,
-        })) as Result<VariableAnalysisOutput>;
-        return result;
-      })
-      .then((res) => {
-        if (!active || !res || !res.ok) return;
-
-        // Extract unresolved paths from the analysis
-        const allUnresolved = res.data.unresolved
-          .filter((ref) => ref.nodeId === nextStep.id)
-          .map((ref) => ref.rawRef);
+        const allUnresolved = analysis.edges
+          .filter(
+            (edge) => edge.consumerStepId === nextStep.id && edge.resolutionStatus !== "resolved",
+          )
+          .map((edge) => edge.rawRef);
 
         const actuallyUnresolved = allUnresolved.filter((path) => {
           // It's resolved if it's in runtime variables
@@ -98,7 +93,7 @@ export function UnresolvedVariablesPanel() {
     return () => {
       active = false;
     };
-  }, [pipeline, nextStep, envVars, runtimeVariables]);
+  }, [pipeline, nextStep, envVars, runtimeVariables, lineageAnalysis]);
 
   const showPanel = status === "paused" && nextStep && unresolvedPaths.length > 0;
 

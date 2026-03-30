@@ -22,6 +22,9 @@ import type { PipelineStep } from "@/types";
 import { buildStepAliases } from "@/features/pipeline/dag-validator";
 import { reorderPipelineSteps } from "@/features/pipeline/rewrite-step-aliases";
 import { collectStepDependencies } from "@/features/pipeline/template-dependencies";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineLineage } from "@/features/pipelines/hooks/usePipelineLineage";
+import { getStepLineageView } from "@/features/pipelines/lineage/selectors";
 
 export function PipelineBuilder({
   onClearRequestedCollection,
@@ -49,6 +52,12 @@ export function PipelineBuilder({
 
   const pipeline = pipelines.find((entry) => entry.id === activePipelineId) ?? null;
   const selectedNodeId = activePipelineId ? selectedNodeIds[activePipelineId] : null;
+  const runtimeVariables = usePipelineExecutionStore((state) => state.runtimeVariables);
+  const lineageAnalysis = usePipelineLineage(
+    pipeline,
+    runtimeVariables as Record<string, unknown>,
+    "builder",
+  );
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [measureRef] = useMeasure();
@@ -233,6 +242,7 @@ export function PipelineBuilder({
                     >
                       <StepCard
                         executionHint={executionHints.get(step.id)}
+                        lineageSummary={getStepLineageView(lineageAnalysis, step.id).summary}
                         step={step}
                         index={index}
                         isSelected={selectedNodeId === step.id}

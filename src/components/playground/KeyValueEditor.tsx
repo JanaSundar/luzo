@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { TemplateInput } from "@/components/ui/template-input";
+import { LineageFieldSummary } from "@/features/request-editor/components/LineageFieldSummary";
 import type { KeyValuePair } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
+import type { VariableReferenceEdge } from "@/types/worker-results";
 
 interface KeyValueEditorProps {
   pairs: KeyValuePair[];
   onChange: (pairs: KeyValuePair[]) => void;
   placeholder?: string;
   suggestions?: VariableSuggestion[];
+  fieldNamespace?: string;
+  lineageByField?: Record<string, VariableReferenceEdge[]>;
 }
 
 export function KeyValueEditor({
@@ -20,6 +24,8 @@ export function KeyValueEditor({
   onChange,
   placeholder = "Parameter",
   suggestions = [],
+  fieldNamespace,
+  lineageByField = {},
 }: KeyValueEditorProps) {
   const pairs =
     incomingPairs.length === 0 ? [{ key: "", value: "", enabled: true }] : incomingPairs;
@@ -83,14 +89,23 @@ export function KeyValueEditor({
             </div>
             <div className="min-w-0">
               {suggestions.length > 0 ? (
-                <TemplateInput
-                  value={pair.value}
-                  onChange={(v) => update(i, "value", v)}
-                  suggestions={suggestions}
-                  placeholder="Value"
-                  inputClassName="h-9 w-full border-none bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-transparent"
-                  className="w-full"
-                />
+                <div className="min-w-0">
+                  <TemplateInput
+                    value={pair.value}
+                    onChange={(v) => update(i, "value", v)}
+                    suggestions={suggestions}
+                    placeholder="Value"
+                    inputClassName="h-9 w-full border-none bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-transparent"
+                    className="w-full"
+                  />
+                  <LineageFieldSummary
+                    incoming={
+                      fieldNamespace && pair.key.trim()
+                        ? (lineageByField[`${fieldNamespace}.${pair.key.trim()}`] ?? [])
+                        : []
+                    }
+                  />
+                </div>
               ) : (
                 <Input
                   value={pair.value}

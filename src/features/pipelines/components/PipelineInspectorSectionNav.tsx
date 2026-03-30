@@ -2,7 +2,7 @@
 
 import { cn } from "@/utils";
 
-export type PipelineInspectorSection = "request" | "flow" | "routing" | "mock";
+export type PipelineInspectorSection = "request" | "flow" | "routing" | "lineage" | "mock";
 
 export interface PipelineInspectorSectionItem {
   id: PipelineInspectorSection;

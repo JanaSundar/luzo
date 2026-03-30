@@ -58,7 +58,7 @@ export function TimelinePanel() {
 
   const latestEventId = sortedEvents.at(-1)?.eventId ?? null;
   const autoFollowEventId = activeEvent?.eventId ?? latestEventId;
-  const shouldAutoFollow = executionStatus === "running" || executionStatus === "paused";
+  const shouldAutoFollow = executionStatus === "running";
 
   useEffect(() => {
     if (sortedEvents.length === 0) return;

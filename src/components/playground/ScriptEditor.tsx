@@ -37,9 +37,7 @@ export function ScriptEditor<TRule>({
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border/40 bg-muted/10 p-3">
       <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-sm font-medium text-foreground">{label}</span>
         <div
           role="tablist"
           aria-label="Editor mode"
