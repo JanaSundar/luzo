@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { getDbCacheKey } from "@/utils/dbCacheKey";
 import * as schema from "./schema";
 import { type RuntimeSchemaStatus, ensureRuntimeSchema } from "./schema-init";
 
@@ -10,21 +11,12 @@ export interface DbClient {
 
 const clientCache = new Map<string, DbClient>();
 
-function hashUrl(url: string): string {
-  let hash = 0;
-  for (let i = 0; i < url.length; i++) {
-    const char = url.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return `db_${Math.abs(hash).toString(36)}`;
-}
-
 /**
  * Create a Drizzle ORM client from a connection URL.
  * Cached per URL hash to avoid redundant connections.
  */
 export function createDbClient(dbUrl: string): DbClient {
-  const key = hashUrl(dbUrl);
+  const key = getDbCacheKey(dbUrl);
 
   const cached = clientCache.get(key);
   if (cached) return cached;
@@ -94,7 +86,11 @@ export async function initSchema(
  * Get a cached client or null if none exists.
  */
 export function getClient(dbUrl: string): DbClient | null {
-  const key = hashUrl(dbUrl);
+  const key = getDbCacheKey(dbUrl);
+  return clientCache.get(key) ?? null;
+}
+
+export function getClientByKey(key: string): DbClient | null {
   return clientCache.get(key) ?? null;
 }
 
@@ -102,7 +98,7 @@ export function getClient(dbUrl: string): DbClient | null {
  * Close and clear a cached client.
  */
 export async function clearClient(dbUrl: string): Promise<void> {
-  const key = hashUrl(dbUrl);
+  const key = getDbCacheKey(dbUrl);
   const cached = clientCache.get(key);
   if (cached) {
     await cached.sql.end();

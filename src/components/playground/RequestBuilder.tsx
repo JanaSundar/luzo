@@ -221,6 +221,8 @@ export function RequestBuilder() {
             preRequestScript={request.preRequestScript}
             postRequestScript={request.postRequestScript}
             testScript={request.testScript}
+            pollingPolicy={request.pollingPolicy}
+            webhookWaitPolicy={request.webhookWaitPolicy}
             testResults={response?.testResults}
             suggestions={urlSuggestions}
             onChange={(partial) => setRequest(partial)}

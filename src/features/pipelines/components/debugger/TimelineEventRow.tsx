@@ -53,6 +53,24 @@ export const TimelineEventRow = memo(function TimelineEventRow({
   onSelect,
 }: TimelineEventRowProps) {
   const visual = getStatusVisual(event.status);
+  const title =
+    event.eventKind === "route_selected"
+      ? `${event.stepName} routed ${event.routeSemantics ?? "forward"}`
+      : event.eventKind === "step_skipped"
+        ? `${event.stepName} skipped`
+        : event.eventKind === "poll_attempt"
+          ? `${event.stepName} polling attempt ${event.attemptNumber ?? 1}`
+          : event.eventKind === "poll_wait"
+            ? `${event.stepName} waiting to retry`
+            : event.eventKind === "poll_terminal"
+              ? `${event.stepName} polling finished`
+              : event.eventKind === "webhook_wait"
+                ? `${event.stepName} waiting for webhook`
+                : event.eventKind === "webhook_matched"
+                  ? `${event.stepName} webhook matched`
+                  : event.eventKind === "webhook_timeout"
+                    ? `${event.stepName} webhook timed out`
+                    : event.stepName;
   const relativeStart =
     event.startedAt != null && baselineTimestamp != null
       ? `+${Math.max(0, event.startedAt - baselineTimestamp)}ms`
@@ -65,7 +83,7 @@ export const TimelineEventRow = memo(function TimelineEventRow({
       type="button"
       onClick={() => onSelect(event.eventId)}
       aria-pressed={isSelected}
-      aria-label={`${event.stepName} — ${visual.label}`}
+      aria-label={`${title} — ${visual.label}`}
       className={cn(
         "w-full text-left p-3 rounded-lg flex flex-col gap-1.5 transition-all border outline-none",
         "focus-visible:ring-2 focus-visible:ring-ring",
@@ -89,10 +107,30 @@ export const TimelineEventRow = memo(function TimelineEventRow({
           >
             {event.method}
           </span>
-          <span className="text-xs font-medium truncate text-foreground/80">{event.stepName}</span>
+          <span className="text-xs font-medium truncate text-foreground/80">{title}</span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {event.eventKind === "route_selected" && event.routeSemantics ? (
+            <span className="rounded-md border px-1.5 py-0.5 font-mono text-[9px] border-sky-500/20 bg-sky-500/10 text-sky-700">
+              {event.routeSemantics.toUpperCase()}
+            </span>
+          ) : null}
+          {event.eventKind === "step_skipped" ? (
+            <span className="rounded-md border px-1.5 py-0.5 font-mono text-[9px] border-muted-foreground/20 bg-muted text-muted-foreground">
+              SKIPPED
+            </span>
+          ) : null}
+          {event.eventKind?.startsWith("poll_") ? (
+            <span className="rounded-md border px-1.5 py-0.5 font-mono text-[9px] border-amber-500/20 bg-amber-500/10 text-amber-700">
+              POLL
+            </span>
+          ) : null}
+          {event.eventKind?.startsWith("webhook_") ? (
+            <span className="rounded-md border px-1.5 py-0.5 font-mono text-[9px] border-violet-500/20 bg-violet-500/10 text-violet-700">
+              WEBHOOK
+            </span>
+          ) : null}
           {event.preRequestPassed != null && (
             <span
               className={cn(
@@ -155,6 +193,8 @@ export const TimelineEventRow = memo(function TimelineEventRow({
         {relativeStart && <span>{relativeStart}</span>}
         {event.durationMs != null && <span>{formatDuration(event.durationMs)}</span>}
         {event.responseSize != null && <span>{formatBytes(event.responseSize)}</span>}
+        {event.skippedReason ? <span className="truncate">{event.skippedReason}</span> : null}
+        {event.summary ? <span className="truncate">{event.summary}</span> : null}
         {event.errorSnapshot && (
           <span className="text-destructive truncate">{event.errorSnapshot.message}</span>
         )}

@@ -46,6 +46,8 @@ export function DebugControlsBar({
     runningCount > 1
       ? `${runningCount} running in parallel • ${completedCount}/${totalSteps} done`
       : `Step ${Math.min(currentStepIndex + 1, totalSteps)}/${totalSteps}`;
+  const showDebugCluster = status === "paused" || status === "running";
+  const controlsDisabled = status === "running";
 
   return (
     <div className="rounded-xl border bg-background px-4 py-2.5 shadow-sm">
@@ -80,7 +82,7 @@ export function DebugControlsBar({
           </div>
         )}
 
-        {status === "paused" && (
+        {showDebugCluster && (
           <div className="flex items-center gap-1.5">
             <Button
               type="button"
@@ -88,6 +90,7 @@ export function DebugControlsBar({
               size="sm"
               className="gap-1.5 h-7 text-[10px] font-bold"
               onClick={onStep}
+              disabled={controlsDisabled}
             >
               <Play className="h-3 w-3 fill-current" />
               Step
@@ -98,6 +101,7 @@ export function DebugControlsBar({
               size="sm"
               className="gap-1.5 h-7 text-[10px] font-bold"
               onClick={onResume}
+              disabled={controlsDisabled}
             >
               <Play className="h-3 w-3 fill-current" />
               Continue
@@ -108,26 +112,12 @@ export function DebugControlsBar({
               size="sm"
               className="gap-1.5 h-7 text-[10px] font-bold"
               onClick={onRetry}
+              disabled={controlsDisabled}
             >
               <RotateCcw className="h-3 w-3" />
               Retry
             </Button>
 
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="gap-1.5 h-7 text-[10px] font-bold"
-              onClick={onStop}
-            >
-              <Square className="h-3 w-3 fill-current" />
-              Stop
-            </Button>
-          </div>
-        )}
-
-        {status === "running" && (
-          <div className="flex items-center gap-1.5">
             <Button
               type="button"
               variant="destructive"

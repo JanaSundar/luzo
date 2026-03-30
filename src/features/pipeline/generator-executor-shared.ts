@@ -24,6 +24,7 @@ const MAX_STREAM_CHUNKS = 200;
 export type NormalizedResponse = Awaited<ReturnType<typeof executeRequest>>;
 
 export interface GeneratorOptions {
+  executionId?: string;
   stepTimeoutMs?: number;
   abortControls: Map<string, StepAbortControl>;
   masterAbort: AbortController;
@@ -67,6 +68,28 @@ export function resolveStep(
     params: step.params.map((p) => ({ ...p, key: resolve(p.key), value: resolve(p.value) })),
     body: step.body ? resolve(step.body) : step.body,
     auth: resolveStepAuth(step, resolve),
+    pollingPolicy: step.pollingPolicy
+      ? {
+          ...step.pollingPolicy,
+          successRules: step.pollingPolicy.successRules.map((rule) => ({
+            ...rule,
+            value: rule.value ? resolve(rule.value) : rule.value,
+          })),
+          failureRules: (step.pollingPolicy.failureRules ?? []).map((rule) => ({
+            ...rule,
+            value: rule.value ? resolve(rule.value) : rule.value,
+          })),
+        }
+      : undefined,
+    webhookWaitPolicy: step.webhookWaitPolicy
+      ? {
+          ...step.webhookWaitPolicy,
+          correlationKeyTemplate: resolve(step.webhookWaitPolicy.correlationKeyTemplate),
+          signatureSecret: step.webhookWaitPolicy.signatureSecret
+            ? resolve(step.webhookWaitPolicy.signatureSecret)
+            : step.webhookWaitPolicy.signatureSecret,
+        }
+      : undefined,
   };
 }
 

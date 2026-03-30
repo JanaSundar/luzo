@@ -125,6 +125,8 @@ function OverviewTab({ event }: { event: TimelineEvent }) {
         />
       </section>
       <div className="space-y-0">
+        {event.eventKind ? <MetaRow label="Event Kind" value={event.eventKind} /> : null}
+        {event.summary ? <MetaRow label="Summary" value={event.summary} /> : null}
         <MetaRow label="Step" value={event.stepName} />
         <MetaRow
           label="Status"
@@ -133,6 +135,17 @@ function OverviewTab({ event }: { event: TimelineEvent }) {
         />
         <MetaRow label="Method" value={event.method} className={METHOD_COLORS[event.method]} />
         <MetaRow label="URL" value={event.url} />
+        {event.routeSemantics ? <MetaRow label="Route" value={event.routeSemantics} /> : null}
+        {event.attemptNumber != null ? (
+          <MetaRow label="Attempt" value={String(event.attemptNumber)} />
+        ) : null}
+        {event.terminalReason ? (
+          <MetaRow label="Terminal Reason" value={event.terminalReason} />
+        ) : null}
+        {event.targetStepId ? <MetaRow label="Target Step" value={event.targetStepId} /> : null}
+        {event.skippedReason ? (
+          <MetaRow label="Skipped Reason" value={event.skippedReason} />
+        ) : null}
         {event.httpStatus != null ? (
           <MetaRow
             label="HTTP Status"

@@ -207,6 +207,8 @@ export function requestStepToApiRequest(step: PipelineStep): ApiRequest {
     testRules: step.testRules,
     preRequestScript: step.preRequestScript,
     testScript: step.testScript,
+    pollingPolicy: step.pollingPolicy,
+    webhookWaitPolicy: step.webhookWaitPolicy,
   };
 }
 

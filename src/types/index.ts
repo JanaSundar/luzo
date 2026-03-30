@@ -55,6 +55,25 @@ export interface TestRule {
   value?: string;
 }
 
+export interface PollingPolicy {
+  enabled: boolean;
+  intervalMs: number;
+  maxAttempts?: number;
+  timeoutMs?: number;
+  successRules: TestRule[];
+  failureRules?: TestRule[];
+}
+
+export interface WebhookWaitPolicy {
+  enabled: boolean;
+  timeoutMs: number;
+  pollIntervalMs: number;
+  correlationKeyTemplate: string;
+  correlationSource: "header" | "query" | "body";
+  correlationField: string;
+  signatureSecret?: string;
+}
+
 export interface PreRequestRule {
   id: string;
   type: "set_env_var" | "set_header" | "delete_header" | "clear_env_var";
@@ -103,6 +122,10 @@ export interface ApiRequest {
   postRequestScript?: string;
   /** Test script. Runs after response for assertions. */
   testScript?: string;
+  /** Async polling policy that retries this request until a condition resolves. */
+  pollingPolicy?: PollingPolicy;
+  /** Wait for a correlated webhook after this request succeeds. */
+  webhookWaitPolicy?: WebhookWaitPolicy;
 }
 
 export interface TestResult {
@@ -236,3 +259,4 @@ export * from "./code-generation";
 export * from "./worker-results";
 export * from "./workflow";
 export * from "./workers";
+export * from "./template";

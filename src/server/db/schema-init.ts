@@ -1,10 +1,7 @@
 import type postgres from "postgres";
-
-interface ExpectedColumn {
-  name: string;
-  dataType: string;
-  addSql: string;
-}
+import { CORE_RUNTIME_TABLES } from "./schema-init-core";
+import type { RuntimeTableDefinition } from "./schema-init-types";
+import { WEBHOOK_INDEX_SQL, WEBHOOK_RUNTIME_TABLES } from "./schema-init-webhooks";
 
 export interface RuntimeColumnStatus {
   expectedType: string;
@@ -28,138 +25,20 @@ export interface RuntimeSchemaStatus {
   tables: RuntimeTableStatus[];
 }
 
-const TABLES = [
-  {
-    name: "luzo_collections",
-    createSql: `
-      CREATE TABLE luzo_collections (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `,
-    columns: [
-      { name: "id", dataType: "text", addSql: "ALTER TABLE luzo_collections ADD COLUMN id TEXT" },
-      {
-        name: "name",
-        dataType: "text",
-        addSql: "ALTER TABLE luzo_collections ADD COLUMN name TEXT",
-      },
-      {
-        name: "description",
-        dataType: "text",
-        addSql: "ALTER TABLE luzo_collections ADD COLUMN description TEXT",
-      },
-      {
-        name: "created_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_collections ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-      {
-        name: "updated_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_collections ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-    ] satisfies ExpectedColumn[],
-  },
-  {
-    name: "luzo_requests",
-    createSql: `
-      CREATE TABLE luzo_requests (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        collection_id TEXT REFERENCES luzo_collections(id) ON DELETE CASCADE,
-        data JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `,
-    columns: [
-      { name: "id", dataType: "text", addSql: "ALTER TABLE luzo_requests ADD COLUMN id TEXT" },
-      {
-        name: "name",
-        dataType: "text",
-        addSql: "ALTER TABLE luzo_requests ADD COLUMN name TEXT",
-      },
-      {
-        name: "collection_id",
-        dataType: "text",
-        addSql:
-          "ALTER TABLE luzo_requests ADD COLUMN collection_id TEXT REFERENCES luzo_collections(id) ON DELETE CASCADE",
-      },
-      {
-        name: "data",
-        dataType: "jsonb",
-        addSql: "ALTER TABLE luzo_requests ADD COLUMN data JSONB",
-      },
-      {
-        name: "created_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_requests ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-      {
-        name: "updated_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_requests ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-    ] satisfies ExpectedColumn[],
-  },
-  {
-    name: "luzo_pipelines",
-    createSql: `
-      CREATE TABLE luzo_pipelines (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        data JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `,
-    columns: [
-      { name: "id", dataType: "text", addSql: "ALTER TABLE luzo_pipelines ADD COLUMN id TEXT" },
-      {
-        name: "name",
-        dataType: "text",
-        addSql: "ALTER TABLE luzo_pipelines ADD COLUMN name TEXT",
-      },
-      {
-        name: "data",
-        dataType: "jsonb",
-        addSql: "ALTER TABLE luzo_pipelines ADD COLUMN data JSONB",
-      },
-      {
-        name: "created_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_pipelines ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-      {
-        name: "updated_at",
-        dataType: "timestamp with time zone",
-        addSql:
-          "ALTER TABLE luzo_pipelines ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-      },
-    ] satisfies ExpectedColumn[],
-  },
-] as const;
+const TABLES = [...CORE_RUNTIME_TABLES, ...WEBHOOK_RUNTIME_TABLES] as const;
 
 export async function ensureRuntimeSchema(
   sql: ReturnType<typeof postgres>,
 ): Promise<RuntimeSchemaStatus> {
   const tables = await Promise.all(TABLES.map((table) => ensureTable(sql, table)));
+  await Promise.all(WEBHOOK_INDEX_SQL.map((statement) => sql.unsafe(statement)));
   const warnings = tables.flatMap((table) => table.warnings);
   return { schemaReady: warnings.length === 0, warnings, tables };
 }
 
 async function ensureTable(
   sql: ReturnType<typeof postgres>,
-  table: (typeof TABLES)[number],
+  table: RuntimeTableDefinition,
 ): Promise<RuntimeTableStatus> {
   const exists = await hasTable(sql, table.name);
   if (!exists) {

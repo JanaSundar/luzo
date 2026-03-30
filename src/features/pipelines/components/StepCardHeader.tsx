@@ -25,6 +25,7 @@ interface StepCardHeaderProps {
   onRenameCancel: () => void;
   onRenameValueChange: (val: string) => void;
   isMockEnabled?: boolean;
+  runtimeBadge?: { label: string; tone: "default" | "failed" | "skipped" | "success" } | null;
 }
 
 export function StepCardHeader({
@@ -42,6 +43,7 @@ export function StepCardHeader({
   onRenameCancel,
   onRenameValueChange,
   isMockEnabled = false,
+  runtimeBadge = null,
 }: StepCardHeaderProps) {
   return (
     <header className="flex min-h-[52px] min-w-0 items-center gap-3 border-b bg-muted/5 px-4 py-3">
@@ -109,6 +111,19 @@ export function StepCardHeader({
                     <Zap className="h-2.5 w-2.5 fill-current" />
                   </div>
                 )}
+                {runtimeBadge ? (
+                  <PipelineBadge
+                    className={cn(
+                      runtimeBadge.tone === "success" &&
+                        "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+                      runtimeBadge.tone === "failed" &&
+                        "bg-rose-500/12 text-rose-700 dark:text-rose-300",
+                      runtimeBadge.tone === "skipped" && "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {runtimeBadge.label}
+                  </PipelineBadge>
+                ) : null}
               </div>
               {executionHint ? (
                 <div className="flex min-w-0 items-center gap-2">

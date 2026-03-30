@@ -4,7 +4,7 @@ import { Database } from "lucide-react";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn } from "@/utils";
 import type { AiProvider } from "@/types";
-import { AddProviderCard, ProviderConfigCard } from "./ProviderConfigCard";
+import { ProviderConfigCard } from "./ProviderConfigCard";
 
 function extractHostFromDbUrl(url: string): string {
   if (!url) return "";
@@ -23,14 +23,12 @@ const AI_PROVIDERS: AiProvider[] = ["openai", "openrouter", "groq"];
 
 interface IntegrationsOverviewProps {
   onProviderClick: (provider: AiProvider) => void;
-  onAddProviderClick: () => void;
   onDatabaseClick: () => void;
   onConnectDatabaseClick: () => void;
 }
 
 export function IntegrationsOverview({
   onProviderClick,
-  onAddProviderClick,
   onDatabaseClick,
   onConnectDatabaseClick,
 }: IntegrationsOverviewProps) {
@@ -89,7 +87,6 @@ export function IntegrationsOverview({
               onClick={() => onProviderClick(provider)}
             />
           ))}
-          <AddProviderCard onClick={onAddProviderClick} />
         </div>
       </div>
 

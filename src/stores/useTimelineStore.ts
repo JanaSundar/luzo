@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { PipelineStep } from "@/types";
+import type { Pipeline } from "@/types";
 import type { PipelineExecutionLayout } from "@/features/pipeline/execution-plan";
 import { snapshotToTimelineEvent } from "@/features/pipeline/timeline/event-adapter";
 import { usePipelineStore } from "@/stores/usePipelineStore";
@@ -25,7 +25,7 @@ interface TimelineActions {
   syncFromExecution: (
     snapshots: StepSnapshot[],
     executionId: string,
-    steps: PipelineStep[],
+    pipeline: Pipeline,
   ) => Promise<void>;
   applyExecutionEvent: (
     event: PipelineExecutionEvent,
@@ -48,10 +48,10 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
   immer((set) => ({
     ...INITIAL_STATE,
 
-    syncFromExecution: async (snapshots, executionId, steps) => {
+    syncFromExecution: async (snapshots, executionId, pipeline) => {
       const res = await timelineWorkerClient.callLatest<Result<TimelineIndex>>(
         "timeline-sync",
-        async (api) => api.syncTimeline({ snapshots, executionId, steps }),
+        async (api) => api.syncTimeline({ snapshots, executionId, pipeline }),
       );
 
       if (!res?.ok) return;
@@ -79,6 +79,22 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
         if (event.type === "execution_started") {
           state.executionId = executionId;
           state.selectedEventId = null;
+          return;
+        }
+
+        if (event.type === "timeline_event") {
+          const isNew = !state.eventById.has(event.event.eventId);
+          state.eventById.set(event.event.eventId, event.event);
+          if (isNew) {
+            state.orderedIds.push(event.event.eventId);
+          }
+          state.orderedIds.sort((a, b) => {
+            const left = state.eventById.get(a);
+            const right = state.eventById.get(b);
+            if (!left || !right) return a.localeCompare(b);
+            return left.sequenceNumber - right.sequenceNumber || a.localeCompare(b);
+          });
+          state.syncGeneration += 1;
           return;
         }
 
@@ -149,8 +165,6 @@ usePipelineExecutionStore.subscribe((execState, prevState) => {
   if (!activePipeline) return;
 
   if (snapshots.length < prevState.snapshots.length || executionId !== prevState.executionId) {
-    void useTimelineStore
-      .getState()
-      .syncFromExecution(snapshots, executionId, activePipeline.steps);
+    void useTimelineStore.getState().syncFromExecution(snapshots, executionId, activePipeline);
   }
 });

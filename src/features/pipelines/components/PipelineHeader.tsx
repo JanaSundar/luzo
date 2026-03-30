@@ -9,6 +9,7 @@ import type { ExportFormat } from "@/types/pipeline-debug";
 import { ReportExportMenu } from "./ReportExportMenu";
 import { PipelineExportMenu } from "./PipelineExportMenu";
 import { usePipelineStore } from "@/stores/usePipelineStore";
+import { SaveTemplateDialog } from "@/features/templates/components/SaveTemplateDialog";
 
 interface PipelineHeaderProps {
   activePipelineName: string | null;
@@ -95,21 +96,24 @@ export function PipelineHeader({
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {canPersistToDb && onSaveToDb ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-8 font-bold"
-            onClick={onSaveToDb}
-            disabled={!activePipelineId || isSavingToDb}
-          >
-            {isSavingToDb ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Database className="h-3.5 w-3.5" />
-            )}
-            <span className="hidden sm:inline">Save to DB</span>
-          </Button>
+          <>
+            <SaveTemplateDialog pipeline={pipeline ?? null} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 font-bold"
+              onClick={onSaveToDb}
+              disabled={!activePipelineId || isSavingToDb}
+            >
+              {isSavingToDb ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Database className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">Save to DB</span>
+            </Button>
+          </>
         ) : null}
 
         {showExecutionControls &&

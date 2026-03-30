@@ -15,6 +15,7 @@ import { CollectionPipelineDialog } from "@/components/pipelines/collection-gene
 import { StepCard } from "@/components/pipelines/StepCard";
 import { PipelineSideInspector } from "@/components/pipelines/PipelineSideInspector";
 import { Button } from "@/components/ui/button";
+import { TemplateBrowserDialog } from "@/features/templates/components/TemplateBrowserDialog";
 import { cn } from "@/utils";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
@@ -197,6 +198,10 @@ export function PipelineBuilder({
               <Plus className="h-4 w-4" />
               Add Request
             </Button>
+            <TemplateBrowserDialog
+              className="h-9 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
+              trigger={<>Use Template</>}
+            />
             <CollectionPipelineDialog
               initialCollectionId={requestedCollectionId}
               onCloseRequestReset={onClearRequestedCollection}
@@ -246,21 +251,29 @@ export function PipelineBuilder({
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">
-            <button
-              type="button"
-              onClick={handleAddRequest}
-              className="group mb-14 flex w-full max-w-md flex-col items-center justify-center rounded-[32px] border border-dashed border-border/60 bg-muted/5 p-12 text-center text-muted-foreground transition-all hover:border-primary/30 hover:bg-muted/10 hover:shadow-md active:scale-[0.98]"
-            >
-              <div className="mb-6 rounded-full bg-background p-4 shadow-sm ring-1 ring-border/50 transition-all group-hover:scale-110 group-hover:ring-primary/20">
-                <Plus className="h-6 w-6 opacity-40 transition-opacity group-hover:opacity-80 group-hover:text-primary" />
+            <div className="mb-14 flex w-full max-w-3xl flex-col gap-4 rounded-[32px] border border-dashed border-border/60 bg-muted/5 p-8 text-center shadow-sm">
+              <div className="mx-auto rounded-full bg-background p-4 ring-1 ring-border/50">
+                <Plus className="h-6 w-6 opacity-50" />
               </div>
-              <h3 className="text-lg font-semibold tracking-tight text-foreground group-hover:text-primary">
-                Click to add your first request
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground/80">
-                Or import from cURL to get started.
-              </p>
-            </button>
+              <div>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                  Start with a template or build from scratch
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground/80">
+                  Use one of Luzo&apos;s built-in templates, start blank, or import a collection.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <TemplateBrowserDialog />
+                <Button type="button" onClick={handleAddRequest} variant="outline">
+                  Blank Pipeline
+                </Button>
+                <CollectionPipelineDialog
+                  initialCollectionId={requestedCollectionId}
+                  onCloseRequestReset={onClearRequestedCollection}
+                />
+              </div>
+            </div>
           </div>
         )}
       </motion.div>

@@ -17,16 +17,7 @@ const api: TimelineWorkerApi = {
     return runWorkerTask(async () => deriveReplayStateAt(input));
   },
   async syncTimeline(input) {
-    const { getPipelineExecutionLayout } = await import("@/features/pipeline/execution-plan");
-    return runWorkerTask(async () => {
-      const layoutMap = getPipelineExecutionLayout(input.steps);
-      const layoutByStep = Object.fromEntries(layoutMap.entries());
-      return syncTimeline({
-        snapshots: input.snapshots,
-        executionId: input.executionId,
-        layoutByStep,
-      });
-    });
+    return runWorkerTask(async () => syncTimeline(input));
   },
 };
 

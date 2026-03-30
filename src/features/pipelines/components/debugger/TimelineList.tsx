@@ -6,19 +6,21 @@ import { cn } from "@/utils";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { TimelineEventRow } from "./TimelineEventRow";
 
-type TimelineFilter = "all" | "failed" | "running" | "mock";
+type TimelineFilter = "all" | "failed" | "executed" | "skipped" | "decisions";
 
 const FILTER_LABELS: Record<TimelineFilter, string> = {
   all: "All",
   failed: "Failed",
-  running: "Running",
-  mock: "Mock",
+  executed: "Executed",
+  skipped: "Skipped",
+  decisions: "Decisions",
 };
 
 function matchesFilter(event: TimelineEvent, filter: TimelineFilter): boolean {
   if (filter === "failed") return event.status === "failed";
-  if (filter === "running") return event.status === "running";
-  if (filter === "mock") return event.isMock;
+  if (filter === "executed") return event.outcome === "executed";
+  if (filter === "skipped") return event.status === "skipped";
+  if (filter === "decisions") return event.eventKind === "route_selected";
   return true;
 }
 
@@ -81,7 +83,7 @@ export function TimelineList({
         </div>
 
         <div className="mt-2 flex items-center gap-1 overflow-x-auto pb-1">
-          {(["all", "failed", "running", "mock"] as const).map((value) => (
+          {(["all", "failed", "executed", "skipped", "decisions"] as const).map((value) => (
             <button
               key={value}
               type="button"

@@ -11,7 +11,7 @@ import type {
   ParseImportSourceInput,
   ParseImportSourceOutput,
 } from "@/features/workflow/import/parseImportSource";
-import type { PipelineStep } from "@/types";
+import type { Pipeline } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import type {
   CompilePlanInput,
@@ -31,7 +31,7 @@ import type { FlowDocument, WorkflowBundle } from "./workflow";
 export interface SyncTimelineWorkerInput {
   snapshots: import("./pipeline-runtime").StepSnapshot[];
   executionId: string;
-  steps: PipelineStep[];
+  pipeline: Pipeline;
 }
 
 export interface GraphWorkerApi {
