@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn } from "@/utils";
 import type { AiProvider } from "@/types";
@@ -69,19 +68,6 @@ export function ProviderConfigCard({ provider, onClick }: ProviderConfigCardProp
           {isError ? "Auth Failed" : (modelLabel ?? "Not configured")}
         </p>
       </div>
-    </button>
-  );
-}
-
-export function AddProviderCard({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-all min-h-[120px]"
-    >
-      <Plus className="h-6 w-6" />
-      <span className="text-sm font-medium">Add Provider</span>
     </button>
   );
 }

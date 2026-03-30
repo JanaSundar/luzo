@@ -68,10 +68,6 @@ export default function SettingsPage() {
     setActiveTab("providers");
   };
 
-  const handleAddProviderClick = () => {
-    setActiveTab("providers");
-  };
-
   const handleDatabaseClick = () => {
     setActiveTab("database");
   };
@@ -107,7 +103,6 @@ export default function SettingsPage() {
                   <div className="flex justify-center">
                     <IntegrationsOverview
                       onProviderClick={handleProviderClick}
-                      onAddProviderClick={handleAddProviderClick}
                       onDatabaseClick={handleDatabaseClick}
                       onConnectDatabaseClick={handleConnectDatabaseClick}
                     />

@@ -1,5 +1,6 @@
 import type { PipelineExecutionLayout } from "@/features/pipeline/execution-plan";
 import type { StepSnapshot, StepStatus } from "@/types/pipeline-runtime";
+import type { CompiledPipelineNode } from "@/types/workflow";
 import type {
   TimelineErrorSnapshot,
   TimelineEvent,
@@ -85,8 +86,19 @@ export function snapshotToTimelineEvent(
   return {
     eventId: `${executionId}:${snapshot.stepId}`,
     executionId,
+    eventKind: "request",
     stepId: snapshot.stepId,
     stepName: snapshot.stepName,
+    sourceStepId: snapshot.stepId,
+    targetStepId: snapshot.stepId,
+    routeSemantics: null,
+    skippedReason: null,
+    lineagePath: snapshot.highlightPath ?? snapshot.stepId,
+    outcome: snapshot.status === "error" ? "failed" : "executed",
+    attemptNumber: null,
+    terminalReason: null,
+    summary: null,
+    metadata: null,
 
     stageIndex,
     branchId: isParallel ? `stage-${stageIndex}` : null,
@@ -131,8 +143,79 @@ export function snapshotsToTimelineEvents(
   snapshots: StepSnapshot[],
   executionId: string,
   layoutByStep: Map<string, PipelineExecutionLayout>,
+  planNodes: CompiledPipelineNode[] = [],
 ): TimelineEvent[] {
-  return snapshots.map((snapshot) =>
+  const baseEvents = snapshots.map((snapshot) =>
     snapshotToTimelineEvent(snapshot, executionId, layoutByStep.get(snapshot.stepId)),
   );
+  const asyncEvents = snapshots.flatMap((snapshot) => snapshot.timelineEvents ?? []);
+  const planNodeById = new Map(planNodes.map((node) => [node.nodeId, node]));
+
+  for (const snapshot of snapshots) {
+    const planNode = planNodeById.get(snapshot.stepId);
+    if (!planNode) continue;
+
+    const succeeded = snapshot.status === "success" || snapshot.status === "done";
+    const failed = snapshot.status === "error";
+    if (!succeeded && !failed) continue;
+
+    const chosenSemantics = failed ? "failure" : "success";
+    const chosenTarget =
+      chosenSemantics === "failure" ? planNode.routes.failure[0] : planNode.routes.success[0];
+    const skippedTarget =
+      chosenSemantics === "failure" ? planNode.routes.success[0] : planNode.routes.failure[0];
+    const sourceEvent = baseEvents.find((event) => event.stepId === snapshot.stepId);
+    if (!sourceEvent) continue;
+
+    if (chosenTarget) {
+      baseEvents.push({
+        ...sourceEvent,
+        eventId: `${executionId}:${snapshot.stepId}:route:${chosenSemantics}`,
+        eventKind: "route_selected",
+        stepId: snapshot.stepId,
+        stepName: snapshot.stepName,
+        sourceStepId: snapshot.stepId,
+        targetStepId: chosenTarget,
+        routeSemantics: chosenSemantics,
+        lineagePath: `${snapshot.stepId}:${chosenSemantics}:${chosenTarget}`,
+        outcome: "selected",
+        sequenceNumber: sourceEvent.sequenceNumber + 0.1,
+        inputSnapshot: null,
+        outputSnapshot: null,
+        errorSnapshot: null,
+      });
+    }
+
+    if (skippedTarget) {
+      const skippedNode = planNodeById.get(skippedTarget);
+      baseEvents.push({
+        ...sourceEvent,
+        eventId: `${executionId}:${snapshot.stepId}:skipped:${skippedTarget}`,
+        eventKind: "step_skipped",
+        stepId: skippedTarget,
+        stepName: skippedNode?.nodeId ?? skippedTarget,
+        sourceStepId: snapshot.stepId,
+        targetStepId: skippedTarget,
+        routeSemantics: chosenSemantics === "failure" ? "success" : "failure",
+        skippedReason: "branch_not_taken",
+        lineagePath: `${snapshot.stepId}:skipped:${skippedTarget}`,
+        outcome: "skipped",
+        status: "skipped",
+        sequenceNumber: sourceEvent.sequenceNumber + 0.2,
+        startedAt: snapshot.completedAt,
+        endedAt: snapshot.completedAt,
+        durationMs: 0,
+        inputSnapshot: null,
+        outputSnapshot: null,
+        errorSnapshot: null,
+        httpStatus: null,
+        responseSize: null,
+        preRequestPassed: null,
+        postRequestPassed: null,
+        testsPassed: null,
+      });
+    }
+  }
+
+  return [...baseEvents, ...asyncEvents];
 }

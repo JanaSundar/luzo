@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { animate, useMotionValue } from "motion/react";
 import { useTheme } from "next-themes";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { codeToTokens, type ThemedToken } from "shiki";
@@ -41,6 +42,8 @@ interface SearchMatch {
   occurrenceIndexInLine: number;
 }
 
+type ScrollSpeedMode = "normal" | "wrap";
+
 const LINE_HEIGHTS = {
   sm: 20,
   md: 24,
@@ -64,7 +67,10 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
   const [currentIndex, setCurrentIndex] = useState(0);
   const query = searchQuery.trim();
   const parentRef = useRef<HTMLDivElement>(null);
-  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const scrollMotionValue = useMotionValue(0);
+  const scrollAnimationRef = useRef<{ stop: () => void } | null>(null);
+  const scrollSpeedModeRef = useRef<ScrollSpeedMode>("normal");
+  const previousIndexRef = useRef(0);
 
   const clientId = useState(() => crypto.randomUUID())[0];
 
@@ -166,6 +172,16 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
   const activeMatch = matches[currentIndex] ?? null;
   const activeLineNumber = activeMatch?.lineNumber ?? null;
 
+  useEffect(() => {
+    const unsubscribe = scrollMotionValue.on("change", (value) => {
+      if (parentRef.current) {
+        parentRef.current.scrollTop = value;
+      }
+    });
+
+    return unsubscribe;
+  }, [scrollMotionValue]);
+
   const rowVirtualizer = useVirtualizer({
     count: model.lines.length,
     getScrollElement: () => parentRef.current,
@@ -177,28 +193,39 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
 
       const targetOffset = Math.max(0, offset + (adjustments ?? 0));
 
-      if (scrollAnimationFrameRef.current != null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = null;
-      }
+      scrollAnimationRef.current?.stop();
+      scrollAnimationRef.current = null;
+      scrollMotionValue.set(scrollElement.scrollTop);
 
       if (behavior !== "smooth") {
+        scrollMotionValue.set(targetOffset);
         scrollElement.scrollTop = targetOffset;
         return;
       }
 
-      tweenScrollToOffset({
+      scrollAnimationRef.current = animate(
+        scrollMotionValue,
         targetOffset,
-        element: scrollElement,
-        onFrame: (frameId) => {
-          scrollAnimationFrameRef.current = frameId;
-        },
-      });
+        getScrollTransition({
+          startOffset: scrollElement.scrollTop,
+          targetOffset,
+          speedMode: scrollSpeedModeRef.current,
+        }),
+      );
     },
   });
 
   useEffect(() => {
     if (!activeLineNumber) return;
+
+    const previousIndex = previousIndexRef.current;
+    const isWrapAround =
+      matches.length > 1 &&
+      ((previousIndex === matches.length - 1 && currentIndex === 0) ||
+        (previousIndex === 0 && currentIndex === matches.length - 1));
+
+    scrollSpeedModeRef.current = isWrapAround ? "wrap" : "normal";
+    previousIndexRef.current = currentIndex;
 
     const targetIndex = activeLineNumber - 1;
     const align =
@@ -212,13 +239,11 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
       align,
       behavior: "smooth",
     });
-  }, [activeLineNumber, model.lines.length, rowVirtualizer]);
+  }, [activeLineNumber, currentIndex, matches.length, model.lines.length, rowVirtualizer]);
 
   useEffect(
     () => () => {
-      if (scrollAnimationFrameRef.current != null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-      }
+      scrollAnimationRef.current?.stop();
     },
     [],
   );
@@ -446,70 +471,25 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function tweenScrollToOffset({
+function getScrollTransition({
+  startOffset,
   targetOffset,
-  element,
-  onFrame,
+  speedMode,
 }: {
+  startOffset: number;
   targetOffset: number;
-  element: Element;
-  onFrame: (frameId: number | null) => void;
+  speedMode: ScrollSpeedMode;
 }) {
-  const startOffset = element.scrollTop;
-  const distance = targetOffset - startOffset;
+  const totalDistance = Math.abs(targetOffset - startOffset);
+  const nearDistanceRatio = Math.min(totalDistance / 240, 1);
+  const duration = speedMode === "wrap" ? 0.24 : 0.34 + (1 - nearDistanceRatio) * 0.14;
 
-  if (Math.abs(distance) < 1) {
-    element.scrollTop = targetOffset;
-    onFrame(null);
-    return;
-  }
-
-  let current = startOffset;
-  let lastTime = performance.now();
-  const totalDistance = Math.abs(distance);
-  const distanceBoost = Math.min(totalDistance / 1200, 1);
-  const shortDistanceFactor = Math.min(totalDistance / 220, 1);
-  const baseSmoothing = 0.085 + shortDistanceFactor * 0.115;
-  const minStep = 0.35;
-  const maxStep = 14 + shortDistanceFactor * 26 + distanceBoost * 72;
-  const easeOutThreshold = Math.max(140, totalDistance * 0.24);
-
-  const step = (now: number) => {
-    const deltaMs = Math.min(now - lastTime, 20);
-    lastTime = now;
-
-    const frames = deltaMs / (1000 / 60);
-    const displacement = targetOffset - current;
-    const remainingRatio = totalDistance > 0 ? Math.abs(displacement) / totalDistance : 0;
-    const cruiseBoost =
-      distanceBoost * Math.sin(Math.PI * Math.min(Math.max(remainingRatio, 0), 1));
-    const smoothing = baseSmoothing + cruiseBoost * 0.18;
-    const scaledStep = displacement * (1 - Math.pow(1 - smoothing, frames));
-    const rawStep = Math.sign(scaledStep) * Math.min(Math.abs(scaledStep), maxStep);
-    const nearTargetDistance = Math.abs(displacement);
-    const easeOutFactor =
-      nearTargetDistance >= easeOutThreshold
-        ? 1
-        : 0.28 + 0.72 * Math.pow(nearTargetDistance / easeOutThreshold, 1.15);
-    const boundedStep = rawStep * easeOutFactor;
-
-    if (Math.abs(displacement) <= minStep) {
-      current = targetOffset;
-    } else {
-      current += boundedStep;
-    }
-
-    element.scrollTop = current;
-
-    const isSettled = Math.abs(targetOffset - current) < 0.5;
-    if (isSettled) {
-      element.scrollTop = targetOffset;
-      onFrame(null);
-      return;
-    }
-
-    onFrame(requestAnimationFrame(step));
+  return {
+    type: "tween" as const,
+    duration,
+    ease:
+      speedMode === "wrap"
+        ? ([0.22, 1, 0.3, 1] as [number, number, number, number])
+        : ([0.2, 0.7, 0.24, 1] as [number, number, number, number]),
   };
-
-  onFrame(requestAnimationFrame(step));
 }

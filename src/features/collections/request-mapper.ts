@@ -106,6 +106,8 @@ function normalizeRequestPayload(value: unknown): ApiRequest {
     preRequestScript: payload.preRequestScript ?? "",
     postRequestScript: payload.postRequestScript ?? "",
     testScript: payload.testScript ?? "",
+    pollingPolicy: payload.pollingPolicy,
+    webhookWaitPolicy: payload.webhookWaitPolicy,
   };
 }
 

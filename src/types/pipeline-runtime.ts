@@ -1,4 +1,5 @@
 import type { HttpMethod } from ".";
+import type { TimelineEvent } from "./timeline-event";
 
 export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error" | "done";
 
@@ -65,6 +66,7 @@ export interface StepSnapshot {
   streamStatus: StreamStatus;
   streamChunks: string[];
   highlightPath?: string;
+  timelineEvents?: TimelineEvent[];
 }
 
 export interface DebugRuntimeState {
@@ -160,6 +162,12 @@ export type GeneratorYield =
   | { type: "execution_started"; totalSteps: number; startedAt: number }
   | { type: "step_ready"; snapshot: StepSnapshot }
   | { type: "step_stream_chunk"; snapshot: StepSnapshot; chunk: string }
+  | {
+      type: "timeline_event";
+      event: TimelineEvent;
+      snapshot?: StepSnapshot;
+      runtimeVariables?: Record<string, unknown>;
+    }
   | { type: "step_completed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
   | { type: "step_failed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
   | { type: "execution_completed"; completedAt: number }

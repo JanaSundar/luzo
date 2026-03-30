@@ -1,5 +1,6 @@
 "use client";
-import { CheckCircle2, GitBranchPlus, OctagonX, Search } from "lucide-react";
+
+import { ArrowRight, CheckCircle2, OctagonX, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +12,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { METHOD_COLORS } from "@/utils/http";
-import { cn } from "@/utils";
 import type { RequestRouteDisplay, RequestRouteOption } from "@/features/pipeline/request-routing";
+import { cn } from "@/utils";
+import { METHOD_COLORS } from "@/utils/http";
 
 interface PipelineRoutingPanelProps {
   failureDisplay: RequestRouteDisplay;
@@ -26,7 +27,6 @@ interface PipelineRoutingPanelProps {
   successTarget: string | null;
 }
 
-const STOP_VALUE = "__stop__";
 export function PipelineRoutingPanel({
   failureDisplay,
   failureTarget,
@@ -38,150 +38,149 @@ export function PipelineRoutingPanel({
   successTarget,
 }: PipelineRoutingPanelProps) {
   return (
-    <section className="rounded-2xl border border-border/35 bg-background/75 p-5 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            <GitBranchPlus className="h-3.5 w-3.5" />
-            Routing
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Choose what happens next for success and failure.
-          </p>
-        </div>
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-foreground">Routing</p>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 px-3 text-xs"
+          className="h-8 px-3 text-[11px]"
           onClick={onReset}
         >
           Reset
         </Button>
       </div>
-      <div className="grid gap-3">
-        <RoutePicker
-          description="Leave empty to continue with the normal flow."
-          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+
+      <div className="space-y-3">
+        <RouteCard
           label="On success"
-          onValueChange={onSuccessChange}
-          options={options}
-          otherValue={failureTarget}
+          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+          defaultLabel="Continue flow"
           selection={successDisplay}
-        />
-        <RoutePicker
-          description="Leave empty to stop the pipeline on failure."
-          icon={<OctagonX className="h-4 w-4 text-rose-600" />}
-          label="On failure"
-          onValueChange={onFailureChange}
+          selectedTarget={successTarget}
+          otherValue={failureTarget}
           options={options}
-          otherValue={successTarget}
+          onChange={onSuccessChange}
+        />
+        <RouteCard
+          label="On failure"
+          icon={<OctagonX className="h-4 w-4 text-rose-600" />}
+          defaultLabel="Stop pipeline"
           selection={failureDisplay}
+          selectedTarget={failureTarget}
+          otherValue={successTarget}
+          options={options}
+          onChange={onFailureChange}
         />
       </div>
     </section>
   );
 }
 
-function RoutePicker({
-  description,
+function RouteCard({
+  defaultLabel,
   icon,
   label,
-  onValueChange,
+  onChange,
   options,
   otherValue,
+  selectedTarget,
   selection,
 }: {
-  description: string;
+  defaultLabel: string;
   icon: ReactNode;
   label: string;
-  onValueChange: (value: string | null) => void;
+  onChange: (value: string | null) => void;
   options: RequestRouteOption[];
   otherValue: string | null;
+  selectedTarget: string | null;
   selection: RequestRouteDisplay;
 }) {
   const [open, setOpen] = useState(false);
+
   return (
-    <div className="rounded-xl border border-border/35 bg-background p-4">
-      <div className="mb-3 flex items-start gap-2">
+    <div className="rounded-xl border border-border/40 bg-background p-4">
+      <div className="mb-3 flex items-center gap-2">
         {icon}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            {label}
-          </p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {label}
+        </p>
       </div>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              className="h-auto w-full justify-between rounded-xl border-border/45 bg-background px-4 py-3 text-left shadow-none hover:bg-muted/10"
-            />
-          }
+
+      <div className="mb-3 rounded-lg border border-border/35 bg-muted/10 px-3 py-2.5">
+        <DestinationSummary selection={selection} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant={selectedTarget == null ? "secondary" : "outline"}
+          className="h-8 rounded-full px-3 text-[11px]"
+          onClick={() => onChange(null)}
         >
-          <div className="min-w-0 flex-1">
-            <DestinationSummary selection={selection} />
-          </div>
-          <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[min(28rem,calc(100vw-4rem))] p-0">
-          <Command>
-            <CommandInput placeholder="Search request destinations..." />
-            <CommandList>
-              <CommandEmpty>No matching request found.</CommandEmpty>
-              <CommandGroup heading="Destinations">
-                <CommandItem
-                  value={STOP_VALUE}
-                  onSelect={() => {
-                    onValueChange(null);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium">Stop pipeline</p>
-                    <p className="truncate text-xs text-muted-foreground">End this outcome path.</p>
-                  </div>
-                </CommandItem>
-                {options.map((option) => (
-                  <CommandItem
-                    key={option.stepId}
-                    value={`${option.label} ${option.subtitle} ${option.detail}`}
-                    disabled={otherValue === option.stepId}
-                    onSelect={() => {
-                      onValueChange(option.stepId);
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "text-[11px] font-bold uppercase tracking-[0.14em]",
-                            METHOD_COLORS[option.method],
-                          )}
-                        >
-                          {option.method}
-                        </span>
-                        <p className="truncate font-medium">{option.label}</p>
+          {defaultLabel}
+        </Button>
+
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-full px-3 text-[11px]"
+              />
+            }
+          >
+            <Search className="mr-1.5 h-3.5 w-3.5" />
+            Choose request
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[min(28rem,calc(100vw-4rem))] p-0">
+            <Command>
+              <CommandInput placeholder="Search requests..." />
+              <CommandList>
+                <CommandEmpty>No matching request found.</CommandEmpty>
+                <CommandGroup heading="Requests">
+                  {options.map((option) => (
+                    <CommandItem
+                      key={option.stepId}
+                      value={`${option.label} ${option.subtitle} ${option.detail}`}
+                      disabled={otherValue === option.stepId}
+                      onSelect={() => {
+                        onChange(option.stepId);
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "text-[11px] font-bold uppercase tracking-[0.14em]",
+                              METHOD_COLORS[option.method],
+                            )}
+                          >
+                            {option.method}
+                          </span>
+                          <p className="truncate font-medium">{option.label}</p>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">{option.subtitle}</p>
                       </div>
-                      <p className="truncate text-xs text-muted-foreground">{option.subtitle}</p>
-                    </div>
-                    <span className="ml-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {option.detail}
-                    </span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                      <span className="ml-3 flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                        <ArrowRight className="h-3 w-3" />
+                        {option.detail}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 }
+
 function DestinationSummary({ selection }: { selection: RequestRouteDisplay }) {
   return (
     <div className="min-w-0">
@@ -196,7 +195,7 @@ function DestinationSummary({ selection }: { selection: RequestRouteDisplay }) {
             {selection.method}
           </span>
         ) : null}
-        <p className="truncate text-sm font-semibold">{selection.label}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{selection.label}</p>
       </div>
       <p className="truncate text-xs text-muted-foreground">{selection.subtitle}</p>
     </div>

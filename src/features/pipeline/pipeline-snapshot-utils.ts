@@ -54,6 +54,7 @@ export function createInitialSnapshot(
     completedAt: null,
     streamStatus,
     streamChunks: [],
+    timelineEvents: [],
   };
 }
 
@@ -87,6 +88,7 @@ export function createCompletedSnapshot(
     }),
     streamStatus,
     streamChunks: base.streamChunks,
+    timelineEvents: base.timelineEvents ?? [],
   };
 }
 
@@ -114,5 +116,6 @@ export function resultToSnapshots(
     completedAt: null,
     streamStatus: "done" as StreamStatus,
     streamChunks: [],
+    timelineEvents: [],
   }));
 }

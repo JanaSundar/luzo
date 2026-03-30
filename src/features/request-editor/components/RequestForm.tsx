@@ -10,14 +10,17 @@ import type {
   AuthConfig,
   FormDataField,
   KeyValuePair,
+  PollingPolicy,
   PostRequestRule,
   PreRequestRule,
   TestResult,
   TestRule,
+  WebhookWaitPolicy,
   MockConfig,
 } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import { RequestAuthPanel } from "./RequestAuthPanel";
+import { RequestAsyncPanel } from "./RequestAsyncPanel";
 import { RequestFormTabs, type TabId } from "./RequestFormTabs";
 import { RequestScriptsPanel } from "./RequestScriptsPanel";
 import { RequestMockPanel } from "./RequestMockPanel";
@@ -40,6 +43,8 @@ type RequestFormFields = Pick<
   | "preRequestScript"
   | "postRequestScript"
   | "testScript"
+  | "pollingPolicy"
+  | "webhookWaitPolicy"
 > & { mockConfig?: MockConfig };
 
 interface RequestFormProps {
@@ -58,6 +63,8 @@ interface RequestFormProps {
   preRequestScript?: string;
   postRequestScript?: string;
   testScript?: string;
+  pollingPolicy?: PollingPolicy;
+  webhookWaitPolicy?: WebhookWaitPolicy;
   testResults?: TestResult[];
   mockConfig?: MockConfig;
   suggestions?: VariableSuggestion[];
@@ -104,6 +111,8 @@ export function RequestForm({
   preRequestScript = "",
   postRequestScript = "",
   testScript = "",
+  pollingPolicy,
+  webhookWaitPolicy,
   testResults,
   mockConfig,
   suggestions = [],
@@ -127,6 +136,7 @@ export function RequestForm({
   const paramCount = useMemo(() => params.filter((p) => p.enabled && p.key).length, [params]);
   const headerCount = useMemo(() => headers.filter((h) => h.enabled && h.key).length, [headers]);
   const hasTestResults = useMemo(() => !!(testResults && testResults.length > 0), [testResults]);
+  const asyncConfigured = Boolean(pollingPolicy?.enabled || webhookWaitPolicy?.enabled);
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
@@ -144,6 +154,7 @@ export function RequestForm({
             showMockTab={!!mockConfig}
             showRoutingTab={showRoutingTab}
             mockEnabled={mockConfig?.enabled}
+            asyncConfigured={asyncConfigured}
           />
         </div>
       )}
@@ -223,6 +234,19 @@ export function RequestForm({
                   preRequestScript={preRequestScript}
                   postRequestScript={postRequestScript}
                   testScript={testScript}
+                  onChange={onChange}
+                />
+              </TabPanel>
+            )}
+            {activeTab === "async" && (
+              <TabPanel
+                key="async"
+                animate={animateTabContent}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              >
+                <RequestAsyncPanel
+                  pollingPolicy={pollingPolicy}
+                  webhookWaitPolicy={webhookWaitPolicy}
                   onChange={onChange}
                 />
               </TabPanel>

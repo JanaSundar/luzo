@@ -11,13 +11,44 @@ export type TimelineEventStatus =
   | "retried"
   | "skipped";
 
+export type TimelineEventKind =
+  | "request"
+  | "route_selected"
+  | "step_skipped"
+  | "poll_attempt"
+  | "poll_wait"
+  | "poll_terminal"
+  | "webhook_wait"
+  | "webhook_matched"
+  | "webhook_timeout"
+  | "webhook_ignored";
+export type TimelineEventOutcome =
+  | "executed"
+  | "selected"
+  | "skipped"
+  | "failed"
+  | "waiting"
+  | "matched"
+  | "timed_out";
+
 // ─── Event ──────────────────────────────────────────────────────────
 export interface TimelineEvent {
   /** Unique event id (derived from stepId + executionId) */
   eventId: string;
   executionId: string;
+  eventKind?: TimelineEventKind;
   stepId: string;
   stepName: string;
+  sourceStepId?: string | null;
+  targetStepId?: string | null;
+  routeSemantics?: "control" | "success" | "failure" | "true" | "false" | null;
+  skippedReason?: string | null;
+  lineagePath?: string | null;
+  outcome?: TimelineEventOutcome;
+  attemptNumber?: number | null;
+  terminalReason?: string | null;
+  summary?: string | null;
+  metadata?: Record<string, unknown> | null;
 
   /** DAG depth — steps at the same depth can run in parallel */
   stageIndex: number;

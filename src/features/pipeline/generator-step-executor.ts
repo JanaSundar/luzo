@@ -10,6 +10,7 @@ import {
 } from "@/services/http/execute-route-client";
 import type { PipelineStep } from "@/types";
 import type { PipelineExecutionEvent, StepAlias, StepSnapshot } from "@/types/pipeline-runtime";
+import { resolveAsyncStepPolicies } from "./async-step-executor";
 import { toRuntimeValue } from "./pipeline-execution-mappers";
 import {
   DEFAULT_STEP_TIMEOUT_MS,
@@ -78,6 +79,32 @@ export async function* executeStepGenerator(
     } else {
       resolvedResponse = await executeRequest(resolvedStep, envVariables);
     }
+
+    if (stepAbort.timeoutId) {
+      clearTimeout(stepAbort.timeoutId);
+      stepAbort.timeoutId = undefined;
+    }
+    const asyncIterator = resolveAsyncStepPolicies({
+      executionId: options.executionId ?? crypto.randomUUID(),
+      step: resolvedStep,
+      snapshot: pendingSnapshot,
+      response: resolvedResponse,
+      runtimeVariables,
+      envVariables,
+      masterAbort: options.masterAbort,
+    });
+    let asyncResult = await asyncIterator.next();
+    while (!asyncResult.done) {
+      const asyncEvent = asyncResult.value;
+      if (asyncEvent.type === "timeline_event" && asyncEvent.snapshot) {
+        pendingSnapshot = asyncEvent.snapshot;
+        snapshots[snapshotIndex] = pendingSnapshot;
+      }
+      yield asyncEvent;
+      asyncResult = await asyncIterator.next();
+    }
+    pendingSnapshot = asyncResult.value.snapshot;
+    resolvedResponse = asyncResult.value.response;
 
     clearStepAbort(step.id, stepAbort, options.abortControls, options.masterAbort, onMasterAbort);
     yield* completeSingleStep(

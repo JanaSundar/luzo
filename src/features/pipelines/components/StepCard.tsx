@@ -14,6 +14,7 @@ import {
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useTimelineStore } from "@/stores/useTimelineStore";
 import { cn } from "@/utils";
 import type { PipelineStep } from "@/types";
 import { StepCardHeader } from "./StepCardHeader";
@@ -66,6 +67,7 @@ export function StepCard({
     );
   }, [activeEnvironment]);
   const runtimeVariables = usePipelineExecutionStore((s) => s.runtimeVariables);
+  const syncGeneration = useTimelineStore((s) => s.syncGeneration);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -98,6 +100,21 @@ export function StepCard({
     "Stop",
     "Stop on failure",
   );
+  const runtimeBadge = useMemo(() => {
+    const state = useTimelineStore.getState();
+    const events = Array.from(state.eventById.values());
+    const stepEvent = events.find(
+      (event) => event.stepId === step.id && event.eventKind === "request",
+    );
+    if (stepEvent?.status === "failed") return { label: "Failed", tone: "failed" as const };
+    if (stepEvent?.status === "completed") return { label: "Executed", tone: "success" as const };
+    const skippedEvent = events.find(
+      (event) =>
+        event.eventKind === "step_skipped" && (event.targetStepId ?? event.stepId) === step.id,
+    );
+    if (skippedEvent) return { label: "Skipped", tone: "skipped" as const };
+    return null;
+  }, [step.id, syncGeneration]);
 
   const handleRenameStart = () => {
     setRenamingId(step.id);
@@ -156,6 +173,7 @@ export function StepCard({
             onRenameCancel={() => setRenamingId(null)}
             onRenameValueChange={setRenameValue}
             isMockEnabled={step.mockConfig?.enabled}
+            runtimeBadge={runtimeBadge}
           />
         </motion.div>
 

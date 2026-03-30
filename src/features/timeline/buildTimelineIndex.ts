@@ -15,6 +15,7 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
 
   const byId: TimelineIndex["byId"] = {};
   const byStepId: TimelineIndex["byStepId"] = {};
+  const byNodeId: TimelineIndex["byNodeId"] = {};
   const byStatus: TimelineIndex["byStatus"] = {
     queued: [],
     ready: [],
@@ -27,6 +28,8 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
   };
   const byBranchId: TimelineIndex["byBranchId"] = {};
   const byAttempt: TimelineIndex["byAttempt"] = {};
+  const byOutcome: TimelineIndex["byOutcome"] = {};
+  const byLineagePath: TimelineIndex["byLineagePath"] = {};
 
   let min: number | null = null;
   let max: number | null = null;
@@ -35,6 +38,8 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
     byId[event.eventId] = event;
     byStepId[event.stepId] ??= [];
     byStepId[event.stepId].push(event.eventId);
+    byNodeId[event.targetStepId ?? event.stepId] ??= [];
+    byNodeId[event.targetStepId ?? event.stepId].push(event.eventId);
     byStatus[event.status].push(event.eventId);
 
     if (event.branchId) {
@@ -46,6 +51,16 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
     byAttempt[attemptKey] ??= [];
     byAttempt[attemptKey].push(event.eventId);
 
+    if (event.outcome) {
+      byOutcome[event.outcome] ??= [];
+      byOutcome[event.outcome].push(event.eventId);
+    }
+
+    if (event.lineagePath) {
+      byLineagePath[event.lineagePath] ??= [];
+      byLineagePath[event.lineagePath].push(event.eventId);
+    }
+
     min = min == null ? event.timestamp : Math.min(min, event.timestamp);
     max = max == null ? event.timestamp : Math.max(max, event.timestamp);
   }
@@ -55,9 +70,12 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
     orderedEventIds: orderedEvents.map((event) => event.eventId),
     byId,
     byStepId,
+    byNodeId,
     byStatus,
     byBranchId,
     byAttempt,
+    byOutcome,
+    byLineagePath,
     timeBounds: { min, max },
   };
 }

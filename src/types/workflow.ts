@@ -194,9 +194,12 @@ export interface TimelineIndex {
   orderedEventIds: string[];
   byId: Record<string, TimelineEvent>;
   byStepId: Record<string, string[]>;
+  byNodeId: Record<string, string[]>;
   byStatus: Record<TimelineEventStatus, string[]>;
   byBranchId: Record<string, string[]>;
   byAttempt: Record<string, string[]>;
+  byOutcome: Record<string, string[]>;
+  byLineagePath: Record<string, string[]>;
   timeBounds: { min: number | null; max: number | null };
 }
 

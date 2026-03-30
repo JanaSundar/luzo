@@ -89,6 +89,7 @@ export async function startRetryAt(state: ControllerState, index: number): Promi
   useTimelineStore.getState().reset();
 
   state.generator = createPipelineGenerator(state.pipeline, state.envVars, {
+    executionId: state.executionId ?? crypto.randomUUID(),
     abortControls: state.abortControls,
     masterAbort: state.masterAbort,
     compiledPlan: state.compiledPlan ?? undefined,
@@ -108,6 +109,7 @@ export function beginControllerRun(
   executionId: string,
 ) {
   state.generator = createPipelineGenerator(pipeline, envVars, {
+    executionId,
     abortControls: state.abortControls,
     masterAbort: state.masterAbort,
     compiledPlan: state.compiledPlan ?? undefined,
