@@ -23,7 +23,7 @@ import { useExecutionStore } from "@/stores/useExecutionStore";
 import { useHistoryStore } from "@/stores/useHistoryStore";
 import { usePlaygroundStore } from "@/stores/usePlaygroundStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { usePersistentBoolean } from "@/hooks/usePersistentBoolean";
+
 import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
 import type { Collection } from "@/types";
 
@@ -39,10 +39,8 @@ export function CollectionsWorkspace() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [skipDeleteConfirm, setSkipDeleteConfirm] = usePersistentBoolean(
-    "luzo:skip-delete-collection-confirm",
-    false,
-  );
+  const skipDeleteConfirm = useSettingsStore((s) => s.skipDeleteCollectionsConfirm);
+  const setSkipDeleteConfirm = useSettingsStore((s) => s.setSkipDeleteCollectionsConfirm);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {

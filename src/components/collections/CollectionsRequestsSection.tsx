@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { useCollectionMutations } from "@/features/collections/useCollections";
-import { usePersistentBoolean } from "@/hooks/usePersistentBoolean";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
 import { METHOD_BG_COLORS } from "@/utils/http";
 import {
@@ -29,10 +29,8 @@ export function CollectionsRequestsSection({
 }: CollectionsRequestsSectionProps) {
   const { deleteRequest } = useCollectionMutations();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [skipDeleteConfirm, setSkipDeleteConfirm] = usePersistentBoolean(
-    "luzo:skip-delete-request-confirm",
-    false,
-  );
+  const skipDeleteConfirm = useSettingsStore((s) => s.skipDeleteCollectionsConfirm);
+  const setSkipDeleteConfirm = useSettingsStore((s) => s.setSkipDeleteCollectionsConfirm);
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     name: string;

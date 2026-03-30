@@ -120,14 +120,29 @@ export interface FlowDocument {
   edges: FlowEdgeRecord[];
 }
 
+export interface FlowNodeGeometry {
+  position: { x: number; y: number };
+  size?: { width: number; height: number };
+  parentId?: string;
+}
+
+export interface FlowNodeViewState {
+  collapsed?: boolean;
+  selected?: boolean;
+  [key: string]: unknown;
+}
+
 export interface FlowNodeRecord {
   id: string;
   kind: WorkflowNodeKind;
-  position: { x: number; y: number };
+  geometry: FlowNodeGeometry;
+  config: FlowNodeConfig;
+  view?: FlowNodeViewState;
+  // Legacy fields for backward compatibility
+  position?: { x: number; y: number };
   size?: { width: number; height: number };
   dataRef?: string;
   requestRef?: string;
-  config?: FlowNodeConfig;
 }
 
 export interface FlowEdgeRecord {

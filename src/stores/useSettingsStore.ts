@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import { MODEL_REGISTRY } from "@/config/model-registry";
 import type { RuntimeTableStatus } from "@/services/db";
 import type { AiProvider } from "@/types";
@@ -41,6 +42,12 @@ interface SettingsState {
       >
     >,
   ) => void;
+
+  // Preferences
+  skipDeleteCollectionsConfirm: boolean;
+  setSkipDeleteCollectionsConfirm: (val: boolean) => void;
+  skipDeletePipelineConfirm: boolean;
+  setSkipDeletePipelineConfirm: (val: boolean) => void;
 }
 
 const AI_PROVIDERS: AiProvider[] = ["openai", "openrouter", "groq"];
@@ -86,24 +93,16 @@ export const useSettingsStore = create<SettingsState>()(
       setDbUrl: (dbUrl) => set({ dbUrl }),
 
       setDbStatus: (status) => set((state) => ({ ...state, ...status })),
+      skipDeleteCollectionsConfirm: false,
+      setSkipDeleteCollectionsConfirm: (skipDeleteCollectionsConfirm) =>
+        set({ skipDeleteCollectionsConfirm }),
+      skipDeletePipelineConfirm: false,
+      setSkipDeletePipelineConfirm: (skipDeletePipelineConfirm) =>
+        set({ skipDeletePipelineConfirm }),
     }),
     {
       name: "luzo-settings-store",
-      storage: {
-        getItem: (name) => {
-          if (typeof window === "undefined") return null;
-          const value = sessionStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (name, value) => {
-          if (typeof window === "undefined") return;
-          sessionStorage.setItem(name, JSON.stringify(value));
-        },
-        removeItem: (name) => {
-          if (typeof window === "undefined") return;
-          sessionStorage.removeItem(name);
-        },
-      },
+      storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-settings-store" })),
     },
   ),
 );

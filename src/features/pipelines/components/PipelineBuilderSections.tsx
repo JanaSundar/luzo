@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, LayoutTemplate } from "lucide-react";
 import { motion } from "motion/react";
 import { PipelineSideInspector } from "@/components/pipelines/PipelineSideInspector";
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,13 @@ export function PipelineBuilderHeader({
           Add Request
         </Button>
         <TemplateBrowserDialog
-          className="h-9 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
-          trigger={<>Use Template</>}
+          className="h-9 gap-2 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
+          trigger={
+            <>
+              <LayoutTemplate className="h-4 w-4" />
+              Use Template
+            </>
+          }
         />
         <SubflowLibraryDialog pipelineId={pipelineId} />
         <CollectionPipelineDialog

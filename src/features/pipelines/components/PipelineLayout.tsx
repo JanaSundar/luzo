@@ -7,7 +7,7 @@ import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
-import { usePersistentBoolean } from "@/hooks/usePersistentBoolean";
+
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
 import { PipelineLayoutContent } from "./PipelineLayoutContent";
@@ -50,10 +50,8 @@ export function PipelineLayout({
     executing: isExecuting,
   } = usePipelineStore();
 
-  const [skipDeleteConfirmation, setSkipDeleteConfirmation] = usePersistentBoolean(
-    "luzo:skip-delete-pipeline-confirm",
-    false,
-  );
+  const skipDeleteConfirmation = useSettingsStore((s) => s.skipDeletePipelineConfirm);
+  const setSkipDeleteConfirmation = useSettingsStore((s) => s.setSkipDeletePipelineConfirm);
   const { dbStatus, dbSchemaReady, dbUrl } = useSettingsStore();
 
   const { isGeneratingReport, isExportingPDF, reportsByPipelineId, aiProvider } =

@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, Plus, Trash2 } from "lucide-react";
+import { Waypoints, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +61,7 @@ export function SubflowLibraryDialog({
               className,
             )}
           >
-            <Boxes className="h-4 w-4" />
+            <Waypoints className="h-4 w-4" />
             Use Subflow
           </Button>
         }

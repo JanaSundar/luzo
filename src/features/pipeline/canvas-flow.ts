@@ -1,80 +1,17 @@
-import type { ApiRequest, AuthConfig, Pipeline, PipelineStep } from "@/types";
-import { collectStepDependencies } from "@/features/pipeline/template-dependencies";
-import { buildAliasesFromSteps } from "@/features/pipeline/step-aliases";
-import type {
-  FlowDocument,
-  FlowEdgeRecord,
-  FlowNodeConfig,
-  FlowNodeRecord,
-  WorkflowNodeKind,
-} from "@/types/workflow";
+import type { Pipeline } from "@/types";
+import type { FlowDocument, FlowEdgeRecord, FlowNodeRecord } from "@/types/workflow";
+import {
+  buildRequestDependencyEdges,
+  dedupeEdges,
+  withStartConnections,
+} from "./canvas-flow-edges";
+import { createDefaultNodeConfig, createFlowNodeRecord } from "./canvas-flow-nodes";
 
-const REQUEST_NODE_X = 320;
-const REQUEST_NODE_GAP = 280;
+export * from "./canvas-flow-edges";
+export * from "./canvas-flow-nodes";
 
-export const DEFAULT_REQUEST_AUTH: AuthConfig = { type: "none" };
-
-export function createEmptyRequestStep(name = "New Request"): PipelineStep {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    method: "GET",
-    url: "",
-    headers: [],
-    params: [],
-    body: null,
-    bodyType: "none",
-    auth: DEFAULT_REQUEST_AUTH,
-    requestSource: { mode: "new" },
-  };
-}
-
-export function createDefaultNodeConfig(kind: WorkflowNodeKind): FlowNodeConfig {
-  switch (kind) {
-    case "start":
-      return { kind, label: "Start" };
-    case "condition":
-      return { kind, label: "Condition", expression: "" };
-    case "delay":
-      return { kind, label: "Delay", durationMs: 1000 };
-    case "transform":
-      return { kind, label: "Transform", script: "" };
-    case "subflow":
-      return {
-        kind,
-        label: "Subflow",
-        subflowId: "",
-        subflowVersion: 1,
-        inputBindings: {},
-        outputAliases: {},
-      };
-    case "end":
-      return { kind, label: "End" };
-    case "request":
-    default:
-      return { kind: "request" };
-  }
-}
-
-export function createFlowNodeRecord(
-  kind: WorkflowNodeKind,
-  position: { x: number; y: number },
-  overrides: Partial<FlowNodeRecord> = {},
-): FlowNodeRecord {
-  const id = overrides.id ?? crypto.randomUUID();
-  const requestRef =
-    kind === "request" ? (overrides.requestRef ?? overrides.dataRef ?? id) : undefined;
-
-  return {
-    id,
-    kind,
-    position,
-    size: overrides.size,
-    dataRef: kind === "request" ? requestRef : overrides.dataRef,
-    requestRef,
-    config: overrides.config ?? createDefaultNodeConfig(kind),
-  };
-}
+export const REQUEST_NODE_X = 320;
+export const REQUEST_NODE_GAP = 280;
 
 export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
   const existing = pipeline.flowDocument;
@@ -211,7 +148,16 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   };
 }
 
-function orderNodesLikeExisting(
+export function inferStartPosition(requestNodes: FlowNodeRecord[]) {
+  const leftMostX =
+    requestNodes.length > 0
+      ? Math.min(...requestNodes.map((node) => node.geometry.position.x))
+      : REQUEST_NODE_X;
+  const firstY = requestNodes[0]?.geometry.position.y ?? 0;
+  return { x: leftMostX - REQUEST_NODE_GAP, y: firstY };
+}
+
+export function orderNodesLikeExisting(
   existingNodes: FlowNodeRecord[],
   requestNodes: FlowNodeRecord[],
   otherNodes: FlowNodeRecord[],
@@ -236,100 +182,4 @@ function orderNodesLikeExisting(
   });
 
   return ordered;
-}
-
-export function requestStepToApiRequest(step: PipelineStep): ApiRequest {
-  return {
-    method: step.method,
-    url: step.url,
-    headers: step.headers,
-    params: step.params,
-    body: step.body,
-    bodyType: step.bodyType,
-    formDataFields: step.formDataFields,
-    auth: step.auth,
-    preRequestEditorType: step.preRequestEditorType,
-    testEditorType: step.testEditorType,
-    preRequestRules: step.preRequestRules,
-    testRules: step.testRules,
-    preRequestScript: step.preRequestScript,
-    testScript: step.testScript,
-    pollingPolicy: step.pollingPolicy,
-    webhookWaitPolicy: step.webhookWaitPolicy,
-  };
-}
-
-function inferStartPosition(requestNodes: FlowNodeRecord[]) {
-  const leftMostX =
-    requestNodes.length > 0
-      ? Math.min(...requestNodes.map((node) => node.position.x))
-      : REQUEST_NODE_X;
-  const firstY = requestNodes[0]?.position.y ?? 0;
-  return { x: leftMostX - REQUEST_NODE_GAP, y: firstY };
-}
-
-function withStartConnections(
-  edges: FlowEdgeRecord[],
-  startNodeId: string,
-  requestNodeIds: string[],
-) {
-  const requestTargets = new Set(requestNodeIds);
-  const hasStartEdge = edges.some((edge) => edge.source === startNodeId);
-  if (hasStartEdge || requestNodeIds.length === 0) return edges;
-
-  const incomingCounts = new Map<string, number>();
-  for (const edge of edges) {
-    if (!requestTargets.has(edge.target) || !requestTargets.has(edge.source)) continue;
-    incomingCounts.set(edge.target, (incomingCounts.get(edge.target) ?? 0) + 1);
-  }
-  const entryNodes = requestNodeIds.filter((nodeId) => (incomingCounts.get(nodeId) ?? 0) === 0);
-  return [...edges, ...entryNodes.map((nodeId) => createFlowEdge(startNodeId, nodeId, "control"))];
-}
-
-function buildRequestDependencyEdges(
-  steps: PipelineStep[],
-  { includePositionalAliases = true }: { includePositionalAliases?: boolean } = {},
-) {
-  const aliases = buildAliasesFromSteps(steps).map((alias) => ({
-    ...alias,
-    refs: includePositionalAliases ? alias.refs : alias.refs.filter((ref) => ref !== alias.alias),
-  }));
-  const edges: FlowEdgeRecord[] = [];
-
-  for (const step of steps) {
-    const dependencies = collectStepDependencies(step, aliases);
-    for (const dependency of dependencies) {
-      const source = aliases.find((candidate) => candidate.refs.includes(dependency.alias));
-      if (!source || source.stepId === step.id) continue;
-      edges.push(createFlowEdge(source.stepId, step.id, "control"));
-    }
-  }
-
-  return dedupeEdges(edges);
-}
-function createFlowEdge(
-  source: string,
-  target: string,
-  semantics: FlowEdgeRecord["semantics"],
-  sourceHandle?: string,
-  targetHandle?: string,
-): FlowEdgeRecord {
-  return {
-    id: `${source}:${target}:${sourceHandle ?? semantics}`,
-    source,
-    target,
-    sourceHandle,
-    targetHandle,
-    semantics,
-  };
-}
-
-function dedupeEdges(edges: FlowEdgeRecord[]) {
-  const seen = new Set<string>();
-  return edges.filter((edge) => {
-    const key = `${edge.source}:${edge.target}:${edge.semantics}:${edge.sourceHandle ?? ""}:${edge.targetHandle ?? ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }

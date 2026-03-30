@@ -25,7 +25,16 @@ describe("pipeline canvas flow migration", () => {
     ];
     pipeline.flowDocument = {
       ...pipeline.flowDocument!,
-      nodes: [{ id: "req-1", kind: "request", dataRef: "req-1", position: { x: 280, y: 40 } }],
+      nodes: [
+        {
+          id: "req-1",
+          kind: "request",
+          dataRef: "req-1",
+          geometry: { position: { x: 280, y: 40 } },
+          position: { x: 280, y: 40 },
+          config: { kind: "request" },
+        },
+      ],
       edges: [],
     };
 
