@@ -56,6 +56,15 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
         });
       }
     }
+
+    if (node.kind === "subflow") {
+      warnings.push({
+        stepId: node.id,
+        field: "subflow",
+        message: `Subflow node "${node.id}" must be expanded before execution`,
+        severity: "error",
+      });
+    }
   }
 
   const stageByNodeId = new Map<string, number>();

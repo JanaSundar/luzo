@@ -9,16 +9,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TemplateInput } from "@/components/ui/template-input";
+import { LineageFieldSummary } from "@/features/request-editor/components/LineageFieldSummary";
 import type { AuthConfig } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
+import type { VariableReferenceEdge } from "@/types/worker-results";
 
 interface RequestAuthPanelProps {
   auth: AuthConfig;
   suggestions: VariableSuggestion[];
+  lineageByField?: Record<string, VariableReferenceEdge[]>;
   onChange: (auth: AuthConfig) => void;
 }
 
-export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPanelProps) {
+export function RequestAuthPanel({
+  auth,
+  suggestions,
+  lineageByField = {},
+  onChange,
+}: RequestAuthPanelProps) {
   return (
     <div className="space-y-4">
       <Select
@@ -45,6 +53,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             placeholder="Bearer token"
             inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 font-mono text-sm"
           />
+          <LineageFieldSummary incoming={lineageByField["auth.bearer.token"] ?? []} />
         </div>
       )}
 
@@ -62,6 +71,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             placeholder="Username"
             inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 text-sm"
           />
+          <LineageFieldSummary incoming={lineageByField["auth.basic.username"] ?? []} />
           <Input
             type="password"
             value={auth.basic?.password ?? ""}
@@ -95,6 +105,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             placeholder="Header name"
             inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 text-sm"
           />
+          <LineageFieldSummary incoming={lineageByField["auth.apiKey.key"] ?? []} />
           <TemplateInput
             value={auth.apiKey?.value ?? ""}
             onChange={(val) =>
@@ -111,6 +122,7 @@ export function RequestAuthPanel({ auth, suggestions, onChange }: RequestAuthPan
             placeholder="API key value"
             inputClassName="h-9 rounded-md border border-border/40 bg-background px-3 font-mono text-sm"
           />
+          <LineageFieldSummary incoming={lineageByField["auth.apiKey.value"] ?? []} />
         </div>
       )}
     </div>

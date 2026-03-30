@@ -41,6 +41,42 @@ export interface TransformNodeConfig {
   script: string;
 }
 
+export interface SubflowInputDefinition {
+  key: string;
+  label: string;
+  required: boolean;
+  defaultValue?: string;
+}
+
+export interface SubflowOutputDefinition {
+  key: string;
+  label: string;
+  path: string;
+}
+
+export interface SubflowDefinition {
+  id: string;
+  name: string;
+  version: number;
+  description?: string;
+  workflow: WorkflowDefinition;
+  registry: RequestRegistry;
+  inputSchema: SubflowInputDefinition[];
+  outputSchema: SubflowOutputDefinition[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubflowNodeConfig {
+  kind: "subflow";
+  label: string;
+  subflowId: string;
+  subflowVersion: number;
+  inputBindings: Record<string, string>;
+  outputAliases: Record<string, string>;
+  definition?: SubflowDefinition;
+}
+
 export interface EndNodeConfig {
   kind: "end";
   label: string;
@@ -51,6 +87,7 @@ export type FlowNodeConfig =
   | RequestNodeConfig
   | ConditionNodeConfig
   | DelayNodeConfig
+  | SubflowNodeConfig
   | TransformNodeConfig
   | EndNodeConfig;
 

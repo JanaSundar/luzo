@@ -45,6 +45,10 @@ export interface CompilePlanInput {
   registry: RequestRegistry;
 }
 
+export interface AnalyzeVariablesInput extends CompilePlanInput {
+  executionContext?: Record<string, unknown>;
+}
+
 export interface CompilePlanOutput {
   plan: CompiledPipelinePlan;
   aliases: StepAlias[];
@@ -59,11 +63,71 @@ export interface VariableReference {
   path: string | null;
 }
 
+export type LineageResolutionStatus =
+  | "resolved"
+  | "unresolved_alias"
+  | "unresolved_path"
+  | "forward_reference"
+  | "runtime_only";
+
+export type LineageRiskFlag =
+  | "missing_alias"
+  | "forward_reference"
+  | "unknown_path"
+  | "runtime_required";
+
+export interface VariableProducer {
+  stepId: string;
+  aliases: string[];
+  producedRoots: string[];
+  availablePaths: string[];
+}
+
+export interface VariableReferenceEdge {
+  id: string;
+  consumerStepId: string;
+  consumerField: string;
+  rawRef: string;
+  sourceStepId: string | null;
+  sourceAlias: string | null;
+  referencedPath: string | null;
+  resolutionStatus: LineageResolutionStatus;
+  riskFlags: LineageRiskFlag[];
+  controlCritical: boolean;
+}
+
+export interface ImpactRecord {
+  sourceStepId: string;
+  sourcePath: string;
+  dependentStepIds: string[];
+  transitiveDependentStepIds: string[];
+  dependentFields: string[];
+  severity: "info" | "warning";
+}
+
+export interface RiskSummary {
+  incomingCount: number;
+  outgoingCount: number;
+  unresolvedCount: number;
+  riskyCount: number;
+}
+
 export interface VariableAnalysisOutput {
   aliases: StepAlias[];
   references: VariableReference[];
   unresolved: VariableReference[];
   reverseDependencies: Record<string, string[]>;
+  producers: VariableProducer[];
+  edges: VariableReferenceEdge[];
+  impacts: ImpactRecord[];
+  byVariableRef: Record<string, string[]>;
+  bySourceStep: Record<string, string[]>;
+  byDependentStep: Record<string, string[]>;
+  byUnresolvedState: Record<LineageResolutionStatus, string[]>;
+  bySourcePath: Record<string, ImpactRecord>;
+  consumersBySourceStep: Record<string, string[]>;
+  producersByDependentStep: Record<string, string[]>;
+  riskByStep: Record<string, RiskSummary>;
 }
 
 export interface TimelineFilterInput {

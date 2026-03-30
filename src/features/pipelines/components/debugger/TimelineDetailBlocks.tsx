@@ -32,9 +32,7 @@ export function CopyableMetaRow({ label, value }: { label: string; value: string
   return (
     <div className="rounded-lg border bg-muted/10 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          {label}
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <CopyButton
           copied={copied}
           label={label}
@@ -58,9 +56,7 @@ export function HeaderBlock({ headers }: { headers: Record<string, string> }) {
     <div className="rounded-lg border bg-muted/10 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Headers
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Headers</p>
           <p className="text-[10px] text-muted-foreground">{Object.keys(headers).length} total</p>
         </div>
         <CopyButton label="Headers" onCopy={() => navigator.clipboard.writeText(headerText)} />
@@ -97,9 +93,7 @@ export function BodyBlock({
     <div className={cn("rounded-lg border bg-muted/10 p-3", className)}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {title}
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">{title}</p>
           <p className="text-[10px] text-muted-foreground">{getBodySizeLabel(body)}</p>
         </div>
         <CopyButton label={title} onCopy={() => navigator.clipboard.writeText(displayText)} />
@@ -126,15 +120,11 @@ export function PayloadSummaryCard({
 }) {
   return (
     <div className="rounded-lg border bg-muted/10 p-3">
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        {title}
-      </p>
+      <p className="mb-3 text-xs font-medium text-muted-foreground">{title}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
           <div key={item.label} className="rounded-md border bg-background px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {item.label}
-            </p>
+            <p className="text-[11px] font-medium text-muted-foreground">{item.label}</p>
             <p className={cn("mt-1 break-all text-xs font-mono", item.className)}>{item.value}</p>
           </div>
         ))}

@@ -17,6 +17,7 @@ import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
 import { cn } from "@/utils";
 import type { PipelineStep } from "@/types";
+import type { RiskSummary } from "@/types/worker-results";
 import { StepCardHeader } from "./StepCardHeader";
 import { StepCardMenu } from "./StepCardMenu";
 
@@ -28,6 +29,7 @@ interface StepCardProps {
     detail: string;
     mode: "parallel" | "review" | "sequential";
   };
+  lineageSummary?: RiskSummary;
   step: PipelineStep;
   index: number;
   isSelected: boolean;
@@ -41,6 +43,7 @@ interface StepCardProps {
 
 export function StepCard({
   executionHint,
+  lineageSummary,
   step,
   index,
   isSelected,
@@ -174,6 +177,8 @@ export function StepCard({
             onRenameValueChange={setRenameValue}
             isMockEnabled={step.mockConfig?.enabled}
             runtimeBadge={runtimeBadge}
+            lineageSummary={lineageSummary}
+            method={step.method}
           />
         </motion.div>
 

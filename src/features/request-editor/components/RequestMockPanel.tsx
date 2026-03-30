@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Info, Zap } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,17 @@ export function RequestMockPanel({
   onChange,
   suggestions = [],
 }: RequestMockPanelProps) {
+  const [statusCodeText, setStatusCodeText] = useState(String(config.statusCode));
+  const [latencyText, setLatencyText] = useState(String(config.latencyMs));
+
+  useEffect(() => {
+    setStatusCodeText(String(config.statusCode));
+  }, [config.statusCode]);
+
+  useEffect(() => {
+    setLatencyText(String(config.latencyMs));
+  }, [config.latencyMs]);
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
       <div className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 px-4 py-4">
@@ -59,11 +70,19 @@ export function RequestMockPanel({
             </Label>
             <div className="relative">
               <Input
-                type="number"
-                value={config.statusCode}
-                onChange={(e) =>
-                  onChange({ ...config, statusCode: parseInt(e.target.value) || 200 })
-                }
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={statusCodeText}
+                onChange={(e) => {
+                  const next = e.target.value.replace(/\D/g, "").slice(0, 3);
+                  setStatusCodeText(next);
+                }}
+                onBlur={() => {
+                  const nextStatusCode = normalizeStatusCode(statusCodeText, config.statusCode);
+                  setStatusCodeText(String(nextStatusCode));
+                  onChange({ ...config, statusCode: nextStatusCode });
+                }}
                 className="h-9 border-border/40 bg-muted/5 pl-3 pr-8 text-xs font-semibold tabular-nums"
                 placeholder="200"
               />
@@ -86,9 +105,16 @@ export function RequestMockPanel({
               Latency (ms)
             </Label>
             <Input
-              type="number"
-              value={config.latencyMs}
-              onChange={(e) => onChange({ ...config, latencyMs: parseInt(e.target.value) || 0 })}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={latencyText}
+              onChange={(e) => setLatencyText(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => {
+                const nextLatency = normalizeLatency(latencyText);
+                setLatencyText(String(nextLatency));
+                onChange({ ...config, latencyMs: nextLatency });
+              }}
               className="h-9 border-border/40 bg-muted/5 text-xs font-semibold tabular-nums text-right"
               placeholder="0"
             />
@@ -127,4 +153,16 @@ export function RequestMockPanel({
       </div>
     </div>
   );
+}
+
+function normalizeStatusCode(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(599, Math.max(100, parsed));
+}
+
+function normalizeLatency(value: string) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, parsed);
 }

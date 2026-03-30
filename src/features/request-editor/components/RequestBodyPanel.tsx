@@ -2,6 +2,7 @@
 
 import { FormDataBodyEditor } from "@/components/playground/FormDataBodyEditor";
 import { JsonBodyEditor } from "@/components/playground/JsonBodyEditor";
+import { LineageFieldSummary } from "@/features/request-editor/components/LineageFieldSummary";
 import {
   Select,
   SelectContent,
@@ -11,12 +12,14 @@ import {
 } from "@/components/ui/select";
 import type { ApiRequest, FormDataField } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
+import type { VariableReferenceEdge } from "@/types/worker-results";
 
 interface RequestBodyPanelProps {
   body: string | null;
   bodyType: ApiRequest["bodyType"];
   formDataFields?: FormDataField[];
   suggestions?: VariableSuggestion[];
+  lineageByField?: Record<string, VariableReferenceEdge[]>;
   onChange: (partial: {
     body?: string | null;
     bodyType?: ApiRequest["bodyType"];
@@ -29,6 +32,7 @@ export function RequestBodyPanel({
   bodyType,
   formDataFields,
   suggestions = [],
+  lineageByField = {},
   onChange,
 }: RequestBodyPanelProps) {
   return (
@@ -75,6 +79,7 @@ export function RequestBodyPanel({
           <div className="mb-2 shrink-0 text-[11px] font-medium text-muted-foreground">
             {bodyType === "json" ? "JSON body" : "Raw body"}
           </div>
+          <LineageFieldSummary incoming={lineageByField.body ?? []} className="mb-3 mt-0" />
           <JsonBodyEditor
             value={body ?? ""}
             onChange={(val) => onChange({ body: val })}

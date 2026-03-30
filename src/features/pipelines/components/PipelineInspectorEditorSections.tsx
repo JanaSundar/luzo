@@ -8,6 +8,7 @@ import { RequestBodyPanel } from "@/features/request-editor/components/RequestBo
 import { RequestScriptsPanel } from "@/features/request-editor/components/RequestScriptsPanel";
 import type { PipelineStep } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
+import type { VariableReferenceEdge } from "@/types/worker-results";
 import { cn } from "@/utils";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
 import type { PipelineInspectorSection } from "./PipelineInspectorSectionNav";
@@ -19,6 +20,7 @@ interface PipelineInspectorEditorSectionsProps {
   section: Extract<PipelineInspectorSection, "request" | "flow">;
   step: PipelineStep;
   suggestions: VariableSuggestion[];
+  lineageByField?: Record<string, VariableReferenceEdge[]>;
   isBodyDisabled: boolean;
   onChange: (partial: Partial<PipelineStep>) => void;
 }
@@ -27,6 +29,7 @@ export function PipelineInspectorEditorSections({
   section,
   step,
   suggestions,
+  lineageByField = {},
   isBodyDisabled,
   onChange,
 }: PipelineInspectorEditorSectionsProps) {
@@ -59,6 +62,8 @@ export function PipelineInspectorEditorSections({
             onChange={(params) => onChange({ params })}
             placeholder="Parameter"
             suggestions={suggestions}
+            fieldNamespace="params"
+            lineageByField={lineageByField}
           />
         ) : null}
 
@@ -68,6 +73,8 @@ export function PipelineInspectorEditorSections({
             onChange={(headers) => onChange({ headers })}
             placeholder="Header"
             suggestions={suggestions}
+            fieldNamespace="headers"
+            lineageByField={lineageByField}
           />
         ) : null}
 
@@ -77,6 +84,7 @@ export function PipelineInspectorEditorSections({
             bodyType={step.bodyType}
             formDataFields={step.formDataFields}
             suggestions={suggestions}
+            lineageByField={lineageByField}
             onChange={onChange}
           />
         ) : null}
@@ -85,6 +93,7 @@ export function PipelineInspectorEditorSections({
           <RequestAuthPanel
             auth={step.auth}
             suggestions={suggestions}
+            lineageByField={lineageByField}
             onChange={(auth) => onChange({ auth })}
           />
         ) : null}
@@ -133,9 +142,9 @@ export function PipelineInspectorEditorSections({
 
 function SectionCard({ tabs, children }: { tabs: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-[500px] min-h-0 flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/70 p-5 shadow-sm">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/70 p-5 shadow-sm">
       <div className="mb-5 shrink-0">{tabs}</div>
-      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">{children}</div>
     </div>
   );
 }

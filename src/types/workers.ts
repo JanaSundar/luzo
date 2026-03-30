@@ -14,6 +14,7 @@ import type {
 import type { Pipeline } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import type {
+  AnalyzeVariablesInput,
   CompilePlanInput,
   CompilePlanOutput,
   DagValidationResult,
@@ -43,7 +44,7 @@ export interface GraphWorkerApi {
 }
 
 export interface AnalysisWorkerApi {
-  analyzeVariables(input: CompilePlanInput): Promise<Result<VariableAnalysisOutput>>;
+  analyzeVariables(input: AnalyzeVariablesInput): Promise<Result<VariableAnalysisOutput>>;
   buildVariableSuggestions(
     input: BuildVariableSuggestionsInput,
   ): Promise<Result<VariableSuggestion[]>>;
