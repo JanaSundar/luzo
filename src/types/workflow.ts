@@ -67,6 +67,16 @@ export interface SubflowDefinition {
   updatedAt: string;
 }
 
+export interface ExpandedNodeOrigin {
+  originNodeId: string;
+  subflowInstanceId?: string;
+  subflowDefinitionId?: string;
+  subflowDefinitionVersion?: number;
+  subflowName?: string;
+  subflowDepth?: number;
+  internalNodeId?: string;
+}
+
 export interface SubflowNodeConfig {
   kind: "subflow";
   label: string;
@@ -74,6 +84,7 @@ export interface SubflowNodeConfig {
   subflowVersion: number;
   inputBindings: Record<string, string>;
   outputAliases: Record<string, string>;
+  legacyAliasRefs?: string[];
   definition?: SubflowDefinition;
 }
 
@@ -203,6 +214,7 @@ export interface CompiledPipelineNode {
   };
   runtimeRoutes: RuntimeRoute[];
   branch?: { mode: "all" | "true" | "false" | "success" | "failure" };
+  origin?: ExpandedNodeOrigin;
 }
 
 export interface CompiledPipelinePlan {

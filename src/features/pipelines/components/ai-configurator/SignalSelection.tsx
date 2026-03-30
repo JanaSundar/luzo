@@ -1,22 +1,9 @@
 "use client";
 
-import {
-  AlertCircle,
-  CheckSquare,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Info,
-  Lock,
-  Search,
-  Square,
-} from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Info, Lock, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { maskSensitiveValue } from "@/features/pipeline/sensitivity";
 import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
-import { cn } from "@/utils";
-import type { ContextVariable, SignalGroup } from "@/types/pipeline-debug";
+import { SignalGroupPanel } from "./SignalSelectionRows";
 
 interface SignalSelectionProps {
   searchQuery: string;
@@ -170,127 +157,5 @@ export function SignalSelection({ searchQuery, onSearchChange }: SignalSelection
         )}
       </div>
     </section>
-  );
-}
-
-function SignalGroupPanel({
-  group,
-  expanded,
-  onToggleExpand,
-  selectedSignals,
-  onToggleSignal,
-  showSensitive,
-}: {
-  group: SignalGroup;
-  expanded: boolean;
-  onToggleExpand: () => void;
-  selectedSignals: string[];
-  onToggleSignal: (path: string) => void;
-  showSensitive: boolean;
-}) {
-  const selectedInGroup = group.variables.filter((v) => selectedSignals.includes(v.path)).length;
-
-  return (
-    <div className="border-b border-border/35 last:border-0">
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/10"
-      >
-        {expanded ? (
-          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
-        )}
-        <span
-          className={cn(
-            "font-mono text-[10px] font-bold shrink-0",
-            group.method === "GET"
-              ? "text-emerald-500"
-              : group.method === "POST"
-                ? "text-blue-500"
-                : group.method === "PUT"
-                  ? "text-amber-500"
-                  : group.method === "DELETE"
-                    ? "text-red-500"
-                    : "text-foreground",
-          )}
-        >
-          {group.method}
-        </span>
-        <span className="text-xs font-medium truncate flex-1">{group.stepName}</span>
-        <span className="text-[10px] text-muted-foreground shrink-0">
-          {selectedInGroup}/{group.variables.length}
-        </span>
-      </button>
-
-      {expanded && (
-        <div className="space-y-1 px-3 pb-3">
-          {group.variables.map((variable) => (
-            <SignalRow
-              key={variable.path}
-              variable={variable}
-              selected={selectedSignals.includes(variable.path)}
-              onToggle={() => onToggleSignal(variable.path)}
-              showSensitive={showSensitive}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SignalRow({
-  variable,
-  selected,
-  onToggle,
-  showSensitive,
-}: {
-  variable: ContextVariable;
-  selected: boolean;
-  onToggle: () => void;
-  showSensitive: boolean;
-}) {
-  const isHidden = variable.sensitivity === "high" && !showSensitive;
-
-  const displayValue = useMemo(() => {
-    if (variable.value == null) return "null";
-    if (variable.sensitivity === "high" && !showSensitive) {
-      return maskSensitiveValue(String(variable.value));
-    }
-    const str =
-      typeof variable.value === "object" ? JSON.stringify(variable.value) : String(variable.value);
-    return str.length > 50 ? `${str.slice(0, 50)}…` : str;
-  }, [variable.value, variable.sensitivity, showSensitive]);
-
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={isHidden}
-      className={cn(
-        "flex w-full items-start gap-2 rounded-xl p-2.5 text-left transition-colors",
-        selected ? "bg-foreground/[0.04]" : "hover:bg-muted/20",
-        isHidden && "opacity-50 cursor-not-allowed",
-      )}
-    >
-      {selected ? (
-        <CheckSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-      ) : (
-        <Square className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-medium truncate">{variable.label}</span>
-          {variable.sensitivity === "high" && (
-            <Lock className="h-2.5 w-2.5 text-amber-500 shrink-0" />
-          )}
-        </div>
-        <span className="text-[10px] font-mono text-muted-foreground truncate block">
-          {isHidden ? "🔒 Sensitive data hidden" : displayValue}
-        </span>
-      </div>
-    </button>
   );
 }

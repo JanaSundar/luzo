@@ -1,5 +1,5 @@
 import type { PipelineGenerationMetadata } from "./pipeline-generation";
-import type { FlowDocument } from "./workflow";
+import type { ExpandedNodeOrigin, FlowDocument } from "./workflow";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
@@ -221,6 +221,7 @@ export interface PipelineStep extends ApiRequest {
   name: string;
   mockConfig?: MockConfig;
   requestSource?: PipelineRequestSource;
+  subflowSource?: ExpandedNodeOrigin;
 }
 
 export interface Pipeline {

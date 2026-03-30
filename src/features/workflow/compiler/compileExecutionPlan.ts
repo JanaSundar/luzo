@@ -2,18 +2,24 @@ import type { CompilePlanInput, CompilePlanOutput } from "@/types/worker-results
 import type { CompiledPipelinePlan, CompiledPipelineNode, RuntimeRoute } from "@/types/workflow";
 import { buildAliasesFromNodeIds } from "@/features/pipeline/step-aliases";
 import { validateWorkflowDag } from "../validation/validateWorkflowDag";
+import { expandSubflows } from "./expandSubflows";
 
 export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput {
-  const validation = validateWorkflowDag(input.workflow);
-  const warnings = [...validation.errors];
-  const nodeMap = new Map(input.workflow.nodes.map((node) => [node.id, node]));
-  const outgoingByNode = groupOutgoingEdges(input.workflow.edges);
+  const expanded = expandSubflows(input);
+  const validation = validateWorkflowDag(expanded.workflow);
+  const warnings = [...expanded.warnings, ...validation.errors];
+  const nodeMap = new Map(expanded.workflow.nodes.map((node) => [node.id, node]));
+  const outgoingByNode = groupOutgoingEdges(expanded.workflow.edges);
   const aliases = buildAliasesFromNodeIds(validation.order);
+  const aliasesWithExports = aliases.map((alias) => ({
+    ...alias,
+    refs: Array.from(new Set([...(expanded.aliasRefsByNodeId[alias.stepId] ?? []), ...alias.refs])),
+  }));
 
-  for (const node of input.workflow.nodes) {
+  for (const node of expanded.workflow.nodes) {
     if (
       node.kind === "request" &&
-      (!node.requestRef || !input.registry.requests[node.requestRef])
+      (!node.requestRef || !expanded.registry.requests[node.requestRef])
     ) {
       warnings.push({
         stepId: node.id,
@@ -107,6 +113,7 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
       routes: routeTargets,
       runtimeRoutes,
       branch: inferBranch(workflowNode?.kind, outgoing),
+      origin: expanded.originsByNodeId[nodeId],
     };
   });
 
@@ -115,7 +122,7 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
     version: 1,
     workflowId: input.workflow.id,
     entryNodeIds,
-    aliases,
+    aliases: aliasesWithExports,
     nodes,
     stages: validation.stages.map((nodeIds, stageIndex) => ({ stageIndex, nodeIds })),
     order: validation.order,
@@ -123,7 +130,14 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
     reverseAdjacency: validation.reverseAdjacency,
   };
 
-  return { plan, aliases, warnings };
+  return {
+    plan,
+    aliases: aliasesWithExports,
+    warnings,
+    expandedWorkflow: expanded.workflow,
+    expandedRegistry: expanded.registry,
+    expandedOrigins: expanded.originsByNodeId,
+  };
 }
 
 function inferBranch(

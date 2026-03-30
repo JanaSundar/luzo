@@ -1,4 +1,5 @@
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { buildExecutionPipelineFromCompileOutput } from "@/features/workflow/pipeline-adapters";
 import type { Pipeline } from "@/types";
 import type { ControllerOptions } from "@/types/pipeline-runtime";
 import {
@@ -50,8 +51,9 @@ export function createDebugController(): DebugController {
       return { valid: false, errors: blockingWarnings.map((warning) => warning.message) };
     }
 
-    initializeControllerState(state, pipeline, envVars, options, res.data.plan);
-    beginControllerRun(state, pipeline, envVars, options, state.executionId!);
+    const executionPipeline = buildExecutionPipelineFromCompileOutput(pipeline, res.data);
+    initializeControllerState(state, executionPipeline, envVars, options, res.data);
+    beginControllerRun(state, executionPipeline, envVars, options, state.executionId!);
     return { valid: true };
   }
 
@@ -99,7 +101,7 @@ function initializeControllerState(
   pipeline: Pipeline,
   envVars: Record<string, string>,
   options: ControllerOptions,
-  compiledPlan: NonNullable<ControllerState["compiledPlan"]>,
+  compiledResult: NonNullable<ControllerState["compiledResult"]>,
 ) {
   Object.assign(state, {
     pipeline,
@@ -114,8 +116,9 @@ function initializeControllerState(
     masterAbort: new AbortController(),
     abortControls: new Map(),
     status: "running",
-    totalSteps: compiledPlan.order.length,
-    compiledPlan,
-    layoutByStep: buildLayoutMap(compiledPlan),
+    totalSteps: compiledResult.plan.order.length,
+    compiledPlan: compiledResult.plan,
+    compiledResult,
+    layoutByStep: buildLayoutMap(compiledResult.plan),
   } satisfies Partial<ControllerState>);
 }

@@ -1,5 +1,6 @@
 import type { HttpMethod } from ".";
 import type { TimelineEvent } from "./timeline-event";
+import type { ExpandedNodeOrigin } from "./workflow";
 
 export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error" | "done";
 
@@ -66,6 +67,7 @@ export interface StepSnapshot {
   streamStatus: StreamStatus;
   streamChunks: string[];
   highlightPath?: string;
+  subflowSource?: ExpandedNodeOrigin;
   timelineEvents?: TimelineEvent[];
 }
 

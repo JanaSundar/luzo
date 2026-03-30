@@ -99,6 +99,11 @@ export function snapshotToTimelineEvent(
     terminalReason: null,
     summary: null,
     metadata: null,
+    subflowInstanceId: snapshot.subflowSource?.subflowInstanceId ?? null,
+    subflowDefinitionId: snapshot.subflowSource?.subflowDefinitionId ?? null,
+    subflowDefinitionVersion: snapshot.subflowSource?.subflowDefinitionVersion ?? null,
+    subflowName: snapshot.subflowSource?.subflowName ?? null,
+    subflowDepth: snapshot.subflowSource?.subflowDepth ?? null,
 
     stageIndex,
     branchId: isParallel ? `stage-${stageIndex}` : null,

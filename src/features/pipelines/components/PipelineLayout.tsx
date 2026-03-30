@@ -1,7 +1,5 @@
 "use client";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
-import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
@@ -9,10 +7,12 @@ import { usePipelineDebugStore } from "@/stores/usePipelineDebugStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
+import { usePersistentBoolean } from "@/hooks/usePersistentBoolean";
 import type { ExportFormat } from "@/types/pipeline-debug";
 import { DeletePipelineDialog } from "./DeletePipelineDialog";
-import { PipelineHeader } from "./PipelineHeader";
+import { PipelineLayoutContent } from "./PipelineLayoutContent";
 import { PipelineSidebar } from "./PipelineSidebar";
+import { PipelineMobileSidebarToggle } from "./PipelineLayoutChrome";
 
 interface PipelineLayoutProps {
   children: React.ReactNode;
@@ -50,7 +50,10 @@ export function PipelineLayout({
     executing: isExecuting,
   } = usePipelineStore();
 
-  const [skipDeleteConfirmation, setSkipDeleteConfirmation] = useState(false);
+  const [skipDeleteConfirmation, setSkipDeleteConfirmation] = usePersistentBoolean(
+    "luzo:skip-delete-pipeline-confirm",
+    false,
+  );
   const { dbStatus, dbSchemaReady, dbUrl } = useSettingsStore();
 
   const { isGeneratingReport, isExportingPDF, reportsByPipelineId, aiProvider } =
@@ -166,23 +169,10 @@ export function PipelineLayout({
 
   return (
     <div className="flex flex-1 h-full min-h-0">
-      <button
-        type="button"
-        className="lg:hidden fixed bottom-4 left-4 z-50 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        <Pencil className="h-4 w-4" />
-      </button>
-
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
-          onKeyDown={() => {}}
-          role="button"
-          tabIndex={-1}
-        />
-      )}
+      <PipelineMobileSidebarToggle
+        sidebarOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((current) => !current)}
+      />
 
       <PipelineSidebar
         pipelines={pipelines}
@@ -212,67 +202,32 @@ export function PipelineLayout({
         onBatchDeleteClick={handleBatchDeleteClick}
       />
 
-      <div className="flex-1 flex flex-col min-h-0 relative">
-        <PipelineHeader
-          activePipelineName={activePipeline?.name || null}
-          currentView={currentView}
-          isExecuting={isAnyExecuting}
-          activePipelineId={activePipelineId}
-          executionBlockedReason={
-            executionSupport?.supported === false ? executionSupport.reason : null
-          }
-          snapshotsCount={snapshots.length}
-          onSetView={setView}
-          onRun={onRun || (() => {})}
-          onDebug={onDebug || (() => {})}
-          onStop={onStop || (() => {})}
-          onRetry={onRetry}
-          onSaveToDb={onSaveToDb}
-          onGenerateReport={onGenerateReport}
-          onExportReport={onExportReport}
-          canPersistToDb={canPersistToDb}
-          isGeneratingReport={isGeneratingReport}
-          isExportingPDF={isExportingPDF}
-          isSavingToDb={isSavingToDb}
-          hasGeneratedReport={hasGeneratedReport}
-          hasAIProvider={Boolean(aiProvider.apiKey)}
-        />
-
-        <main className="flex-1 overflow-auto bg-muted/5 p-3 sm:p-6 custom-scrollbar">
-          {activePipelineId ? (
-            <motion.div
-              key={`${activePipelineId}:${currentView}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className="h-full min-h-0"
-            >
-              {children}
-            </motion.div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-              <div className="p-4 rounded-full bg-muted/30">
-                <Plus className="h-8 w-8 opacity-20" />
-              </div>
-              <p className="text-sm">Select or create a pipeline to get started</p>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {isExportingPDF && (
-        <div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="mt-4 text-sm font-medium">Generating PDF...</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            This may take a moment. Please don&apos;t close the page.
-          </p>
-        </div>
-      )}
+      <PipelineLayoutContent
+        activePipelineId={activePipelineId}
+        activePipelineName={activePipeline?.name || null}
+        currentView={currentView}
+        executionBlockedReason={
+          executionSupport?.supported === false ? executionSupport.reason : null
+        }
+        snapshotsCount={snapshots.length}
+        isExecuting={isAnyExecuting}
+        onSetView={setView}
+        onRun={onRun || (() => {})}
+        onDebug={onDebug || (() => {})}
+        onStop={onStop || (() => {})}
+        onRetry={onRetry}
+        onSaveToDb={onSaveToDb}
+        onGenerateReport={onGenerateReport}
+        onExportReport={onExportReport}
+        canPersistToDb={canPersistToDb}
+        isGeneratingReport={isGeneratingReport}
+        isExportingPDF={isExportingPDF}
+        isSavingToDb={isSavingToDb}
+        hasGeneratedReport={hasGeneratedReport}
+        hasAIProvider={Boolean(aiProvider.apiKey)}
+      >
+        {children}
+      </PipelineLayoutContent>
 
       <DeletePipelineDialog
         open={showConfirmDialog}

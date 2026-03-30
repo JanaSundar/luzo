@@ -1,5 +1,6 @@
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
+import type { CompilePlanOutput } from "@/types/worker-results";
 import { cloneRuntimeRecord, cloneSnapshot } from "./pipeline-snapshot-utils";
 import type { Pipeline } from "@/types";
 import type {
@@ -37,6 +38,7 @@ export interface ControllerState {
   pipeline: Pipeline | null;
   envVars: Record<string, string>;
   compiledPlan: CompiledPipelinePlan | null;
+  compiledResult: CompilePlanOutput | null;
   layoutByStep: Map<string, DebugLayoutEntry>;
 }
 
@@ -58,6 +60,7 @@ export function createInitialState(): ControllerState {
     pipeline: null,
     envVars: {},
     compiledPlan: null,
+    compiledResult: null,
     layoutByStep: new Map(),
   };
 }

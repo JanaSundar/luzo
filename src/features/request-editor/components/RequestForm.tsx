@@ -1,9 +1,6 @@
 "use client";
 
-import { AnimatePresence } from "motion/react";
-import { type ReactNode, useMemo, useState } from "react";
-import { KeyValueEditor } from "@/components/playground/KeyValueEditor";
-import { AnimatedTabContent } from "@/components/ui/animated-tab-content";
+import { useMemo, useState } from "react";
 import { cn } from "@/utils";
 import type {
   ApiRequest,
@@ -19,12 +16,8 @@ import type {
   MockConfig,
 } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
-import { RequestAuthPanel } from "./RequestAuthPanel";
-import { RequestAsyncPanel } from "./RequestAsyncPanel";
 import { RequestFormTabs, type TabId } from "./RequestFormTabs";
-import { RequestScriptsPanel } from "./RequestScriptsPanel";
-import { RequestMockPanel } from "./RequestMockPanel";
-import { RequestBodyPanel } from "./RequestBodyPanel";
+import { RequestFormContent } from "./RequestFormContent";
 
 type RequestFormFields = Pick<
   ApiRequest,
@@ -80,19 +73,6 @@ interface RequestFormProps {
   disabledTabs?: TabId[];
   routingConfigured?: boolean;
   showRoutingTab?: boolean;
-}
-
-function TabPanel({
-  animate,
-  className,
-  children,
-}: {
-  animate: boolean;
-  className?: string;
-  children: ReactNode;
-}) {
-  if (animate) return <AnimatedTabContent className={className}>{children}</AnimatedTabContent>;
-  return <div className={cn("w-full min-w-0", className ?? "block")}>{children}</div>;
 }
 
 export function RequestForm({
@@ -161,110 +141,30 @@ export function RequestForm({
 
       {!showTabsOnly && (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/50 rounded-2xl border border-border/30 px-5 py-5 shadow-sm">
-          <AnimatePresence mode="wait">
-            {activeTab === "params" && (
-              <TabPanel
-                key="params"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <KeyValueEditor
-                  pairs={params}
-                  onChange={(u) => onChange({ params: u })}
-                  placeholder="Parameter"
-                  suggestions={suggestions}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "headers" && (
-              <TabPanel
-                key="headers"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <KeyValueEditor
-                  pairs={headers}
-                  onChange={(u) => onChange({ headers: u })}
-                  placeholder="Header"
-                  suggestions={suggestions}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "body" && (
-              <TabPanel
-                key="body"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <RequestBodyPanel
-                  body={body}
-                  bodyType={bodyType}
-                  formDataFields={formDataFields}
-                  suggestions={suggestions}
-                  onChange={onChange}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "auth" && (
-              <TabPanel
-                key="auth"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <RequestAuthPanel
-                  auth={auth}
-                  suggestions={suggestions}
-                  onChange={(u) => onChange({ auth: u })}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "scripts" && (
-              <TabPanel
-                key="scripts"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <RequestScriptsPanel
-                  preRequestEditorType={preRequestEditorType}
-                  postRequestEditorType={postRequestEditorType}
-                  testEditorType={testEditorType}
-                  preRequestRules={preRequestRules}
-                  postRequestRules={postRequestRules}
-                  testRules={testRules}
-                  preRequestScript={preRequestScript}
-                  postRequestScript={postRequestScript}
-                  testScript={testScript}
-                  onChange={onChange}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "async" && (
-              <TabPanel
-                key="async"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <RequestAsyncPanel
-                  pollingPolicy={pollingPolicy}
-                  webhookWaitPolicy={webhookWaitPolicy}
-                  onChange={onChange}
-                />
-              </TabPanel>
-            )}
-            {activeTab === "mock" && mockConfig && (
-              <TabPanel
-                key="mock"
-                animate={animateTabContent}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
-                <RequestMockPanel
-                  config={mockConfig}
-                  suggestions={suggestions}
-                  onChange={(u) => onChange({ mockConfig: u })}
-                />
-              </TabPanel>
-            )}
-          </AnimatePresence>
+          <RequestFormContent
+            activeTab={activeTab}
+            animateTabContent={animateTabContent}
+            auth={auth}
+            body={body}
+            bodyType={bodyType}
+            formDataFields={formDataFields}
+            headers={headers}
+            mockConfig={mockConfig}
+            params={params}
+            pollingPolicy={pollingPolicy}
+            postRequestEditorType={postRequestEditorType}
+            postRequestRules={postRequestRules}
+            postRequestScript={postRequestScript}
+            preRequestEditorType={preRequestEditorType}
+            preRequestRules={preRequestRules}
+            preRequestScript={preRequestScript}
+            suggestions={suggestions}
+            testEditorType={testEditorType}
+            testRules={testRules}
+            testScript={testScript}
+            webhookWaitPolicy={webhookWaitPolicy}
+            onChange={onChange}
+          />
         </div>
       )}
     </div>

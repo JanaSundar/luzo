@@ -6,6 +6,7 @@ import type {
   StepSnapshot,
 } from "@/types/pipeline-runtime";
 import type { CompiledPipelineNode } from "@/types/workflow";
+import { buildExecutionPipelineFromCompileOutput } from "@/features/workflow/pipeline-adapters";
 import { cloneRuntimeVariables, type GeneratorOptions } from "./generator-executor-shared";
 import {
   isTerminalStepEvent,
@@ -25,8 +26,12 @@ export async function* createPipelineGenerator(
   envVariables: Record<string, string>,
   options: GeneratorOptions,
 ): PipelineRuntime {
-  const compiledPlan = await resolveCompiledPlan(pipeline, options.compiledPlan);
-  if (!compiledPlan) return;
+  const compiled =
+    options.compiledResult ?? (await resolveCompiledPlan(pipeline, options.compiledPlan));
+  if (!compiled) return;
+  const compiledPlan = "plan" in compiled ? compiled.plan : compiled;
+  const executionPipeline =
+    "plan" in compiled ? buildExecutionPipelineFromCompileOutput(pipeline, compiled) : pipeline;
 
   yield {
     type: "execution_started",
@@ -34,7 +39,7 @@ export async function* createPipelineGenerator(
     totalSteps: compiledPlan.order.length,
   } satisfies PipelineExecutionEvent;
 
-  const stepMap = new Map(pipeline.steps.map((step) => [step.id, step] as const));
+  const stepMap = new Map(executionPipeline.steps.map((step) => [step.id, step] as const));
   const aliasMap = new Map(compiledPlan.aliases.map((alias) => [alias.stepId, alias]));
   const planNodeMap = new Map<string, CompiledPipelineNode>(
     compiledPlan.nodes.map((node) => [node.nodeId, node]),

@@ -5,6 +5,7 @@ import type { VariableSuggestion } from "@/types/pipeline-debug";
 import { useEffect, useState } from "react";
 import { analysisWorkerClient } from "@/workers/client/analysis-client";
 import type { Result } from "@/types/worker-results";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 export {
   filterSuggestions,
   getAutocompleteSuggestions,
@@ -19,6 +20,7 @@ export function useVariableSuggestions(
 ): VariableSuggestion[] {
   const [suggestions, setSuggestions] = useState<VariableSuggestion[]>([]);
   const clientId = useState(() => crypto.randomUUID())[0];
+  const subflowDefinitions = usePipelineStore((state) => state.subflowDefinitions);
 
   useEffect(() => {
     let active = true;
@@ -29,6 +31,7 @@ export function useVariableSuggestions(
           currentStepId,
           envVars,
           executionContext,
+          subflowDefinitions,
         })) as Result<VariableSuggestion[]>;
         return result;
       })
@@ -42,7 +45,7 @@ export function useVariableSuggestions(
     return () => {
       active = false;
     };
-  }, [pipeline, currentStepId, envVars, executionContext]);
+  }, [pipeline, currentStepId, envVars, executionContext, subflowDefinitions]);
 
   return suggestions;
 }

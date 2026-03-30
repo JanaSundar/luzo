@@ -5,27 +5,30 @@ import type { PipelineExecutionEvent } from "@/types/pipeline-runtime";
 import type { CompilePlanOutput, Result } from "@/types/worker-results";
 import type { CompiledPipelineNode, CompiledPipelinePlan } from "@/types/workflow";
 import { graphWorkerClient } from "@/workers/client/graph-client";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
 
 export async function resolveCompiledPlan(
   pipeline: Pipeline,
   cachedPlan?: CompiledPipelinePlan,
-): Promise<CompiledPipelinePlan | null> {
+): Promise<CompilePlanOutput | CompiledPipelinePlan | null> {
   if (cachedPlan) return cachedPlan;
 
   const bundle = buildWorkflowBundleFromPipeline(pipeline);
+  const subflowDefinitions = usePipelineStore.getState().subflowDefinitions;
   const res = await graphWorkerClient.callLatest<Result<CompilePlanOutput>>(
     "pipeline-compilation",
     async (api) =>
       api.compileExecutionPlan({
         workflow: bundle.workflow,
         registry: bundle.registry,
+        subflowDefinitions,
       }),
   );
 
   if (!res?.ok) return null;
   if (res.data.warnings.some((warning) => warning.severity === "error")) return null;
-  return res.data.plan;
+  return res.data;
 }
 
 export function primeRuntimeState(

@@ -1,5 +1,6 @@
 import type { executeRequest } from "@/app/actions/api-tests";
 import type { PipelineStep } from "@/types";
+import type { CompilePlanOutput } from "@/types/worker-results";
 import type { CompiledPipelinePlan } from "@/types/workflow";
 import type {
   PipelineExecutionEvent,
@@ -29,6 +30,7 @@ export interface GeneratorOptions {
   abortControls: Map<string, StepAbortControl>;
   masterAbort: AbortController;
   compiledPlan?: CompiledPipelinePlan;
+  compiledResult?: CompilePlanOutput;
   startStepId?: string;
   initialRuntimeVariables?: Record<string, unknown>;
   useStream?: boolean;
