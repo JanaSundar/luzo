@@ -37,16 +37,16 @@ export function PipelineBuilderHeader({
         <Button
           onClick={onAddRequest}
           variant="outline"
-          className="h-9 gap-2 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
+          className="h-7 gap-1.5 rounded-full border-border/60 bg-background px-3 text-xs font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           Add Request
         </Button>
         <TemplateBrowserDialog
-          className="h-9 gap-2 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
+          className="h-7 gap-1.5 rounded-full border-border/60 bg-background px-3 text-xs font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
           trigger={
             <>
-              <LayoutTemplate className="h-4 w-4" />
+              <LayoutTemplate className="h-3.5 w-3.5" />
               Use Template
             </>
           }
@@ -118,7 +118,7 @@ export function PipelineBuilderInspector({
       transition={{ type: "spring", stiffness: 300, damping: 35 }}
       className="relative h-full shrink-0 overflow-hidden"
     >
-      <div className="absolute inset-y-0 right-0 w-[500px] xl:w-[600px]">
+      <div className="h-full w-[min(600px,45dvw)]">
         <PipelineSideInspector
           pipelineId={pipeline.id}
           stepId={selectedNodeId}

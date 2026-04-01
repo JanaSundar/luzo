@@ -1,14 +1,17 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { GitBranch, AlertTriangle, Trash2 } from "lucide-react";
 import { PipelineRoutingPanel } from "@/components/pipelines/PipelineRoutingPanel";
 import { PipelineBadge } from "@/components/pipelines/PipelineBadge";
 import { RequestMockPanel } from "@/features/request-editor/components/RequestMockPanel";
+import { ConditionNodeInspector } from "@/features/pipelines/components/ConditionNodeInspector";
 import type { RequestRouteDisplay, RequestRouteOption } from "@/features/pipeline/request-routing";
 import type { MockConfig } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import type { TimelineEvent } from "@/types/timeline-event";
 import type { VariableReferenceEdge } from "@/types/worker-results";
+import type { ConditionNodeConfig, FlowNodeRecord } from "@/types/workflow";
+import { Button } from "@/components/ui/button";
 
 interface PipelineInspectorRoutingSectionProps {
   runtimeRoute: TimelineEvent | null;
@@ -18,9 +21,14 @@ interface PipelineInspectorRoutingSectionProps {
   successTarget: string | null;
   failureDisplay: RequestRouteDisplay;
   failureTarget: string | null;
+  connectedConditionNode: FlowNodeRecord | null;
+  suggestions: VariableSuggestion[];
   onReset: () => void;
   onSuccessChange: (value: string | null) => void;
   onFailureChange: (value: string | null) => void;
+  onAddCondition: () => void;
+  onConditionChange: (config: ConditionNodeConfig) => void;
+  onRemoveCondition: () => void;
 }
 
 interface PipelineInspectorMockSectionProps {
@@ -44,42 +52,90 @@ export function PipelineInspectorRoutingSection({
   successTarget,
   failureDisplay,
   failureTarget,
+  connectedConditionNode,
+  suggestions,
   onReset,
   onSuccessChange,
   onFailureChange,
+  onAddCondition,
+  onConditionChange,
+  onRemoveCondition,
 }: PipelineInspectorRoutingSectionProps) {
-  return (
-    <div className="space-y-4">
-      {(runtimeRoute || runtimeSkipped) && (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            Runtime Routing
-          </p>
-          {runtimeRoute?.routeSemantics ? (
-            <p className="mt-2 text-sm text-foreground">
-              Chosen route:{" "}
-              <span className="font-semibold uppercase">{runtimeRoute.routeSemantics}</span>
-            </p>
-          ) : null}
-          {runtimeSkipped?.targetStepId ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Skipped target: {runtimeSkipped.targetStepId} ({runtimeSkipped.skippedReason})
-            </p>
-          ) : null}
-        </div>
-      )}
+  const conditionConfig =
+    connectedConditionNode?.config?.kind === "condition"
+      ? (connectedConditionNode.config as ConditionNodeConfig)
+      : null;
 
-      <div className="rounded-2xl border border-border/40 bg-background/70 p-5 shadow-sm">
-        <PipelineRoutingPanel
-          options={routeOptions}
-          successDisplay={successDisplay}
-          successTarget={successTarget}
-          failureDisplay={failureDisplay}
-          failureTarget={failureTarget}
-          onReset={onReset}
-          onSuccessChange={onSuccessChange}
-          onFailureChange={onFailureChange}
-        />
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="space-y-4 p-1">
+        {(runtimeRoute || runtimeSkipped) && (
+          <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Runtime Routing
+            </p>
+            {runtimeRoute?.routeSemantics ? (
+              <p className="mt-2 text-sm text-foreground">
+                Chosen route:{" "}
+                <span className="font-semibold uppercase">{runtimeRoute.routeSemantics}</span>
+              </p>
+            ) : null}
+            {runtimeSkipped?.targetStepId ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Skipped target: {runtimeSkipped.targetStepId} ({runtimeSkipped.skippedReason})
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-border/40 bg-background/70 p-5 shadow-sm">
+          <PipelineRoutingPanel
+            options={routeOptions}
+            successDisplay={successDisplay}
+            successTarget={successTarget}
+            failureDisplay={failureDisplay}
+            failureTarget={failureTarget}
+            onReset={onReset}
+            onSuccessChange={onSuccessChange}
+            onFailureChange={onFailureChange}
+          />
+        </div>
+
+        <div className="rounded-2xl border border-border/40 bg-background/70 p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+              <p className="text-sm font-semibold text-foreground">If / Else Condition</p>
+            </div>
+            {conditionConfig ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                onClick={onRemoveCondition}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
+          </div>
+          {conditionConfig ? (
+            <ConditionNodeInspector
+              config={conditionConfig}
+              suggestions={suggestions}
+              trueTarget={null}
+              falseTarget={null}
+              onChange={onConditionChange}
+            />
+          ) : (
+            <button
+              onClick={onAddCondition}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <GitBranch className="h-4 w-4" />
+              Add if / else condition
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -69,6 +69,7 @@ export interface StepSnapshot {
   highlightPath?: string;
   subflowSource?: ExpandedNodeOrigin;
   timelineEvents?: TimelineEvent[];
+  conditionResult?: { result: boolean; resolvedInputs: Record<string, unknown> };
 }
 
 export interface DebugRuntimeState {
@@ -172,6 +173,12 @@ export type GeneratorYield =
     }
   | { type: "step_completed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
   | { type: "step_failed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
+  | {
+      type: "condition_evaluated";
+      snapshot: StepSnapshot;
+      result: boolean;
+      runtimeVariables: Record<string, unknown>;
+    }
   | { type: "execution_completed"; completedAt: number }
   | { type: "execution_interrupted"; completedAt: number; reason: string };
 

@@ -23,7 +23,7 @@ export function createDefaultNodeConfig(kind: WorkflowNodeKind): FlowNodeConfig 
     case "start":
       return { kind, label: "Start" };
     case "condition":
-      return { kind, label: "Condition", expression: "" };
+      return { kind, label: "Condition", rules: [], expression: "" };
     case "delay":
       return { kind, label: "Delay", durationMs: 1000 };
     case "transform":

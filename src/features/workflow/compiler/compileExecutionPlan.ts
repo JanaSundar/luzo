@@ -61,6 +61,69 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
           severity: "error",
         });
       }
+
+      const trueEdges = outgoing.filter((edge) => edge.semantics === "true");
+      const falseEdges = outgoing.filter((edge) => edge.semantics === "false");
+      if (trueEdges.length > 0 || falseEdges.length > 0) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Request node "${node.id}" cannot use true/false edges — use a condition node instead`,
+          severity: "error",
+        });
+      }
+    }
+
+    if (node.kind === "condition") {
+      const outgoing = outgoingByNode.get(node.id) ?? [];
+      const trueEdges = outgoing.filter((edge) => edge.semantics === "true");
+      const falseEdges = outgoing.filter((edge) => edge.semantics === "false");
+      const config = node.config?.kind === "condition" ? node.config : null;
+
+      if (trueEdges.length === 0 && falseEdges.length === 0) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Condition node "${node.id}" has no true or false edges`,
+          severity: "error",
+        });
+      }
+
+      if (trueEdges.length > 1) {
+        warnings.push({
+          stepId: node.id,
+          field: "true",
+          message: `Condition node "${node.id}" has multiple true branches`,
+          severity: "error",
+        });
+      }
+
+      if (falseEdges.length > 1) {
+        warnings.push({
+          stepId: node.id,
+          field: "false",
+          message: `Condition node "${node.id}" has multiple false branches`,
+          severity: "error",
+        });
+      }
+
+      if (config && (config.rules?.length ?? 0) === 0 && !config.expression) {
+        warnings.push({
+          stepId: node.id,
+          field: "expression",
+          message: `Condition node "${node.id}" has no rules and no expression`,
+          severity: "error",
+        });
+      }
+
+      if (expanded.workflow.entryNodeIds.includes(node.id)) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Condition node "${node.id}" cannot be an entry node`,
+          severity: "error",
+        });
+      }
     }
 
     if (node.kind === "subflow") {
@@ -99,6 +162,12 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
       failure: runtimeRoutes
         .filter((route) => route.semantics === "failure")
         .map((route) => route.targetId),
+      true: runtimeRoutes
+        .filter((route) => route.semantics === "true")
+        .map((route) => route.targetId),
+      false: runtimeRoutes
+        .filter((route) => route.semantics === "false")
+        .map((route) => route.targetId),
     };
     return {
       nodeId,
@@ -110,6 +179,10 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
       downstreamIds,
       entry: entryNodeIds.includes(nodeId),
       requestRef: workflowNode?.requestRef,
+      conditionConfig:
+        workflowNode?.kind === "condition" && workflowNode.config?.kind === "condition"
+          ? workflowNode.config
+          : undefined,
       routes: routeTargets,
       runtimeRoutes,
       branch: inferBranch(workflowNode?.kind, outgoing),
@@ -144,7 +217,11 @@ function inferBranch(
   kind: CompiledPipelineNode["kind"] | undefined,
   outgoing: Array<{ semantics: string }>,
 ) {
-  if (kind === "condition" && outgoing.length >= 2) {
+  if (kind === "condition") {
+    const hasTrue = outgoing.some((edge) => edge.semantics === "true");
+    const hasFalse = outgoing.some((edge) => edge.semantics === "false");
+    if (hasTrue) return { mode: "true" as const };
+    if (hasFalse) return { mode: "false" as const };
     return { mode: "all" as const };
   }
   if (kind === "request" && outgoing.some((edge) => edge.semantics === "failure")) {

@@ -63,6 +63,7 @@ describe("pipeline canvas flow migration", () => {
             config: {
               kind: "condition",
               label: "Check status",
+              rules: [],
               expression: "response.status === 200",
             },
           },
@@ -126,7 +127,7 @@ describe("pipeline execution support", () => {
           { x: 620, y: 0 },
           {
             id: "cond-1",
-            config: { kind: "condition", label: "Branch", expression: "true" },
+            config: { kind: "condition", label: "Branch", rules: [], expression: "true" },
           },
         ),
       ],

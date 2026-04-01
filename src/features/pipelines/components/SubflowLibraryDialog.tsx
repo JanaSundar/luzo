@@ -57,11 +57,11 @@ export function SubflowLibraryDialog({
           <Button
             variant="outline"
             className={cn(
-              "h-9 gap-2 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50",
+              "h-7 gap-1.5 rounded-full border-border/60 bg-background px-3 text-xs font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50",
               className,
             )}
           >
-            <Waypoints className="h-4 w-4" />
+            <Waypoints className="h-3.5 w-3.5" />
             Use Subflow
           </Button>
         }

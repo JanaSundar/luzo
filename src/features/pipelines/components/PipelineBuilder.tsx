@@ -139,7 +139,7 @@ export function PipelineBuilder({
       {/* Main Builder Area */}
       <motion.div
         layout
-        transition={{ layout: { type: "spring", stiffness: 300, damping: 35 } }}
+        transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
         className="flex h-full min-w-0 flex-1 flex-col overflow-hidden"
       >
         <PipelineBuilderHeader
@@ -231,7 +231,7 @@ export function PipelineBuilder({
                         value={step}
                         layout="position"
                         transition={{
-                          layout: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+                          layout: { type: "spring", stiffness: 400, damping: 40, mass: 0.8 },
                         }}
                         data-step-id={step.id}
                         className={cn(

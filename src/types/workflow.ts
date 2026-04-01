@@ -1,4 +1,4 @@
-import type { ApiRequest } from "./index";
+import type { ApiRequest, ConditionRule } from "./index";
 import type { TimelineEvent, TimelineEventStatus } from "./timeline-event";
 
 export type WorkflowNodeKind =
@@ -26,6 +26,9 @@ export interface RequestNodeConfig {
 export interface ConditionNodeConfig {
   kind: "condition";
   label: string;
+  /** Simple mode: evaluated AND-style. Empty array = evaluate expression instead. */
+  rules: ConditionRule[];
+  /** Advanced mode: JS expression that must return truthy. Ignored when rules is non-empty. */
   expression: string;
 }
 
@@ -222,10 +225,14 @@ export interface CompiledPipelineNode {
   downstreamIds: string[];
   entry: boolean;
   requestRef?: string;
+  /** Present only when kind === "condition". Carries the evaluated config at compile time. */
+  conditionConfig?: ConditionNodeConfig;
   routes: {
     control: string[];
     failure: string[];
     success: string[];
+    true: string[];
+    false: string[];
   };
   runtimeRoutes: RuntimeRoute[];
   branch?: { mode: "all" | "true" | "false" | "success" | "failure" };

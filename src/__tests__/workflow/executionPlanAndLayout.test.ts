@@ -61,6 +61,8 @@ describe("execution plan compilation", () => {
       control: [],
       success: ["req2"],
       failure: ["req3"],
+      true: [],
+      false: [],
     });
   });
 

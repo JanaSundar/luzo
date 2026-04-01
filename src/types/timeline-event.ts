@@ -13,6 +13,7 @@ export type TimelineEventStatus =
 
 export type TimelineEventKind =
   | "request"
+  | "condition_evaluated"
   | "route_selected"
   | "step_skipped"
   | "poll_attempt"

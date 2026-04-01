@@ -5,6 +5,11 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
 import { updateRequestRouteTargets } from "@/features/pipeline/request-routing";
+import {
+  createFlowEdge,
+  createFlowNodeRecord,
+  createDefaultNodeConfig,
+} from "@/features/pipeline/canvas-flow";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
@@ -99,6 +104,18 @@ export function PipelineSideInspector({
     failureDisplay,
   } = usePipelineSideInspectorState({ pipeline, stepId, syncGeneration });
 
+  // Derive connected condition node here (above all early returns) to satisfy hooks rules.
+  const connectedConditionNode = useMemo(() => {
+    const doc = pipeline?.flowDocument;
+    if (!doc) return null;
+    const edge = doc.edges.find(
+      (e) =>
+        e.source === stepId && doc.nodes.some((n) => n.id === e.target && n.kind === "condition"),
+    );
+    if (!edge) return null;
+    return doc.nodes.find((n) => n.id === edge.target) ?? null;
+  }, [pipeline?.flowDocument, stepId]);
+
   if (!selectedNode) return null;
   if (selectedNode.kind === "subflow" && selectedNode.config?.kind === "subflow") {
     const subflowConfig = selectedNode.config;
@@ -153,7 +170,8 @@ export function PipelineSideInspector({
   if (!step) return null;
 
   const isBodyDisabled = step.method === "GET" || step.method === "HEAD";
-  const routingConfigured = routeTargets.success != null || routeTargets.failure != null;
+  const routingConfigured =
+    routeTargets.success != null || routeTargets.failure != null || connectedConditionNode != null;
 
   const sectionItems: PipelineInspectorSectionItem[] = [
     { id: "request", label: "Request", detail: "" },
@@ -256,6 +274,46 @@ export function PipelineSideInspector({
                 successTarget={routeTargets.success}
                 failureDisplay={failureDisplay}
                 failureTarget={routeTargets.failure}
+                connectedConditionNode={connectedConditionNode}
+                suggestions={suggestions}
+                onAddCondition={() => {
+                  const doc = pipeline.flowDocument!;
+                  const sourceNode = doc.nodes.find((n) => n.id === stepId);
+                  const pos = sourceNode?.position
+                    ? { x: sourceNode.position.x + 320, y: sourceNode.position.y }
+                    : { x: 640, y: 200 };
+                  const condNode = createFlowNodeRecord("condition", pos, {
+                    config: createDefaultNodeConfig("condition"),
+                  });
+                  const edge = createFlowEdge(stepId, condNode.id, "control");
+                  replaceFlowDocument(pipelineId, {
+                    ...doc,
+                    nodes: [...doc.nodes, condNode],
+                    edges: [...doc.edges, edge],
+                  });
+                }}
+                onConditionChange={(nextConfig) =>
+                  replaceFlowDocument(pipelineId, {
+                    ...pipeline.flowDocument!,
+                    nodes: pipeline.flowDocument!.nodes.map((n) =>
+                      n.id === connectedConditionNode?.id ? { ...n, config: nextConfig } : n,
+                    ),
+                  })
+                }
+                onRemoveCondition={() => {
+                  if (!connectedConditionNode) return;
+                  replaceFlowDocument(pipelineId, {
+                    ...pipeline.flowDocument!,
+                    nodes: pipeline.flowDocument!.nodes.filter(
+                      (n) => n.id !== connectedConditionNode.id,
+                    ),
+                    edges: pipeline.flowDocument!.edges.filter(
+                      (e) =>
+                        e.source !== connectedConditionNode.id &&
+                        e.target !== connectedConditionNode.id,
+                    ),
+                  });
+                }}
                 onReset={() =>
                   replaceFlowDocument(
                     pipelineId,

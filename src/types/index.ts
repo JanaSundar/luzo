@@ -55,6 +55,18 @@ export interface TestRule {
   value?: string;
 }
 
+/**
+ * A condition rule for condition nodes.
+ * `valueRef` is a dot-path into runtimeVariables or env (e.g. "req1.response.status", "env.TOKEN").
+ * Reuses the same operator set as TestRule for consistency.
+ */
+export interface ConditionRule {
+  id: string;
+  valueRef: string;
+  operator: TestRule["operator"];
+  value?: string;
+}
+
 export interface PollingPolicy {
   enabled: boolean;
   intervalMs: number;
