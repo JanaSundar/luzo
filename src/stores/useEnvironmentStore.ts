@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import { isSensitiveVariableKey } from "@/utils/variableMetadata";
 import type { Environment, EnvironmentSource, EnvironmentVariable, KeyValuePair } from "@/types";
 
@@ -153,7 +154,7 @@ export const useEnvironmentStore = create<EnvironmentState>()(
     })),
     {
       name: ENVIRONMENT_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => createIndexedDbStorage({ dbName: ENVIRONMENT_STORAGE_KEY })),
       partialize: (s) => ({
         environments: sanitizeEnvironmentsForPersistence(s.environments),
         activeEnvironmentId: s.activeEnvironmentId,

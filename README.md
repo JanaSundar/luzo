@@ -6,6 +6,8 @@ Luzo is a developer and QA-centric API workflow builder for designing, running, 
 
 Luzo treats API calls as steps in a larger execution graph. It gives you a place to chain requests, pass data between them, inspect execution as it happens, and debug failures without losing the state of the workflow.
 
+Recent additions include variable lineage visibility across the builder and debugger, inline dependency diagnostics in request editing, and runtime lineage inspection inside the execution timeline.
+
 ---
 
 ## Screenshots
@@ -74,10 +76,14 @@ Build workflows, not just isolated calls.
 
 - Dependency-aware pipeline builder with step references like `{{req1.response.body.token}}`
 - Reorder-safe positional aliases so `req1`, `req2`, and related references stay correct when steps move
+- Variable lineage analysis that shows which upstream step produced a value and which downstream steps consume it
+- Request inspector lineage view with incoming references, downstream consumers, and unresolved dependency warnings
+- Inline dependency hints in request editing for headers, auth, and body fields that consume upstream variables
 - DAG validation to keep execution order explicit and deterministic
 - Stage-aware planning for sequential dependencies and independent parallel work
 - Per-request success and failure routing from the pipeline inspector
 - Explicit success and failure routes take precedence over fallback sequential control edges
+- Mock-mode request editing for response status, latency, and payload testing inside pipelines
 - Real-time execution stream tied directly to the selected pipeline
 
 ### Live execution timeline
@@ -87,8 +93,19 @@ Debug with a timeline instead of a flat log.
 - Inspect execution event by event as the workflow runs
 - Track active, paused, completed, failed, skipped, and retried states
 - Open per-step details for request, response, error, timing, and payload metadata
+- Inspect a dedicated lineage tab for each executed request to see referenced variables, resolved runtime values, and passed-through request values
+- Reveal sensitive lineage values on demand in the debugger instead of exposing them by default
 - Resume debugging with persisted execution artifacts and timeline state
 - Retry from the Response Stream page using the run's original mode, including debug-originated runs
+
+### Dependency visibility
+
+Understand data flow without digging through raw payloads.
+
+- Trace a variable reference back to the exact request and response path that produced it
+- See unresolved aliases, invalid paths, and forward references before execution
+- Surface upstream and downstream dependency counts directly in the builder
+- Reuse the same lineage analysis in the builder inspector, request editor, and execution debugger
 
 ### Collections to pipelines
 
@@ -108,6 +125,14 @@ Step through execution with control.
 - Preserve the original run mode on retry, so debug runs retry in debug even after Continue
 - Async-generator based controller loop for deterministic UI synchronization
 - Parallel stage execution without breaking variable dependency flow
+
+### Reuse foundations
+
+Prepare workflows for reusable building blocks without changing execution semantics.
+
+- Workflow types now include subflow nodes and pinned subflow metadata
+- The compiler currently guards unexpanded subflow nodes to keep runtime behavior deterministic
+- This groundwork keeps the flat execution plan intact while preparing for reusable subflows later
 
 ### BYOK and BYODB
 
@@ -266,7 +291,7 @@ src/
 ├── stores/               # Zustand stores (playground, pipeline, timeline, …)
 ├── types/                # Shared TypeScript types
 ├── utils/                # Pure utility functions
-├── workers/              # Web Worker clients (JSON processing, …)
+├── workers/              # Web Worker clients (timeline, analysis, JSON processing, …)
 └── __tests__/            # Unit and component tests (Vitest)
 ```
 

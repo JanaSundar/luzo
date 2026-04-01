@@ -17,6 +17,7 @@ import {
 import { cn } from "@/utils";
 import { SelectionToolbar } from "./SelectionToolbar";
 import type { SelectionOverlayState } from "./types";
+import { EditorCardHeader } from "./EditorCardHeader";
 
 interface EditorCardProps {
   title: string;
@@ -193,25 +194,12 @@ export function EditorCard({
 
   return (
     <section className="group relative overflow-visible rounded-[1.5rem] px-2 py-2 transition-colors hover:bg-muted/10">
-      <div className="flex items-center gap-3 px-3 pb-2">
-        {dragHandle ? (
-          <div className="flex h-8 items-center opacity-55 transition-opacity group-hover:opacity-100">
-            {dragHandle}
-          </div>
-        ) : null}
-        <div className="min-w-0 flex-1">
-          {titleEditor ? (
-            titleEditor
-          ) : (
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
-              {title}
-            </p>
-          )}
-          {description ? (
-            <p className="mt-1 text-xs font-mono text-muted-foreground">{description}</p>
-          ) : null}
-        </div>
-      </div>
+      <EditorCardHeader
+        title={title}
+        description={description}
+        titleEditor={titleEditor}
+        dragHandle={dragHandle}
+      />
 
       <div className="relative rounded-[1.35rem] bg-transparent transition-colors group-focus-within:bg-muted/5">
         <EditorContent

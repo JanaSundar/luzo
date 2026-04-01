@@ -1,7 +1,7 @@
 import { DEFAULT_PROMPTS } from "@/features/pipeline/ai-constants";
 import { ensurePipelineFlowDocument } from "@/features/pipeline/canvas-flow";
 import type { Pipeline, PipelineStep } from "@/types";
-import type { CompilePlanInput } from "@/types/worker-results";
+import type { CompilePlanInput, CompilePlanOutput } from "@/types/worker-results";
 import type { RequestRegistry, WorkflowBundle, WorkflowDefinition } from "@/types/workflow";
 
 export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBundle {
@@ -24,18 +24,19 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
     ),
   };
 
-  const requestNodes = flow.nodes.filter((node) => node.kind === "request");
-  const requestNodeIds = new Set(requestNodes.map((node) => node.id));
+  const executableNodes = flow.nodes.filter((node) => node.kind !== "start");
+  const requestNodes = executableNodes.filter((node) => node.kind === "request");
+  const executableNodeIds = new Set(executableNodes.map((node) => node.id));
   const nodeIdByRequestRef = new Map(
     requestNodes.map((node) => [node.requestRef ?? node.dataRef ?? node.id, node.id]),
   );
 
   const requestEdges = flow.edges
     .map((edge) => {
-      const sourceId = requestNodeIds.has(edge.source)
+      const sourceId = executableNodeIds.has(edge.source)
         ? edge.source
         : nodeIdByRequestRef.get(edge.source);
-      const targetId = requestNodeIds.has(edge.target)
+      const targetId = executableNodeIds.has(edge.target)
         ? edge.target
         : nodeIdByRequestRef.get(edge.target);
 
@@ -66,18 +67,21 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
     createdAt: pipeline.createdAt,
     updatedAt: pipeline.updatedAt,
     requestRegistryId: registry.id,
-    entryNodeIds: requestNodes
+    entryNodeIds: executableNodes
       .filter((node) => (incomingRequestEdges.get(node.id) ?? 0) === 0)
       .map((node) => node.id),
-    nodes: requestNodes.map((node) => ({
+    nodes: executableNodes.map((node) => ({
       id: node.id,
-      kind: "request",
-      requestRef: node.requestRef ?? node.dataRef ?? node.id,
+      kind: node.kind,
+      requestRef:
+        node.kind === "request" ? (node.requestRef ?? node.dataRef ?? node.id) : undefined,
       configRef: node.requestRef ?? node.dataRef ?? node.id,
       config: node.config,
-      source: pipeline.steps.find(
-        (step) => step.id === (node.requestRef ?? node.dataRef ?? node.id),
-      )?.requestSource,
+      source:
+        node.kind === "request"
+          ? pipeline.steps.find((step) => step.id === (node.requestRef ?? node.dataRef ?? node.id))
+              ?.requestSource
+          : undefined,
     })),
     edges: normalizedRequestEdges.map((edge) => ({ ...edge })),
   };
@@ -113,5 +117,34 @@ export function buildPipelineFromRegistry(
     },
     createdAt: workflow.createdAt ?? new Date().toISOString(),
     updatedAt: workflow.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+export function buildExecutionPipelineFromCompileOutput(
+  sourcePipeline: Pipeline,
+  compiled: CompilePlanOutput,
+): Pipeline {
+  const expandedRegistry = compiled.expandedRegistry;
+  if (!expandedRegistry) {
+    return sourcePipeline;
+  }
+  const steps = compiled.plan.order
+    .map((nodeId) => compiled.plan.nodes.find((node) => node.nodeId === nodeId))
+    .filter((node): node is NonNullable<typeof node> => Boolean(node))
+    .filter((node) => node.kind === "request" && Boolean(node.requestRef))
+    .map((node) => {
+      const request = expandedRegistry.requests[node.requestRef ?? ""];
+      return {
+        ...request,
+        id: node.nodeId,
+        name: request?.name ?? node.nodeId,
+        requestSource: { mode: "detached" as const },
+        subflowSource: node.origin,
+      } satisfies PipelineStep;
+    });
+
+  return {
+    ...sourcePipeline,
+    steps,
   };
 }

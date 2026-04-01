@@ -1,6 +1,6 @@
-import { buildAliasesFromSteps } from "@/features/pipeline/step-aliases";
 import { collectStepDependencies } from "@/features/pipeline/template-dependencies";
 import { flattenObject } from "@/features/pipeline/variable-resolver";
+import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
 import type {
   AnalyzeVariablesInput,
   LineageResolutionStatus,
@@ -20,8 +20,11 @@ import {
 } from "./lineageIndexHelpers";
 
 export function buildLineageIndex(input: AnalyzeVariablesInput): VariableAnalysisOutput {
-  const pipeline = buildPipelineFromRegistry(input.workflow, input.registry);
-  const aliases = buildAliasesFromSteps(pipeline.steps);
+  const compiled = compileExecutionPlan(input);
+  const workflow = compiled.expandedWorkflow ?? input.workflow;
+  const registry = compiled.expandedRegistry ?? input.registry;
+  const pipeline = buildPipelineFromRegistry(workflow, registry);
+  const aliases = compiled.aliases;
   const aliasByRef = new Map<string, (typeof aliases)[number]>();
   const aliasIndexByStepId = new Map<string, number>();
 

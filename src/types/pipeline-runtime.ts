@@ -1,5 +1,6 @@
 import type { HttpMethod } from ".";
 import type { TimelineEvent } from "./timeline-event";
+import type { ExpandedNodeOrigin } from "./workflow";
 
 export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error" | "done";
 
@@ -66,7 +67,9 @@ export interface StepSnapshot {
   streamStatus: StreamStatus;
   streamChunks: string[];
   highlightPath?: string;
+  subflowSource?: ExpandedNodeOrigin;
   timelineEvents?: TimelineEvent[];
+  conditionResult?: { result: boolean; resolvedInputs: Record<string, unknown> };
 }
 
 export interface DebugRuntimeState {
@@ -170,6 +173,12 @@ export type GeneratorYield =
     }
   | { type: "step_completed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
   | { type: "step_failed"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
+  | {
+      type: "condition_evaluated";
+      snapshot: StepSnapshot;
+      result: boolean;
+      runtimeVariables: Record<string, unknown>;
+    }
   | { type: "execution_completed"; completedAt: number }
   | { type: "execution_interrupted"; completedAt: number; reason: string };
 

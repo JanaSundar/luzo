@@ -99,6 +99,11 @@ export function snapshotToTimelineEvent(
     terminalReason: null,
     summary: null,
     metadata: null,
+    subflowInstanceId: snapshot.subflowSource?.subflowInstanceId ?? null,
+    subflowDefinitionId: snapshot.subflowSource?.subflowDefinitionId ?? null,
+    subflowDefinitionVersion: snapshot.subflowSource?.subflowDefinitionVersion ?? null,
+    subflowName: snapshot.subflowSource?.subflowName ?? null,
+    subflowDepth: snapshot.subflowSource?.subflowDepth ?? null,
 
     stageIndex,
     branchId: isParallel ? `stage-${stageIndex}` : null,
@@ -155,6 +160,70 @@ export function snapshotsToTimelineEvents(
     const planNode = planNodeById.get(snapshot.stepId);
     if (!planNode) continue;
 
+    // ── Condition node: emit condition_evaluated + skipped-path events ──
+    if (planNode.kind === "condition" && snapshot.conditionResult != null) {
+      const { result } = snapshot.conditionResult;
+      const takenTarget = result ? planNode.routes.true[0] : planNode.routes.false[0];
+      const skippedTarget = result ? planNode.routes.false[0] : planNode.routes.true[0];
+      const takenSemantics = result ? ("true" as const) : ("false" as const);
+      const skippedSemantics = result ? ("false" as const) : ("true" as const);
+      const sourceEvent = baseEvents.find((event) => event.stepId === snapshot.stepId);
+      if (!sourceEvent) continue;
+
+      baseEvents.push({
+        ...sourceEvent,
+        eventId: `${executionId}:${snapshot.stepId}:condition:${takenSemantics}`,
+        eventKind: "condition_evaluated",
+        stepId: snapshot.stepId,
+        stepName: snapshot.stepName,
+        sourceStepId: snapshot.stepId,
+        targetStepId: takenTarget ?? null,
+        routeSemantics: takenSemantics,
+        lineagePath: `${snapshot.stepId}:${takenSemantics}:${takenTarget}`,
+        outcome: "selected",
+        terminalReason: result
+          ? `Condition resolved true — following true path${takenTarget ? ` to ${takenTarget}` : ""}`
+          : `Condition resolved false — following false path${takenTarget ? ` to ${takenTarget}` : ""}`,
+        metadata: { resolvedInputs: snapshot.conditionResult.resolvedInputs },
+        sequenceNumber: sourceEvent.sequenceNumber + 0.1,
+        inputSnapshot: null,
+        outputSnapshot: null,
+        errorSnapshot: null,
+      });
+
+      if (skippedTarget) {
+        const skippedNode = planNodeById.get(skippedTarget);
+        baseEvents.push({
+          ...sourceEvent,
+          eventId: `${executionId}:${snapshot.stepId}:skipped:${skippedTarget}`,
+          eventKind: "step_skipped",
+          stepId: skippedTarget,
+          stepName: skippedNode?.nodeId ?? skippedTarget,
+          sourceStepId: snapshot.stepId,
+          targetStepId: skippedTarget,
+          routeSemantics: skippedSemantics,
+          skippedReason: "branch_not_taken",
+          lineagePath: `${snapshot.stepId}:skipped:${skippedTarget}`,
+          outcome: "skipped",
+          status: "skipped",
+          sequenceNumber: sourceEvent.sequenceNumber + 0.2,
+          startedAt: snapshot.completedAt,
+          endedAt: snapshot.completedAt,
+          durationMs: 0,
+          inputSnapshot: null,
+          outputSnapshot: null,
+          errorSnapshot: null,
+          httpStatus: null,
+          responseSize: null,
+          preRequestPassed: null,
+          postRequestPassed: null,
+          testsPassed: null,
+        });
+      }
+      continue;
+    }
+
+    // ── Request node: emit route_selected + skipped-path events ──
     const succeeded = snapshot.status === "success" || snapshot.status === "done";
     const failed = snapshot.status === "error";
     if (!succeeded && !failed) continue;

@@ -54,6 +54,7 @@ export function createInitialSnapshot(
     completedAt: null,
     streamStatus,
     streamChunks: [],
+    subflowSource: step.subflowSource,
     timelineEvents: [],
   };
 }

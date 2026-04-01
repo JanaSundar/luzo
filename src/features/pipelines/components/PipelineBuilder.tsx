@@ -1,21 +1,11 @@
 "use client";
 
-import {
-  AnimatePresence,
-  Reorder,
-  motion,
-  useAnimationFrame,
-  useMotionValue,
-  useSpring,
-} from "motion/react";
-import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { AnimatePresence, Reorder, motion } from "motion/react";
+import { useCallback, useMemo, useRef } from "react";
 import useMeasure from "react-use-measure";
-import { CollectionPipelineDialog } from "@/components/pipelines/collection-generator/CollectionPipelineDialog";
 import { StepCard } from "@/components/pipelines/StepCard";
-import { PipelineSideInspector } from "@/components/pipelines/PipelineSideInspector";
-import { Button } from "@/components/ui/button";
-import { TemplateBrowserDialog } from "@/features/templates/components/TemplateBrowserDialog";
+import { ensurePipelineFlowDocument } from "@/features/pipeline/canvas-flow";
+import { SubflowCard } from "@/features/pipelines/components/SubflowCard";
 import { cn } from "@/utils";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineStep } from "@/types";
@@ -25,6 +15,12 @@ import { collectStepDependencies } from "@/features/pipeline/template-dependenci
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineLineage } from "@/features/pipelines/hooks/usePipelineLineage";
 import { getStepLineageView } from "@/features/pipelines/lineage/selectors";
+import {
+  PipelineBuilderEmptyState,
+  PipelineBuilderHeader,
+  PipelineBuilderInspector,
+} from "./PipelineBuilderSections";
+import { usePipelineBuilderScroll } from "./usePipelineBuilderScroll";
 
 export function PipelineBuilder({
   onClearRequestedCollection,
@@ -42,8 +38,11 @@ export function PipelineBuilder({
     pipelines,
     activePipelineId,
     addStep,
+    createSubflowFromStep,
     duplicateStep,
+    removeNode,
     removeStep,
+    subflowDefinitions,
     updatePipeline,
     updateStep,
     selectedNodeIds,
@@ -61,62 +60,7 @@ export function PipelineBuilder({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [measureRef] = useMeasure();
-  const lastStepsCount = useRef(pipeline?.steps.length ?? 0);
-
-  // Use motion values for ultra-smooth scroll position updates
-  const scrollY = useMotionValue(0);
-  const smoothScrollY = useSpring(scrollY, {
-    stiffness: 70,
-    damping: 20,
-    restDelta: 0.5,
-  });
-
-  // Sync the smooth motion value back to the container's scroll position
-  useAnimationFrame(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = smoothScrollY.get();
-    }
-  });
-
-  // Function to smooth scroll to a specific target or element
-  const smoothScrollTo = useCallback(
-    (target: number | HTMLElement) => {
-      if (!scrollContainerRef.current) return;
-      const container = scrollContainerRef.current;
-      const startScroll = container.scrollTop;
-      let endScroll = 0;
-
-      if (typeof target === "number") {
-        endScroll = target;
-      } else {
-        const rect = target.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        endScroll = startScroll + (rect.top - containerRect.top) - containerRect.height / 3;
-      }
-
-      // Clamp scroll range to avoiding overshooting
-      endScroll = Math.max(0, Math.min(endScroll, container.scrollHeight - container.clientHeight));
-
-      // Jump the motion value to the current position first to avoid jumps from previous animations
-      scrollY.set(startScroll);
-      // Then set the target for the spring to animate towards
-      scrollY.set(endScroll);
-    },
-    [scrollY],
-  );
-
-  useEffect(() => {
-    if (!pipeline) return;
-    if (pipeline.steps.length > lastStepsCount.current) {
-      // New step added, scroll to bottom
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          smoothScrollTo(scrollContainerRef.current.scrollHeight);
-        }
-      }, 150);
-    }
-    lastStepsCount.current = pipeline.steps.length;
-  }, [pipeline?.steps.length, smoothScrollTo]);
+  usePipelineBuilderScroll({ pipeline, scrollContainerRef });
 
   const handleSelect = useCallback(
     (stepId: string) => {
@@ -128,6 +72,14 @@ export function PipelineBuilder({
   );
 
   if (!pipeline || !activePipelineId) return null;
+  const flow = ensurePipelineFlowDocument(pipeline);
+  const visibleNodes = flow.nodes.filter(
+    (node) => node.kind === "request" || node.kind === "subflow",
+  );
+  const hasSubflows = visibleNodes.some((node) => node.kind === "subflow");
+  const subflowDefinitionByKey = new Map(
+    subflowDefinitions.map((definition) => [`${definition.id}:${definition.version}`, definition]),
+  );
 
   const executionHints = useMemo(() => {
     if (!pipeline) return new Map<string, { mode: "parallel" | "sequential"; detail: string }>();
@@ -185,128 +137,145 @@ export function PipelineBuilder({
   return (
     <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-background">
       {/* Main Builder Area */}
-      <motion.div layout className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex h-[80px] shrink-0 items-center justify-between border-b border-border/40 bg-background/50 px-8 backdrop-blur-md">
-          <div className="min-w-0 flex-1">
-            <div className="group/pname flex flex-col gap-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
-                Pipeline Builder
-              </span>
-              <h2 className="truncate text-lg font-bold tracking-tight text-foreground">
-                {pipeline.name}
-              </h2>
-            </div>
-          </div>
+      <motion.div
+        layout
+        transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
+        className="flex h-full min-w-0 flex-1 flex-col overflow-hidden"
+      >
+        <PipelineBuilderHeader
+          pipelineId={pipeline.id}
+          name={pipeline.name}
+          requestedCollectionId={requestedCollectionId}
+          onAddRequest={handleAddRequest}
+          onClearRequestedCollection={onClearRequestedCollection}
+        />
 
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleAddRequest}
-              variant="outline"
-              className="h-9 gap-2 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
-            >
-              <Plus className="h-4 w-4" />
-              Add Request
-            </Button>
-            <TemplateBrowserDialog
-              className="h-9 rounded-full border-border/60 bg-background px-5 text-sm font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
-              trigger={<>Use Template</>}
-            />
-            <CollectionPipelineDialog
-              initialCollectionId={requestedCollectionId}
-              onCloseRequestReset={onClearRequestedCollection}
-            />
-          </div>
-        </div>
-
-        {pipeline.steps.length > 0 ? (
+        {visibleNodes.length > 0 ? (
           <div
             ref={scrollContainerRef}
             className="flex min-h-0 flex-1 flex-col overflow-y-auto px-10 pb-20 no-scrollbar"
           >
             <div ref={measureRef} className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-10">
-              <Reorder.Group
-                axis="y"
-                values={pipeline.steps}
-                onReorder={handleReorder}
-                className="flex flex-col gap-4"
-              >
-                <AnimatePresence initial={false}>
-                  {pipeline.steps.map((step, index) => (
-                    <div
-                      key={step.id}
-                      data-step-id={step.id}
-                      className={cn(
-                        "relative transition-all duration-300",
-                        selectedNodeId === step.id ? "z-10" : "z-0",
-                      )}
-                    >
-                      <StepCard
-                        executionHint={executionHints.get(step.id)}
-                        lineageSummary={getStepLineageView(lineageAnalysis, step.id).summary}
-                        step={step}
-                        index={index}
-                        isSelected={selectedNodeId === step.id}
-                        onSelect={() => handleSelect(step.id)}
-                        onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
-                        onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
-                        onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
-                        onDuplicate={() => duplicateStep(pipeline.id, step.id)}
-                        onDelete={() => removeStep(pipeline.id, step.id)}
-                      />
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </Reorder.Group>
+              {hasSubflows ? (
+                <div className="flex flex-col gap-4">
+                  {visibleNodes.map((node) => {
+                    if (node.kind === "subflow" && node.config?.kind === "subflow") {
+                      const definition = subflowDefinitionByKey.get(
+                        `${node.config.subflowId}:${node.config.subflowVersion}`,
+                      );
+                      return (
+                        <div
+                          key={node.id}
+                          data-step-id={node.id}
+                          className={cn(
+                            "relative transition-all duration-300",
+                            selectedNodeId === node.id ? "z-10" : "z-0",
+                          )}
+                        >
+                          <SubflowCard
+                            config={node.config}
+                            definition={definition}
+                            isSelected={selectedNodeId === node.id}
+                            onSelect={() => handleSelect(node.id)}
+                            onDelete={() => removeNode(pipeline.id, node.id)}
+                          />
+                        </div>
+                      );
+                    }
+
+                    const requestRef = node.requestRef ?? node.dataRef ?? node.id;
+                    const step = pipeline.steps.find((entry) => entry.id === requestRef);
+                    const requestIndex = pipeline.steps.findIndex(
+                      (entry) => entry.id === requestRef,
+                    );
+                    if (!step || requestIndex === -1) return null;
+                    return (
+                      <div
+                        key={step.id}
+                        data-step-id={step.id}
+                        className={cn(
+                          "relative transition-all duration-300",
+                          selectedNodeId === step.id ? "z-10" : "z-0",
+                        )}
+                      >
+                        <StepCard
+                          executionHint={executionHints.get(step.id)}
+                          lineageSummary={getStepLineageView(lineageAnalysis, step.id).summary}
+                          step={step}
+                          index={requestIndex}
+                          reorderable={false}
+                          isSelected={selectedNodeId === step.id}
+                          onSelect={() => handleSelect(step.id)}
+                          onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
+                          onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
+                          onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
+                          onCreateSubflow={() => createSubflowFromStep(pipeline.id, step.id)}
+                          onDuplicate={() => duplicateStep(pipeline.id, step.id)}
+                          onDelete={() => removeStep(pipeline.id, step.id)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Reorder.Group
+                  axis="y"
+                  values={pipeline.steps}
+                  onReorder={handleReorder}
+                  className="flex flex-col gap-4"
+                >
+                  <AnimatePresence initial={false}>
+                    {pipeline.steps.map((step, index) => (
+                      <Reorder.Item
+                        key={step.id}
+                        value={step}
+                        layout="position"
+                        transition={{
+                          layout: { type: "spring", stiffness: 400, damping: 40, mass: 0.8 },
+                        }}
+                        data-step-id={step.id}
+                        className={cn(
+                          "relative w-full min-w-0 max-w-full transition-all duration-300",
+                          selectedNodeId === step.id ? "z-10" : "z-0",
+                        )}
+                      >
+                        <StepCard
+                          executionHint={executionHints.get(step.id)}
+                          lineageSummary={getStepLineageView(lineageAnalysis, step.id).summary}
+                          step={step}
+                          index={index}
+                          reorderable
+                          isSelected={selectedNodeId === step.id}
+                          onSelect={() => handleSelect(step.id)}
+                          onUpdate={(updates) => updateStep(pipeline.id, step.id, updates)}
+                          onRunFromHere={() => onRunFromStep?.(step.id, "partial-previous")}
+                          onRunFromHereFresh={() => onRunFromStep?.(step.id, "partial-fresh")}
+                          onCreateSubflow={() => createSubflowFromStep(pipeline.id, step.id)}
+                          onDuplicate={() => duplicateStep(pipeline.id, step.id)}
+                          onDelete={() => removeStep(pipeline.id, step.id)}
+                        />
+                      </Reorder.Item>
+                    ))}
+                  </AnimatePresence>
+                </Reorder.Group>
+              )}
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="mb-14 flex w-full max-w-3xl flex-col gap-4 rounded-[32px] border border-dashed border-border/60 bg-muted/5 p-8 text-center shadow-sm">
-              <div className="mx-auto rounded-full bg-background p-4 ring-1 ring-border/50">
-                <Plus className="h-6 w-6 opacity-50" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  Start with a template or build from scratch
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground/80">
-                  Use one of Luzo&apos;s built-in templates, start blank, or import a collection.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <TemplateBrowserDialog />
-                <Button type="button" onClick={handleAddRequest} variant="outline">
-                  Blank Pipeline
-                </Button>
-                <CollectionPipelineDialog
-                  initialCollectionId={requestedCollectionId}
-                  onCloseRequestReset={onClearRequestedCollection}
-                />
-              </div>
-            </div>
-          </div>
+          <PipelineBuilderEmptyState
+            requestedCollectionId={requestedCollectionId}
+            onAddRequest={handleAddRequest}
+            onClearRequestedCollection={onClearRequestedCollection}
+          />
         )}
       </motion.div>
 
       <AnimatePresence>
-        {selectedNodeId && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "min(600px, 45dvw)", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 35 }}
-            className="relative h-full shrink-0 overflow-hidden"
-          >
-            <div className="absolute inset-y-0 right-0 w-[500px] xl:w-[600px]">
-              <PipelineSideInspector
-                pipelineId={pipeline.id}
-                stepId={selectedNodeId}
-                onClose={() => setSelectedNodeId(pipeline.id, null)}
-                className="h-full shadow-2xl"
-              />
-            </div>
-          </motion.div>
-        )}
+        <PipelineBuilderInspector
+          pipeline={pipeline}
+          selectedNodeId={selectedNodeId}
+          onClose={() => setSelectedNodeId(pipeline.id, null)}
+        />
       </AnimatePresence>
     </div>
   );

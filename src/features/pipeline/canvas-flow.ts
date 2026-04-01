@@ -1,79 +1,17 @@
-import type { ApiRequest, AuthConfig, Pipeline, PipelineStep } from "@/types";
-import { collectStepDependencies } from "@/features/pipeline/template-dependencies";
-import type {
-  FlowDocument,
-  FlowEdgeRecord,
-  FlowNodeConfig,
-  FlowNodeRecord,
-  WorkflowNodeKind,
-} from "@/types/workflow";
+import type { Pipeline } from "@/types";
+import type { FlowDocument, FlowEdgeRecord, FlowNodeRecord } from "@/types/workflow";
+import {
+  buildRequestDependencyEdges,
+  dedupeEdges,
+  withStartConnections,
+} from "./canvas-flow-edges";
+import { createDefaultNodeConfig, createFlowNodeRecord } from "./canvas-flow-nodes";
 
-const REQUEST_NODE_X = 320;
-const REQUEST_NODE_GAP = 280;
+export * from "./canvas-flow-edges";
+export * from "./canvas-flow-nodes";
 
-export const DEFAULT_REQUEST_AUTH: AuthConfig = { type: "none" };
-
-export function createEmptyRequestStep(name = "New Request"): PipelineStep {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    method: "GET",
-    url: "",
-    headers: [],
-    params: [],
-    body: null,
-    bodyType: "none",
-    auth: DEFAULT_REQUEST_AUTH,
-    requestSource: { mode: "new" },
-  };
-}
-
-export function createDefaultNodeConfig(kind: WorkflowNodeKind): FlowNodeConfig {
-  switch (kind) {
-    case "start":
-      return { kind, label: "Start" };
-    case "condition":
-      return { kind, label: "Condition", expression: "" };
-    case "delay":
-      return { kind, label: "Delay", durationMs: 1000 };
-    case "transform":
-      return { kind, label: "Transform", script: "" };
-    case "subflow":
-      return {
-        kind,
-        label: "Subflow",
-        subflowId: "",
-        subflowVersion: 1,
-        inputBindings: {},
-        outputAliases: {},
-      };
-    case "end":
-      return { kind, label: "End" };
-    case "request":
-    default:
-      return { kind: "request" };
-  }
-}
-
-export function createFlowNodeRecord(
-  kind: WorkflowNodeKind,
-  position: { x: number; y: number },
-  overrides: Partial<FlowNodeRecord> = {},
-): FlowNodeRecord {
-  const id = overrides.id ?? crypto.randomUUID();
-  const requestRef =
-    kind === "request" ? (overrides.requestRef ?? overrides.dataRef ?? id) : undefined;
-
-  return {
-    id,
-    kind,
-    position,
-    size: overrides.size,
-    dataRef: kind === "request" ? requestRef : overrides.dataRef,
-    requestRef,
-    config: overrides.config ?? createDefaultNodeConfig(kind),
-  };
-}
+export const REQUEST_NODE_X = 320;
+export const REQUEST_NODE_GAP = 280;
 
 export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
   const existing = pipeline.flowDocument;
@@ -114,6 +52,11 @@ export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
     });
 
   const otherNodes = allNonRequestNodes.filter((node) => node.id !== startNode.id);
+  const orderedNonStartNodes = orderNodesLikeExisting(
+    existing?.nodes ?? [],
+    requestNodes,
+    otherNodes,
+  );
   const nodeIds = new Set([
     startNode.id,
     ...requestNodes.map((node) => node.id),
@@ -134,7 +77,11 @@ export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
     })
     .filter((edge): edge is FlowEdgeRecord => edge !== null);
 
-  const implicitEdges = buildRequestDependencyEdges(pipeline.steps)
+  const hasSubflows = passthroughNodes.some((node) => node.kind === "subflow");
+
+  const derivedImplicitEdges = buildRequestDependencyEdges(pipeline.steps, {
+    includePositionalAliases: !hasSubflows,
+  })
     .map((edge) => {
       const sourceId = requestIdToNodeId.get(edge.source);
       const targetId = requestIdToNodeId.get(edge.target);
@@ -145,13 +92,12 @@ export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
     })
     .filter((edge): edge is FlowEdgeRecord => edge !== null);
 
-  const allBaseEdges = dedupeEdges([...existingEdges, ...implicitEdges]);
+  const allBaseEdges = dedupeEdges([...existingEdges, ...derivedImplicitEdges]);
+  const executableNodeIds = orderedNonStartNodes
+    .filter((node) => node.kind !== "start")
+    .map((node) => node.id);
 
-  const edges = withStartConnections(
-    allBaseEdges,
-    startNode.id,
-    requestNodes.map((node) => node.id),
-  );
+  const edges = withStartConnections(allBaseEdges, startNode.id, executableNodeIds);
 
   return {
     kind: "flow-document",
@@ -161,7 +107,7 @@ export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
     createdAt: existing?.createdAt ?? pipeline.createdAt,
     updatedAt: pipeline.updatedAt,
     viewport: existing?.viewport ?? { x: 0, y: 0, zoom: 1 },
-    nodes: [startNode, ...requestNodes, ...otherNodes],
+    nodes: [startNode, ...orderedNonStartNodes],
     edges,
   };
 }
@@ -171,7 +117,7 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   const unsupportedKinds = Array.from(
     new Set(
       flow.nodes
-        .filter((node) => !["start", "request"].includes(node.kind))
+        .filter((node) => !["start", "request", "subflow"].includes(node.kind))
         .map((node) => node.kind),
     ),
   );
@@ -179,16 +125,18 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   if (unsupportedKinds.length > 0) {
     return {
       supported: false,
-      reason: `Execution is available only for request-node pipelines right now. Remove ${unsupportedKinds.join(", ")} node${unsupportedKinds.length === 1 ? "" : "s"} to run or debug.`,
+      reason: `Execution is available for request and subflow pipelines right now. Remove ${unsupportedKinds.join(", ")} node${unsupportedKinds.length === 1 ? "" : "s"} to run or debug.`,
       unsupportedKinds,
     };
   }
 
-  const requestNodes = flow.nodes.filter((node) => node.kind === "request");
-  if (requestNodes.length === 0) {
+  const executableNodes = flow.nodes.filter(
+    (node) => node.kind === "request" || node.kind === "subflow",
+  );
+  if (executableNodes.length === 0) {
     return {
       supported: false,
-      reason: "Add at least one request node before running this pipeline.",
+      reason: "Add at least one request or subflow node before running this pipeline.",
       unsupportedKinds: [],
     };
   }
@@ -200,122 +148,38 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   };
 }
 
-export function requestStepToApiRequest(step: PipelineStep): ApiRequest {
-  return {
-    method: step.method,
-    url: step.url,
-    headers: step.headers,
-    params: step.params,
-    body: step.body,
-    bodyType: step.bodyType,
-    formDataFields: step.formDataFields,
-    auth: step.auth,
-    preRequestEditorType: step.preRequestEditorType,
-    testEditorType: step.testEditorType,
-    preRequestRules: step.preRequestRules,
-    testRules: step.testRules,
-    preRequestScript: step.preRequestScript,
-    testScript: step.testScript,
-    pollingPolicy: step.pollingPolicy,
-    webhookWaitPolicy: step.webhookWaitPolicy,
-  };
-}
-
-function inferStartPosition(requestNodes: FlowNodeRecord[]) {
+export function inferStartPosition(requestNodes: FlowNodeRecord[]) {
   const leftMostX =
     requestNodes.length > 0
-      ? Math.min(...requestNodes.map((node) => node.position.x))
+      ? Math.min(...requestNodes.map((node) => node.geometry.position.x))
       : REQUEST_NODE_X;
-  const firstY = requestNodes[0]?.position.y ?? 0;
+  const firstY = requestNodes[0]?.geometry.position.y ?? 0;
   return { x: leftMostX - REQUEST_NODE_GAP, y: firstY };
 }
 
-function withStartConnections(
-  edges: FlowEdgeRecord[],
-  startNodeId: string,
-  requestNodeIds: string[],
+export function orderNodesLikeExisting(
+  existingNodes: FlowNodeRecord[],
+  requestNodes: FlowNodeRecord[],
+  otherNodes: FlowNodeRecord[],
 ) {
-  const requestTargets = new Set(requestNodeIds);
-  const hasStartEdge = edges.some((edge) => edge.source === startNodeId);
-  if (hasStartEdge || requestNodeIds.length === 0) return edges;
-
-  const incomingCounts = new Map<string, number>();
-  for (const edge of edges) {
-    if (!requestTargets.has(edge.target) || !requestTargets.has(edge.source)) continue;
-    incomingCounts.set(edge.target, (incomingCounts.get(edge.target) ?? 0) + 1);
-  }
-  const entryNodes = requestNodeIds.filter((nodeId) => (incomingCounts.get(nodeId) ?? 0) === 0);
-  return [...edges, ...entryNodes.map((nodeId) => createFlowEdge(startNodeId, nodeId, "control"))];
-}
-
-function buildRequestDependencyEdges(steps: PipelineStep[]) {
-  const aliases = buildRequestAliases(steps);
-  const edges: FlowEdgeRecord[] = [];
-
-  for (const step of steps) {
-    const dependencies = collectStepDependencies(
-      step,
-      aliases.map((alias, index) => ({
-        stepId: alias.stepId,
-        alias: `req${index + 1}`,
-        index,
-        refs: alias.refs,
-      })),
-    );
-    for (const dependency of dependencies) {
-      const source = aliases.find((candidate) => candidate.refs.includes(dependency.alias));
-      if (!source) continue;
-      edges.push(createFlowEdge(source.stepId, step.id, "control"));
-    }
-  }
-
-  return dedupeEdges(edges);
-}
-
-function buildRequestAliases(steps: PipelineStep[]) {
-  const slugCounts = new Map<string, number>();
-  const slugs = steps.map((step) => {
-    const slug = step.name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-    if (slug) slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
-    return slug;
-  });
-
-  return steps.map((step, index) => ({
-    stepId: step.id,
-    refs: [
-      step.id,
-      `req${index + 1}`,
-      ...(slugs[index] && slugCounts.get(slugs[index]) === 1 ? [slugs[index]] : []),
-    ],
-  }));
-}
-function createFlowEdge(
-  source: string,
-  target: string,
-  semantics: FlowEdgeRecord["semantics"],
-  sourceHandle?: string,
-  targetHandle?: string,
-): FlowEdgeRecord {
-  return {
-    id: `${source}:${target}:${sourceHandle ?? semantics}`,
-    source,
-    target,
-    sourceHandle,
-    targetHandle,
-    semantics,
-  };
-}
-
-function dedupeEdges(edges: FlowEdgeRecord[]) {
+  const requestById = new Map(requestNodes.map((node) => [node.id, node]));
+  const otherById = new Map(otherNodes.map((node) => [node.id, node]));
+  const ordered: FlowNodeRecord[] = [];
   const seen = new Set<string>();
-  return edges.filter((edge) => {
-    const key = `${edge.source}:${edge.target}:${edge.semantics}:${edge.sourceHandle ?? ""}:${edge.targetHandle ?? ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+
+  existingNodes.forEach((node) => {
+    if (node.kind === "start") return;
+    const next = requestById.get(node.id) ?? otherById.get(node.id);
+    if (!next || seen.has(next.id)) return;
+    ordered.push(next);
+    seen.add(next.id);
   });
+
+  [...requestNodes, ...otherNodes].forEach((node) => {
+    if (node.kind === "start" || seen.has(node.id)) return;
+    ordered.push(node);
+    seen.add(node.id);
+  });
+
+  return ordered;
 }

@@ -47,11 +47,30 @@ const pipelineStoreState = {
           },
         },
       ],
-      flowDocument: { nodes: [], edges: [] },
+      flowDocument: {
+        kind: "flow-document",
+        version: 1,
+        id: "pipeline-1",
+        name: "Checkout Flow",
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: "step-1",
+            kind: "request",
+            position: { x: 0, y: 0 },
+            requestRef: "step-1",
+            dataRef: "step-1",
+            config: { kind: "request", label: "Create Payment" },
+          },
+        ],
+        edges: [],
+      },
     },
   ],
+  subflowDefinitions: [],
   replaceFlowDocument: vi.fn(),
   updateStep: vi.fn(),
+  updateSubflowNode: vi.fn(),
 };
 
 const environmentState = {

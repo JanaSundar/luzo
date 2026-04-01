@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, MoreVertical, Play, PlayCircle, Trash2 } from "lucide-react";
+import { Boxes, Copy, MoreVertical, Play, PlayCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 interface StepCardMenuProps {
   onRunFromHere: () => void;
   onRunFromHereFresh: () => void;
+  onCreateSubflow: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }
@@ -19,6 +20,7 @@ interface StepCardMenuProps {
 export function StepCardMenu({
   onRunFromHere,
   onRunFromHereFresh,
+  onCreateSubflow,
   onDuplicate,
   onDelete,
 }: StepCardMenuProps) {
@@ -40,6 +42,9 @@ export function StepCardMenu({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onDuplicate} className="gap-2 text-xs font-medium">
           <Copy className="h-3.5 w-3.5" /> Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onCreateSubflow} className="gap-2 text-xs font-medium">
+          <Boxes className="h-3.5 w-3.5" /> Create subflow
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={onDelete}

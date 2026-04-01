@@ -23,10 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useCollectionMutations, useCollectionsQuery } from "@/features/collections/useCollections";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { ApiRequest, ApiResponse } from "@/types";
+import {
+  CollectionsUnavailableState,
+  NewCollectionSection,
+} from "./SaveToCollectionDialogSections";
 
 interface SaveToCollectionDialogProps {
   request: ApiRequest;
@@ -138,29 +141,12 @@ export function SaveToCollectionDialog({
         </DialogHeader>
 
         {!canUseCollections ? (
-          <div className="rounded-xl border border-dashed border-border/60 p-6 text-center space-y-4 bg-muted/5">
-            <div className="mx-auto w-10 h-10 rounded-full bg-muted/10 flex items-center justify-center">
-              <FolderPlus className="h-5 w-5 text-muted-foreground/40" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold uppercase tracking-widest">Connect Database</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Collections require a database connection to persist requests across sessions. Your
-                current request is saved in your local history.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all"
-              onClick={() => {
-                setOpen(false);
-                window.location.href = "/settings";
-              }}
-            >
-              Open Settings
-            </Button>
-          </div>
+          <CollectionsUnavailableState
+            onOpenSettings={() => {
+              setOpen(false);
+              window.location.href = "/settings";
+            }}
+          />
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -193,40 +179,14 @@ export function SaveToCollectionDialog({
               </Select>
             </div>
 
-            <div className="rounded-xl border p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                New collection
-              </p>
-              <Input
-                placeholder="Collection name"
-                value={newCollectionName}
-                onChange={(event) => setNewCollectionName(event.target.value)}
-              />
-              <Textarea
-                placeholder="Optional description"
-                value={newCollectionDescription}
-                onChange={(event) => setNewCollectionDescription(event.target.value)}
-                rows={3}
-              />
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-w-36 justify-center"
-                  onClick={handleCreateCollection}
-                  disabled={saveCollection.isPending || !newCollectionName.trim()}
-                >
-                  {saveCollection.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create collection"
-                  )}
-                </Button>
-              </div>
-            </div>
+            <NewCollectionSection
+              name={newCollectionName}
+              description={newCollectionDescription}
+              isPending={saveCollection.isPending}
+              onNameChange={setNewCollectionName}
+              onDescriptionChange={setNewCollectionDescription}
+              onCreate={() => void handleCreateCollection()}
+            />
 
             <div className="space-y-3 rounded-xl border p-4">
               <div className="rounded-lg bg-muted/35 px-3 py-2 text-xs text-muted-foreground">

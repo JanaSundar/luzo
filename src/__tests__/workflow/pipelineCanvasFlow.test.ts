@@ -25,7 +25,16 @@ describe("pipeline canvas flow migration", () => {
     ];
     pipeline.flowDocument = {
       ...pipeline.flowDocument!,
-      nodes: [{ id: "req-1", kind: "request", dataRef: "req-1", position: { x: 280, y: 40 } }],
+      nodes: [
+        {
+          id: "req-1",
+          kind: "request",
+          dataRef: "req-1",
+          geometry: { position: { x: 280, y: 40 } },
+          position: { x: 280, y: 40 },
+          config: { kind: "request" },
+        },
+      ],
       edges: [],
     };
 
@@ -54,6 +63,7 @@ describe("pipeline canvas flow migration", () => {
             config: {
               kind: "condition",
               label: "Check status",
+              rules: [],
               expression: "response.status === 200",
             },
           },
@@ -117,7 +127,7 @@ describe("pipeline execution support", () => {
           { x: 620, y: 0 },
           {
             id: "cond-1",
-            config: { kind: "condition", label: "Branch", expression: "true" },
+            config: { kind: "condition", label: "Branch", rules: [], expression: "true" },
           },
         ),
       ],

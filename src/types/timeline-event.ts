@@ -13,6 +13,7 @@ export type TimelineEventStatus =
 
 export type TimelineEventKind =
   | "request"
+  | "condition_evaluated"
   | "route_selected"
   | "step_skipped"
   | "poll_attempt"
@@ -49,6 +50,11 @@ export interface TimelineEvent {
   terminalReason?: string | null;
   summary?: string | null;
   metadata?: Record<string, unknown> | null;
+  subflowInstanceId?: string | null;
+  subflowDefinitionId?: string | null;
+  subflowDefinitionVersion?: number | null;
+  subflowName?: string | null;
+  subflowDepth?: number | null;
 
   /** DAG depth — steps at the same depth can run in parallel */
   stageIndex: number;

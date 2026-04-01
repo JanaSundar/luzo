@@ -1,6 +1,6 @@
 "use client";
 
-import { Braces, Loader2, Workflow } from "lucide-react";
+import { Combine, Loader2, Workflow } from "lucide-react";
 import type { ReactElement } from "react";
 import { useEffect } from "react";
 import { CollectionPipelineInspector } from "@/components/pipelines/collection-generator/CollectionPipelineInspector";
@@ -85,8 +85,12 @@ export function CollectionPipelineDialog({
       <DialogTrigger
         render={
           trigger ?? (
-            <Button type="button" variant="outline" className="h-8 gap-2">
-              <Braces className="h-3.5 w-3.5" />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-7 gap-1.5 rounded-full border-border/60 bg-background px-3 text-xs font-semibold tracking-tight text-foreground shadow-sm hover:bg-muted/50"
+            >
+              <Combine className="h-3.5 w-3.5" />
               From collection
             </Button>
           )

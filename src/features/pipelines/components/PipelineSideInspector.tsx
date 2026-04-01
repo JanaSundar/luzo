@@ -5,12 +5,18 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
 import { updateRequestRouteTargets } from "@/features/pipeline/request-routing";
+import {
+  createFlowEdge,
+  createFlowNodeRecord,
+  createDefaultNodeConfig,
+} from "@/features/pipeline/canvas-flow";
 import { segmentedTabListClassName, segmentedTabTriggerClassName } from "@/utils/ui/segmentedTabs";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
 import { cn } from "@/utils";
+import { PipelineSubflowInspector } from "./PipelineSubflowInspector";
 import { PipelineInspectorEditorSections } from "./PipelineInspectorEditorSections";
 import {
   PipelineInspectorLineageSection,
@@ -36,12 +42,33 @@ export function PipelineSideInspector({
   onClose,
   className,
 }: PipelineSideInspectorProps) {
-  const { pipelines, replaceFlowDocument, updateStep } = usePipelineStore();
+  const {
+    pipelines,
+    replaceFlowDocument,
+    updateStep,
+    updateSubflowNode,
+    updateSubflowRequest,
+    subflowDefinitions,
+  } = usePipelineStore();
   const pipeline = useMemo(
     () => pipelines.find((p) => p.id === pipelineId),
     [pipelines, pipelineId],
   );
+  const selectedNode = useMemo(
+    () => pipeline?.flowDocument?.nodes.find((node) => node.id === stepId),
+    [pipeline, stepId],
+  );
   const step = useMemo(() => pipeline?.steps.find((s) => s.id === stepId), [pipeline, stepId]);
+  const subflowDefinition = useMemo(() => {
+    if (selectedNode?.config?.kind !== "subflow") return null;
+    const config = selectedNode.config;
+    return (
+      subflowDefinitions.find(
+        (definition) =>
+          definition.id === config.subflowId && definition.version === config.subflowVersion,
+      ) ?? null
+    );
+  }, [selectedNode, subflowDefinitions]);
 
   const activeEnvironment = useEnvironmentStore((s) =>
     s.environments.find((e) => e.id === s.activeEnvironmentId),
@@ -77,10 +104,74 @@ export function PipelineSideInspector({
     failureDisplay,
   } = usePipelineSideInspectorState({ pipeline, stepId, syncGeneration });
 
+  // Derive connected condition node here (above all early returns) to satisfy hooks rules.
+  const connectedConditionNode = useMemo(() => {
+    const doc = pipeline?.flowDocument;
+    if (!doc) return null;
+    const edge = doc.edges.find(
+      (e) =>
+        e.source === stepId && doc.nodes.some((n) => n.id === e.target && n.kind === "condition"),
+    );
+    if (!edge) return null;
+    return doc.nodes.find((n) => n.id === edge.target) ?? null;
+  }, [pipeline?.flowDocument, stepId]);
+
+  if (!selectedNode) return null;
+  if (selectedNode.kind === "subflow" && selectedNode.config?.kind === "subflow") {
+    const subflowConfig = selectedNode.config;
+    return (
+      <aside
+        className={cn(
+          "flex h-full flex-col border-l border-border/20 bg-slate-50/90 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] backdrop-blur-3xl transition-all duration-300 ease-in-out dark:bg-[#090C14]/80",
+          className,
+        )}
+      >
+        <div className="flex h-[80px] shrink-0 items-center justify-between border-b border-border/40 px-10">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60">
+              Subflow Inspector
+            </span>
+            <h3 className="max-w-[320px] truncate text-lg font-bold tracking-tight text-foreground">
+              {selectedNode.config.label || subflowDefinition?.name || "Untitled Subflow"}
+            </h3>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-10 w-10 rounded-full bg-muted/20 transition-all hover:bg-muted/50 hover:rotate-90"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col p-10">
+          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-5">
+            <PipelineSubflowInspector
+              config={subflowConfig}
+              definition={subflowDefinition ?? undefined}
+              suggestions={suggestions}
+              onChange={(nextConfig) => updateSubflowNode(pipelineId, stepId, nextConfig)}
+              onRequestChange={(requestId, nextRequest) =>
+                updateSubflowRequest(
+                  subflowConfig.subflowId,
+                  subflowConfig.subflowVersion,
+                  requestId,
+                  nextRequest,
+                )
+              }
+            />
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   if (!step) return null;
 
   const isBodyDisabled = step.method === "GET" || step.method === "HEAD";
-  const routingConfigured = routeTargets.success != null || routeTargets.failure != null;
+  const routingConfigured =
+    routeTargets.success != null || routeTargets.failure != null || connectedConditionNode != null;
 
   const sectionItems: PipelineInspectorSectionItem[] = [
     { id: "request", label: "Request", detail: "" },
@@ -183,6 +274,46 @@ export function PipelineSideInspector({
                 successTarget={routeTargets.success}
                 failureDisplay={failureDisplay}
                 failureTarget={routeTargets.failure}
+                connectedConditionNode={connectedConditionNode}
+                suggestions={suggestions}
+                onAddCondition={() => {
+                  const doc = pipeline.flowDocument!;
+                  const sourceNode = doc.nodes.find((n) => n.id === stepId);
+                  const pos = sourceNode?.position
+                    ? { x: sourceNode.position.x + 320, y: sourceNode.position.y }
+                    : { x: 640, y: 200 };
+                  const condNode = createFlowNodeRecord("condition", pos, {
+                    config: createDefaultNodeConfig("condition"),
+                  });
+                  const edge = createFlowEdge(stepId, condNode.id, "control");
+                  replaceFlowDocument(pipelineId, {
+                    ...doc,
+                    nodes: [...doc.nodes, condNode],
+                    edges: [...doc.edges, edge],
+                  });
+                }}
+                onConditionChange={(nextConfig) =>
+                  replaceFlowDocument(pipelineId, {
+                    ...pipeline.flowDocument!,
+                    nodes: pipeline.flowDocument!.nodes.map((n) =>
+                      n.id === connectedConditionNode?.id ? { ...n, config: nextConfig } : n,
+                    ),
+                  })
+                }
+                onRemoveCondition={() => {
+                  if (!connectedConditionNode) return;
+                  replaceFlowDocument(pipelineId, {
+                    ...pipeline.flowDocument!,
+                    nodes: pipeline.flowDocument!.nodes.filter(
+                      (n) => n.id !== connectedConditionNode.id,
+                    ),
+                    edges: pipeline.flowDocument!.edges.filter(
+                      (e) =>
+                        e.source !== connectedConditionNode.id &&
+                        e.target !== connectedConditionNode.id,
+                    ),
+                  });
+                }}
                 onReset={() =>
                   replaceFlowDocument(
                     pipelineId,

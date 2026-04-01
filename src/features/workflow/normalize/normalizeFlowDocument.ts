@@ -19,9 +19,16 @@ export function normalizeFlowDocument(flow: FlowDocument): FlowDocument {
     nodes: [...flow.nodes]
       .map((node) => ({
         ...node,
+        geometry: {
+          ...node.geometry,
+          position: {
+            x: Number.isFinite(node.geometry?.position?.x) ? node.geometry.position.x : 0,
+            y: Number.isFinite(node.geometry?.position?.y) ? node.geometry.position.y : 0,
+          },
+        },
         position: {
-          x: Number.isFinite(node.position.x) ? node.position.x : 0,
-          y: Number.isFinite(node.position.y) ? node.position.y : 0,
+          x: Number.isFinite(node.position?.x) ? node.position!.x : 0,
+          y: Number.isFinite(node.position?.y) ? node.position!.y : 0,
         },
       }))
       .sort(compareNodes),

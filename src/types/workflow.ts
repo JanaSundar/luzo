@@ -1,4 +1,4 @@
-import type { ApiRequest } from "./index";
+import type { ApiRequest, ConditionRule } from "./index";
 import type { TimelineEvent, TimelineEventStatus } from "./timeline-event";
 
 export type WorkflowNodeKind =
@@ -26,6 +26,9 @@ export interface RequestNodeConfig {
 export interface ConditionNodeConfig {
   kind: "condition";
   label: string;
+  /** Simple mode: evaluated AND-style. Empty array = evaluate expression instead. */
+  rules: ConditionRule[];
+  /** Advanced mode: JS expression that must return truthy. Ignored when rules is non-empty. */
   expression: string;
 }
 
@@ -67,6 +70,16 @@ export interface SubflowDefinition {
   updatedAt: string;
 }
 
+export interface ExpandedNodeOrigin {
+  originNodeId: string;
+  subflowInstanceId?: string;
+  subflowDefinitionId?: string;
+  subflowDefinitionVersion?: number;
+  subflowName?: string;
+  subflowDepth?: number;
+  internalNodeId?: string;
+}
+
 export interface SubflowNodeConfig {
   kind: "subflow";
   label: string;
@@ -74,6 +87,7 @@ export interface SubflowNodeConfig {
   subflowVersion: number;
   inputBindings: Record<string, string>;
   outputAliases: Record<string, string>;
+  legacyAliasRefs?: string[];
   definition?: SubflowDefinition;
 }
 
@@ -109,14 +123,29 @@ export interface FlowDocument {
   edges: FlowEdgeRecord[];
 }
 
+export interface FlowNodeGeometry {
+  position: { x: number; y: number };
+  size?: { width: number; height: number };
+  parentId?: string;
+}
+
+export interface FlowNodeViewState {
+  collapsed?: boolean;
+  selected?: boolean;
+  [key: string]: unknown;
+}
+
 export interface FlowNodeRecord {
   id: string;
   kind: WorkflowNodeKind;
-  position: { x: number; y: number };
+  geometry: FlowNodeGeometry;
+  config: FlowNodeConfig;
+  view?: FlowNodeViewState;
+  // Legacy fields for backward compatibility
+  position?: { x: number; y: number };
   size?: { width: number; height: number };
   dataRef?: string;
   requestRef?: string;
-  config?: FlowNodeConfig;
 }
 
 export interface FlowEdgeRecord {
@@ -196,13 +225,18 @@ export interface CompiledPipelineNode {
   downstreamIds: string[];
   entry: boolean;
   requestRef?: string;
+  /** Present only when kind === "condition". Carries the evaluated config at compile time. */
+  conditionConfig?: ConditionNodeConfig;
   routes: {
     control: string[];
     failure: string[];
     success: string[];
+    true: string[];
+    false: string[];
   };
   runtimeRoutes: RuntimeRoute[];
   branch?: { mode: "all" | "true" | "false" | "success" | "failure" };
+  origin?: ExpandedNodeOrigin;
 }
 
 export interface CompiledPipelinePlan {

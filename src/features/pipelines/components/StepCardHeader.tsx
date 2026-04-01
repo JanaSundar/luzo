@@ -31,6 +31,7 @@ interface StepCardHeaderProps {
   runtimeBadge?: { label: string; tone: "default" | "failed" | "skipped" | "success" } | null;
   lineageSummary?: RiskSummary;
   method: HttpMethod;
+  reorderable?: boolean;
 }
 
 export function StepCardHeader({
@@ -51,17 +52,23 @@ export function StepCardHeader({
   runtimeBadge = null,
   lineageSummary,
   method,
+  reorderable = true,
 }: StepCardHeaderProps) {
   return (
     <header className="flex min-h-[60px] min-w-0 items-center gap-3 border-b bg-muted/5 px-4 py-3">
       <button
         type="button"
-        onPointerDown={(e) => dragControls.start(e)}
+        onPointerDown={(e) => {
+          if (!reorderable) return;
+          dragControls.start(e);
+        }}
         className={cn(
           "inline-flex shrink-0 touch-none items-center justify-center rounded border-0 bg-transparent p-0 text-muted-foreground/40 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none select-none cursor-grab active:cursor-grabbing",
+          !reorderable && "cursor-default opacity-40 active:cursor-default",
         )}
         aria-label="Drag to reorder"
         title="Drag to reorder"
+        disabled={!reorderable}
       >
         <GripVertical className="pointer-events-none h-4 w-4" aria-hidden />
       </button>
@@ -161,10 +168,8 @@ export function StepCardHeader({
                 </div>
 
                 {lineageSummary &&
-                (lineageSummary.incomingCount > 0 ||
-                  lineageSummary.outgoingCount > 0 ||
-                  lineageSummary.riskyCount > 0) ? (
-                  <div className="ml-auto flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+                (lineageSummary.incomingCount > 0 || lineageSummary.outgoingCount > 0) ? (
+                  <div className="ml-auto shrink-0 text-[11px] text-muted-foreground">
                     <span className="text-right">
                       {lineageSummary.incomingCount > 0
                         ? `${lineageSummary.incomingCount} upstream`
@@ -176,12 +181,6 @@ export function StepCardHeader({
                         ? `${lineageSummary.outgoingCount} downstream`
                         : ""}
                     </span>
-
-                    {lineageSummary.riskyCount ? (
-                      <PipelineBadge className="rounded-full bg-amber-500/12 px-2.5 py-1 text-amber-700 dark:text-amber-300">
-                        {lineageSummary.riskyCount} risky
-                      </PipelineBadge>
-                    ) : null}
                   </div>
                 ) : null}
               </div>

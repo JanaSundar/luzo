@@ -1,5 +1,5 @@
 import type { PipelineGenerationMetadata } from "./pipeline-generation";
-import type { FlowDocument } from "./workflow";
+import type { ExpandedNodeOrigin, FlowDocument } from "./workflow";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
@@ -52,6 +52,18 @@ export interface TestRule {
     | "greater_than"
     | "exists"
     | "not_exists";
+  value?: string;
+}
+
+/**
+ * A condition rule for condition nodes.
+ * `valueRef` is a dot-path into runtimeVariables or env (e.g. "req1.response.status", "env.TOKEN").
+ * Reuses the same operator set as TestRule for consistency.
+ */
+export interface ConditionRule {
+  id: string;
+  valueRef: string;
+  operator: TestRule["operator"];
   value?: string;
 }
 
@@ -221,6 +233,7 @@ export interface PipelineStep extends ApiRequest {
   name: string;
   mockConfig?: MockConfig;
   requestSource?: PipelineRequestSource;
+  subflowSource?: ExpandedNodeOrigin;
 }
 
 export interface Pipeline {

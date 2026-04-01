@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import type { ApiRequest, HttpMethod, ResponseLayout, SavedRequest } from "@/types";
 
 export const PLAYGROUND_STORAGE_KEY = "luzo-playground-store";
@@ -128,7 +129,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
     })),
     {
       name: PLAYGROUND_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => createIndexedDbStorage({ dbName: PLAYGROUND_STORAGE_KEY })),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<PlaygroundState> | undefined;
         return {

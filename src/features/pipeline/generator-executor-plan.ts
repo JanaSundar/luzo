@@ -5,27 +5,30 @@ import type { PipelineExecutionEvent } from "@/types/pipeline-runtime";
 import type { CompilePlanOutput, Result } from "@/types/worker-results";
 import type { CompiledPipelineNode, CompiledPipelinePlan } from "@/types/workflow";
 import { graphWorkerClient } from "@/workers/client/graph-client";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
 
 export async function resolveCompiledPlan(
   pipeline: Pipeline,
   cachedPlan?: CompiledPipelinePlan,
-): Promise<CompiledPipelinePlan | null> {
+): Promise<CompilePlanOutput | CompiledPipelinePlan | null> {
   if (cachedPlan) return cachedPlan;
 
   const bundle = buildWorkflowBundleFromPipeline(pipeline);
+  const subflowDefinitions = usePipelineStore.getState().subflowDefinitions;
   const res = await graphWorkerClient.callLatest<Result<CompilePlanOutput>>(
     "pipeline-compilation",
     async (api) =>
       api.compileExecutionPlan({
         workflow: bundle.workflow,
         registry: bundle.registry,
+        subflowDefinitions,
       }),
   );
 
   if (!res?.ok) return null;
   if (res.data.warnings.some((warning) => warning.severity === "error")) return null;
-  return res.data.plan;
+  return res.data;
 }
 
 export function primeRuntimeState(
@@ -42,11 +45,17 @@ export function primeRuntimeState(
   for (const nodeId of plan.order.slice(0, startIndex)) {
     completed.add(nodeId);
     const node = plan.nodes.find((candidate) => candidate.nodeId === nodeId);
-    const successTargets = node?.routes.success.length
-      ? node.routes.success
-      : (node?.routes.control ?? []);
 
-    for (const targetId of successTargets) {
+    // For condition nodes: follow both branches so downstream nodes can be activated.
+    // We don't know the original result, so treat both paths as potentially taken.
+    const primeTargets =
+      node?.kind === "condition"
+        ? [...(node.routes.true ?? []), ...(node.routes.false ?? [])]
+        : node?.routes.success.length
+          ? node.routes.success
+          : (node?.routes.control ?? []);
+
+    for (const targetId of primeTargets) {
       const deps = activatedDeps.get(targetId) ?? new Set<string>();
       deps.add(nodeId);
       activatedDeps.set(targetId, deps);
@@ -89,29 +98,49 @@ export function takeStage(
 
 export function isTerminalStepEvent(
   event: PipelineExecutionEvent,
-): event is Extract<PipelineExecutionEvent, { type: "step_completed" | "step_failed" }> {
-  return event.type === "step_completed" || event.type === "step_failed";
+): event is Extract<
+  PipelineExecutionEvent,
+  { type: "step_completed" | "step_failed" | "condition_evaluated" }
+> {
+  return (
+    event.type === "step_completed" ||
+    event.type === "step_failed" ||
+    event.type === "condition_evaluated"
+  );
 }
 
 export function processCompletion(
-  event: Extract<PipelineExecutionEvent, { type: "step_completed" | "step_failed" }>,
+  event: Extract<
+    PipelineExecutionEvent,
+    { type: "step_completed" | "step_failed" | "condition_evaluated" }
+  >,
   nodeId: string,
   planNodeMap: Map<string, CompiledPipelineNode>,
   activatedDeps: Map<string, Set<string>>,
   completed: Set<string>,
   readyQueue: string[],
   queued: Set<string>,
+  conditionResults: Map<string, boolean>,
 ) {
   completed.add(nodeId);
   const planNode = planNodeMap.get(nodeId);
   if (!planNode) return;
 
-  const nextTargets =
-    event.type === "step_failed"
-      ? planNode.routes.failure
-      : planNode.routes.success.length > 0
-        ? planNode.routes.success
-        : planNode.routes.control;
+  let nextTargets: string[];
+
+  if (event.type === "condition_evaluated") {
+    conditionResults.set(nodeId, event.result);
+    nextTargets = event.result ? planNode.routes.true : planNode.routes.false;
+    // Fall through to control if the matched path has no edges configured.
+    if (nextTargets.length === 0) nextTargets = planNode.routes.control;
+  } else {
+    nextTargets =
+      event.type === "step_failed"
+        ? planNode.routes.failure
+        : planNode.routes.success.length > 0
+          ? planNode.routes.success
+          : planNode.routes.control;
+  }
 
   for (const targetId of nextTargets) {
     const deps = activatedDeps.get(targetId) ?? new Set<string>();

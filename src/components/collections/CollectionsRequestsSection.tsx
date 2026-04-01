@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { useCollectionMutations } from "@/features/collections/useCollections";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn, DESTRUCTIVE_BUTTON_CLASSES } from "@/utils";
 import { METHOD_BG_COLORS } from "@/utils/http";
 import {
@@ -28,7 +29,8 @@ export function CollectionsRequestsSection({
 }: CollectionsRequestsSectionProps) {
   const { deleteRequest } = useCollectionMutations();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [skipDeleteConfirm, setSkipDeleteConfirm] = useState(false);
+  const skipDeleteConfirm = useSettingsStore((s) => s.skipDeleteCollectionsConfirm);
+  const setSkipDeleteConfirm = useSettingsStore((s) => s.setSkipDeleteCollectionsConfirm);
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     name: string;
@@ -93,6 +95,16 @@ export function CollectionsRequestsSection({
                       className={cn("h-8 gap-2", DESTRUCTIVE_BUTTON_CLASSES)}
                       disabled={deleteRequest.isPending}
                       onClick={() => {
+                        if (skipDeleteConfirm) {
+                          void deleteRequest
+                            .mutateAsync(savedRequest.id)
+                            .then(() => {
+                              toast.success("Request removed");
+                            })
+                            .catch(() => {});
+                          return;
+                        }
+
                         setPendingDelete({ id: savedRequest.id, name: savedRequest.name });
                         setShowDeleteDialog(true);
                       }}

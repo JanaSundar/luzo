@@ -596,12 +596,14 @@ describe("Pipeline Execution Architecture", () => {
           {
             id: "route-pipeline:start",
             kind: "start",
+            geometry: { position: { x: 0, y: 0 } },
             position: { x: 0, y: 0 },
             config: { kind: "start", label: "Start" },
           },
           {
             id: "step-a",
             kind: "request",
+            geometry: { position: { x: 100, y: 0 } },
             position: { x: 100, y: 0 },
             dataRef: "step-a",
             requestRef: "step-a",
@@ -610,6 +612,7 @@ describe("Pipeline Execution Architecture", () => {
           {
             id: "step-b",
             kind: "request",
+            geometry: { position: { x: 200, y: 0 } },
             position: { x: 200, y: 0 },
             dataRef: "step-b",
             requestRef: "step-b",
@@ -618,6 +621,7 @@ describe("Pipeline Execution Architecture", () => {
           {
             id: "step-c",
             kind: "request",
+            geometry: { position: { x: 300, y: 0 } },
             position: { x: 300, y: 0 },
             dataRef: "step-c",
             requestRef: "step-c",
