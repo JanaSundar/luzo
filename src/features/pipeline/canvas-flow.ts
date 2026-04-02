@@ -117,7 +117,7 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   const unsupportedKinds = Array.from(
     new Set(
       flow.nodes
-        .filter((node) => !["start", "request", "subflow"].includes(node.kind))
+        .filter((node) => !["start", "request", "condition", "subflow"].includes(node.kind))
         .map((node) => node.kind),
     ),
   );
@@ -125,18 +125,18 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   if (unsupportedKinds.length > 0) {
     return {
       supported: false,
-      reason: `Execution is available for request and subflow pipelines right now. Remove ${unsupportedKinds.join(", ")} node${unsupportedKinds.length === 1 ? "" : "s"} to run or debug.`,
+      reason: `Execution is available for request, condition, and subflow pipelines right now. Remove ${unsupportedKinds.join(", ")} node${unsupportedKinds.length === 1 ? "" : "s"} to run or debug.`,
       unsupportedKinds,
     };
   }
 
   const executableNodes = flow.nodes.filter(
-    (node) => node.kind === "request" || node.kind === "subflow",
+    (node) => node.kind === "request" || node.kind === "condition" || node.kind === "subflow",
   );
   if (executableNodes.length === 0) {
     return {
       supported: false,
-      reason: "Add at least one request or subflow node before running this pipeline.",
+      reason: "Add at least one request, condition, or subflow node before running this pipeline.",
       unsupportedKinds: [],
     };
   }

@@ -78,9 +78,10 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
       const outgoing = outgoingByNode.get(node.id) ?? [];
       const trueEdges = outgoing.filter((edge) => edge.semantics === "true");
       const falseEdges = outgoing.filter((edge) => edge.semantics === "false");
+      const hasBranchEdge = trueEdges.length > 0 || falseEdges.length > 0;
       const config = node.config?.kind === "condition" ? node.config : null;
 
-      if (trueEdges.length === 0 && falseEdges.length === 0) {
+      if (!hasBranchEdge) {
         warnings.push({
           stepId: node.id,
           field: "routing",
@@ -116,7 +117,7 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
         });
       }
 
-      if (expanded.workflow.entryNodeIds.includes(node.id)) {
+      if (hasBranchEdge && expanded.workflow.entryNodeIds.includes(node.id)) {
         warnings.push({
           stepId: node.id,
           field: "routing",
@@ -220,6 +221,7 @@ function inferBranch(
   if (kind === "condition") {
     const hasTrue = outgoing.some((edge) => edge.semantics === "true");
     const hasFalse = outgoing.some((edge) => edge.semantics === "false");
+    if (hasTrue && hasFalse) return { mode: "all" as const };
     if (hasTrue) return { mode: "true" as const };
     if (hasFalse) return { mode: "false" as const };
     return { mode: "all" as const };

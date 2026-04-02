@@ -48,11 +48,12 @@ export async function* createPipelineGenerator(
   const snapshots: import("@/types/pipeline-runtime").StepSnapshot[] = [];
   const runtimeVariables = cloneRuntimeVariables(options.initialRuntimeVariables);
   const completed = new Set<string>();
+  const skipped = new Set<string>();
   const queued = new Set<string>();
   const activatedDeps = new Map<string, Set<string>>();
   const conditionResults = new Map<string, boolean>();
 
-  primeRuntimeState(compiledPlan, options.startStepId, completed, activatedDeps);
+  primeRuntimeState(compiledPlan, options.startStepId, completed, activatedDeps, skipped);
   const readyQueue = seedReadyQueue(compiledPlan, options.startStepId, planNodeMap, queued);
 
   while (readyQueue.length > 0) {
@@ -82,6 +83,7 @@ export async function* createPipelineGenerator(
         options,
         activatedDeps,
         completed,
+        skipped,
         readyQueue,
         queued,
         conditionResults,
@@ -100,6 +102,7 @@ export async function* createPipelineGenerator(
       options,
       activatedDeps,
       completed,
+      skipped,
       readyQueue,
       queued,
       conditionResults,
@@ -121,6 +124,7 @@ async function* runSingleStage(
   options: GeneratorOptions,
   activatedDeps: Map<string, Set<string>>,
   completed: Set<string>,
+  skipped: Set<string>,
   readyQueue: string[],
   queued: Set<string>,
   conditionResults: Map<string, boolean>,
@@ -137,6 +141,7 @@ async function* runSingleStage(
         runtimeVariables,
         envVariables,
         snapshots,
+        pauseBeforeEvaluate: options.useStream,
       })) {
         yield event;
         if (!isTerminalStepEvent(event)) continue;
@@ -146,11 +151,12 @@ async function* runSingleStage(
           planNodeMap,
           activatedDeps,
           completed,
+          skipped,
           readyQueue,
           queued,
           conditionResults,
         );
-        promoteReadyNodes(planNodeMap, activatedDeps, completed, readyQueue, queued);
+        promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
       }
       continue;
     }
@@ -180,11 +186,12 @@ async function* runSingleStage(
         planNodeMap,
         activatedDeps,
         completed,
+        skipped,
         readyQueue,
         queued,
         conditionResults,
       );
-      promoteReadyNodes(planNodeMap, activatedDeps, completed, readyQueue, queued);
+      promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
     }
   }
 }
@@ -200,6 +207,7 @@ async function* runParallelStage(
   options: GeneratorOptions,
   activatedDeps: Map<string, Set<string>>,
   completed: Set<string>,
+  skipped: Set<string>,
   readyQueue: string[],
   queued: Set<string>,
   conditionResults: Map<string, boolean>,
@@ -223,12 +231,13 @@ async function* runParallelStage(
       planNodeMap,
       activatedDeps,
       completed,
+      skipped,
       readyQueue,
       queued,
       conditionResults,
     );
   }
-  promoteReadyNodes(planNodeMap, activatedDeps, completed, readyQueue, queued);
+  promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
 }
 
 function interruptedEvent(): PipelineExecutionEvent {

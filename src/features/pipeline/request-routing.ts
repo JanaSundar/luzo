@@ -6,6 +6,11 @@ export interface RequestRouteTargets {
   success: string | null;
 }
 
+export interface ConditionRouteTargets {
+  false: string | null;
+  true: string | null;
+}
+
 export interface RequestRouteOption {
   detail: string;
   label: string;
@@ -59,6 +64,42 @@ export function updateRequestRouteTargets(
   };
 }
 
+export function getConditionRouteTargets(flowDocument: FlowDocument | undefined, nodeId: string) {
+  if (!flowDocument) return { true: null, false: null };
+  return flowDocument.edges.reduce<ConditionRouteTargets>(
+    (targets, edge) => {
+      if (edge.source !== nodeId) return targets;
+      if (edge.semantics === "true") targets.true = edge.target;
+      if (edge.semantics === "false") targets.false = edge.target;
+      return targets;
+    },
+    { true: null, false: null },
+  );
+}
+
+export function updateConditionRouteTargets(
+  flowDocument: FlowDocument,
+  nodeId: string,
+  targets: ConditionRouteTargets,
+): FlowDocument {
+  const edges = flowDocument.edges.filter(
+    (edge) => edge.source !== nodeId || (edge.semantics !== "true" && edge.semantics !== "false"),
+  );
+
+  if (targets.true) {
+    edges.push(createConditionRouteEdge(nodeId, targets.true, "true"));
+  }
+  if (targets.false) {
+    edges.push(createConditionRouteEdge(nodeId, targets.false, "false"));
+  }
+
+  return {
+    ...flowDocument,
+    edges,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function buildRequestRouteOptions(
   steps: PipelineStep[],
   currentStepId: string,
@@ -97,10 +138,10 @@ export function resolveRequestRouteDisplay(
   const option = options.find((entry) => entry.stepId === targetId);
   if (!option) {
     return {
-      detail: "Unavailable",
-      label: "Unavailable target",
+      detail: "Request",
+      label: "Selected request",
       method: null,
-      subtitle: "The selected request no longer exists",
+      subtitle: "Request name unavailable",
     };
   }
 
@@ -108,6 +149,15 @@ export function resolveRequestRouteDisplay(
 }
 
 function createRouteEdge(source: string, target: string, semantics: "success" | "failure") {
+  return {
+    id: `${source}:${semantics}:${target}`,
+    source,
+    target,
+    semantics,
+  };
+}
+
+function createConditionRouteEdge(source: string, target: string, semantics: "true" | "false") {
   return {
     id: `${source}:${semantics}:${target}`,
     source,

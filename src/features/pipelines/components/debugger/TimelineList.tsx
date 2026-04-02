@@ -20,7 +20,8 @@ function matchesFilter(event: TimelineEvent, filter: TimelineFilter): boolean {
   if (filter === "failed") return event.status === "failed";
   if (filter === "executed") return event.outcome === "executed";
   if (filter === "skipped") return event.status === "skipped";
-  if (filter === "decisions") return event.eventKind === "route_selected";
+  if (filter === "decisions")
+    return event.eventKind === "route_selected" || event.eventKind === "condition_evaluated";
   return true;
 }
 

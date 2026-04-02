@@ -22,12 +22,16 @@ interface PipelineInspectorRoutingSectionProps {
   failureDisplay: RequestRouteDisplay;
   failureTarget: string | null;
   connectedConditionNode: FlowNodeRecord | null;
+  conditionTrueTarget: string | null;
+  conditionFalseTarget: string | null;
   suggestions: VariableSuggestion[];
   onReset: () => void;
   onSuccessChange: (value: string | null) => void;
   onFailureChange: (value: string | null) => void;
   onAddCondition: () => void;
   onConditionChange: (config: ConditionNodeConfig) => void;
+  onConditionTrueChange: (value: string | null) => void;
+  onConditionFalseChange: (value: string | null) => void;
   onRemoveCondition: () => void;
 }
 
@@ -53,17 +57,27 @@ export function PipelineInspectorRoutingSection({
   failureDisplay,
   failureTarget,
   connectedConditionNode,
+  conditionTrueTarget,
+  conditionFalseTarget,
   suggestions,
   onReset,
   onSuccessChange,
   onFailureChange,
   onAddCondition,
   onConditionChange,
+  onConditionTrueChange,
+  onConditionFalseChange,
   onRemoveCondition,
 }: PipelineInspectorRoutingSectionProps) {
   const conditionConfig =
     connectedConditionNode?.config?.kind === "condition"
       ? (connectedConditionNode.config as ConditionNodeConfig)
+      : null;
+
+  const skippedTargetLabel =
+    runtimeSkipped?.targetStepId != null
+      ? (routeOptions.find((option) => option.stepId === runtimeSkipped.targetStepId)?.label ??
+        "Selected request")
       : null;
 
   return (
@@ -82,7 +96,7 @@ export function PipelineInspectorRoutingSection({
             ) : null}
             {runtimeSkipped?.targetStepId ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                Skipped target: {runtimeSkipped.targetStepId} ({runtimeSkipped.skippedReason})
+                Skipped target: {skippedTargetLabel} ({runtimeSkipped.skippedReason})
               </p>
             ) : null}
           </div>
@@ -122,9 +136,12 @@ export function PipelineInspectorRoutingSection({
             <ConditionNodeInspector
               config={conditionConfig}
               suggestions={suggestions}
-              trueTarget={null}
-              falseTarget={null}
+              routeOptions={routeOptions}
+              trueTarget={conditionTrueTarget}
+              falseTarget={conditionFalseTarget}
               onChange={onConditionChange}
+              onTrueTargetChange={onConditionTrueChange}
+              onFalseTargetChange={onConditionFalseChange}
             />
           ) : (
             <button

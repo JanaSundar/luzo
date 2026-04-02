@@ -238,6 +238,161 @@ describe("Pipeline Execution Architecture", () => {
     });
   });
 
+  it("does not render a placeholder timeline row for condition step_ready", () => {
+    const state = createInitialState();
+    state.executionId = "exec-1";
+
+    applyEvent(state, {
+      type: "step_ready",
+      snapshot: makeStepSnapshot({
+        stepId: "condition-1",
+        stepName: "Status gate",
+        entryType: "condition",
+        url: "",
+        resolvedRequest: {
+          method: "GET",
+          url: "",
+          headers: {},
+          body: null,
+        },
+      }),
+    });
+
+    expect(useTimelineStore.getState().orderedIds).toHaveLength(0);
+
+    applyEvent(state, {
+      type: "condition_evaluated",
+      snapshot: makeStepSnapshot({
+        stepId: "condition-1",
+        stepName: "Status gate",
+        entryType: "condition",
+        status: "done",
+        url: "",
+        resolvedRequest: {
+          method: "GET",
+          url: "",
+          headers: {},
+          body: null,
+        },
+        completedAt: Date.now(),
+        conditionResult: {
+          result: true,
+          resolvedInputs: { "req1.response.status": 200 },
+        },
+      }),
+      result: true,
+      runtimeVariables: {},
+    });
+
+    const timeline = useTimelineStore.getState();
+    expect(timeline.orderedIds).toHaveLength(1);
+    expect(timeline.eventById.get("exec-1:condition-1")?.eventKind).toBe("condition_evaluated");
+  });
+
+  it("does not emit a placeholder condition step_ready during auto execution", async () => {
+    const pipelineWithCondition: Pipeline = {
+      ...mockPipeline,
+      steps: [
+        {
+          ...mockPipeline.steps[0],
+          id: "step-a",
+          name: "Step A",
+          url: "https://api.example.com/a",
+        },
+        {
+          ...mockPipeline.steps[0],
+          id: "step-b",
+          name: "Step B",
+          url: "https://api.example.com/b",
+        },
+      ],
+      flowDocument: {
+        kind: "flow-document",
+        version: 1,
+        id: "pipeline-condition-auto",
+        name: "Pipeline Condition Auto",
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: "step-a",
+            kind: "request",
+            position: { x: 0, y: 0 },
+            requestRef: "step-a",
+            dataRef: "step-a",
+            config: { kind: "request", label: "Step A" },
+          },
+          {
+            id: "cond-1",
+            kind: "condition",
+            position: { x: 240, y: 0 },
+            config: {
+              kind: "condition",
+              label: "Status gate",
+              rules: [
+                {
+                  id: "rule-1",
+                  valueRef: "req1.response.status",
+                  operator: "equals",
+                  value: "200",
+                },
+              ],
+              expression: "",
+            },
+          },
+          {
+            id: "step-b",
+            kind: "request",
+            position: { x: 480, y: 0 },
+            requestRef: "step-b",
+            dataRef: "step-b",
+            config: { kind: "request", label: "Step B" },
+          },
+        ],
+        edges: [
+          {
+            id: "step-a:cond-1:control",
+            source: "step-a",
+            target: "cond-1",
+            semantics: "control",
+          },
+          {
+            id: "cond-1:step-b:true",
+            source: "cond-1",
+            target: "step-b",
+            semantics: "true",
+          },
+        ],
+      },
+    };
+
+    vi.mocked(executeRequest)
+      .mockResolvedValueOnce({
+        ...mockResponse,
+        status: 200,
+      })
+      .mockResolvedValueOnce(mockResponse);
+
+    const generator = createPipelineGenerator(
+      pipelineWithCondition,
+      {},
+      {
+        abortControls: new Map(),
+        masterAbort: new AbortController(),
+        useStream: false,
+      },
+    );
+
+    const eventTypes: string[] = [];
+    let result = await generator.next();
+    while (!result.done) {
+      eventTypes.push(result.value.type);
+      result = await generator.next();
+    }
+
+    expect(eventTypes.filter((type) => type === "condition_evaluated")).toHaveLength(1);
+    expect(eventTypes.filter((type) => type === "step_ready")).toHaveLength(2);
+  });
+
   it("keeps controller and store snapshots de-aliased during streaming debug updates", () => {
     const state = createInitialState();
     state.executionId = "exec-debug";
@@ -655,6 +810,176 @@ describe("Pipeline Execution Architecture", () => {
     const sourceNode = plan.nodes.find((node) => node.nodeId === "step-a");
     expect(sourceNode?.routes.control).toEqual([]);
     expect(sourceNode?.routes.success).toEqual(["step-c"]);
+  });
+
+  it("executes condition nodes and ignores stale direct request routes once a condition is attached", async () => {
+    vi.mocked(executeRequest).mockReset();
+
+    const pipelineWithCondition: Pipeline = {
+      id: "condition-pipeline",
+      name: "Condition Pipeline",
+      createdAt: "",
+      updatedAt: "",
+      narrativeConfig: { tone: "technical", prompt: "", enabled: true },
+      steps: [
+        {
+          id: "step-a",
+          name: "Fetch status",
+          method: "GET",
+          url: "https://api.example.com/status",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+        {
+          id: "step-b",
+          name: "True branch",
+          method: "GET",
+          url: "https://api.example.com/true",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+        {
+          id: "step-c",
+          name: "False branch",
+          method: "GET",
+          url: "https://api.example.com/false",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+      ],
+      flowDocument: {
+        kind: "flow-document",
+        version: 1,
+        id: "condition-pipeline",
+        name: "Condition Pipeline",
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: "condition-pipeline:start",
+            kind: "start",
+            geometry: { position: { x: 0, y: 0 } },
+            position: { x: 0, y: 0 },
+            config: { kind: "start", label: "Start" },
+          },
+          {
+            id: "step-a",
+            kind: "request",
+            geometry: { position: { x: 100, y: 0 } },
+            position: { x: 100, y: 0 },
+            dataRef: "step-a",
+            requestRef: "step-a",
+            config: { kind: "request", label: "Fetch status" },
+          },
+          {
+            id: "cond-1",
+            kind: "condition",
+            geometry: { position: { x: 220, y: 0 } },
+            position: { x: 220, y: 0 },
+            config: {
+              kind: "condition",
+              label: "Status is 200",
+              rules: [
+                {
+                  id: "rule-1",
+                  valueRef: "req1.response.status",
+                  operator: "equals",
+                  value: "200",
+                },
+              ],
+              expression: "",
+            },
+          },
+          {
+            id: "step-b",
+            kind: "request",
+            geometry: { position: { x: 360, y: -80 } },
+            position: { x: 360, y: -80 },
+            dataRef: "step-b",
+            requestRef: "step-b",
+            config: { kind: "request", label: "True branch" },
+          },
+          {
+            id: "step-c",
+            kind: "request",
+            geometry: { position: { x: 360, y: 80 } },
+            position: { x: 360, y: 80 },
+            dataRef: "step-c",
+            requestRef: "step-c",
+            config: { kind: "request", label: "False branch" },
+          },
+        ],
+        edges: [
+          {
+            id: "step-a:cond-1:control",
+            source: "step-a",
+            target: "cond-1",
+            semantics: "control",
+          },
+          {
+            id: "step-a:step-b:control",
+            source: "step-a",
+            target: "step-b",
+            semantics: "control",
+          },
+          {
+            id: "cond-1:true:step-b",
+            source: "cond-1",
+            target: "step-b",
+            semantics: "true",
+          },
+          {
+            id: "cond-1:false:step-c",
+            source: "cond-1",
+            target: "step-c",
+            semantics: "false",
+          },
+        ],
+      },
+    };
+
+    vi.mocked(executeRequest)
+      .mockResolvedValueOnce({
+        ...mockResponse,
+        status: 200,
+      })
+      .mockImplementationOnce(async (request) => {
+        expect(request.url).toBe("https://api.example.com/true");
+        return mockResponse;
+      });
+
+    const generator = createPipelineGenerator(
+      pipelineWithCondition,
+      {},
+      {
+        abortControls: new Map(),
+        masterAbort: new AbortController(),
+        useStream: false,
+      },
+    );
+
+    const eventTypes: string[] = [];
+    let result = await generator.next();
+    while (!result.done) {
+      eventTypes.push(result.value.type);
+      result = await generator.next();
+    }
+
+    expect(eventTypes).toContain("condition_evaluated");
+    expect(executeRequest).toHaveBeenCalledTimes(2);
+    expect(
+      vi
+        .mocked(executeRequest)
+        .mock.calls.some(([request]) => request.url === "https://api.example.com/false"),
+    ).toBe(false);
   });
 
   it("DebugController critical 8-step retry protocol", async () => {

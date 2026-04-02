@@ -4,6 +4,7 @@ import { GitBranch, Plus, Trash2 } from "lucide-react";
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VariablePathInput } from "@/components/ui/variable-path-input";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,10 @@ import {
 import type { ConditionRule } from "@/types";
 import type { ConditionNodeConfig } from "@/types/workflow";
 import type { VariableSuggestion } from "@/types/pipeline-runtime";
+import type { RequestRouteOption } from "@/features/pipeline/request-routing";
 import { cn } from "@/utils";
+
+const EMPTY_ROUTE_VALUE = "none";
 
 const OPERATORS = [
   { value: "equals", label: "equals" },
@@ -32,17 +36,23 @@ const VALUE_HIDDEN_OPERATORS: ConditionRule["operator"][] = ["exists", "not_exis
 interface ConditionNodeInspectorProps {
   config: ConditionNodeConfig;
   suggestions: VariableSuggestion[];
+  routeOptions: RequestRouteOption[];
   trueTarget: string | null;
   falseTarget: string | null;
   onChange: (next: ConditionNodeConfig) => void;
+  onTrueTargetChange: (targetId: string | null) => void;
+  onFalseTargetChange: (targetId: string | null) => void;
 }
 
 export function ConditionNodeInspector({
   config,
   suggestions,
+  routeOptions,
   trueTarget,
   falseTarget,
   onChange,
+  onTrueTargetChange,
+  onFalseTargetChange,
 }: ConditionNodeInspectorProps) {
   const handleLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,8 +143,22 @@ export function ConditionNodeInspector({
         <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/50">
           Paths
         </label>
-        <PathDisplay label="True path" target={trueTarget} semantics="true" />
-        <PathDisplay label="False path" target={falseTarget} semantics="false" />
+        <PathSelector
+          label="True path"
+          semantics="true"
+          target={trueTarget}
+          otherTarget={falseTarget}
+          routeOptions={routeOptions}
+          onChange={onTrueTargetChange}
+        />
+        <PathSelector
+          label="False path"
+          semantics="false"
+          target={falseTarget}
+          otherTarget={trueTarget}
+          routeOptions={routeOptions}
+          onChange={onFalseTargetChange}
+        />
       </div>
     </div>
   );
@@ -159,18 +183,14 @@ function ConditionRuleRow({ rule, index, suggestions, onChange, onDelete }: Cond
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         {/* Value reference */}
-        <Input
+        <VariablePathInput
           value={rule.valueRef}
-          onChange={(e) => onChange(rule.id, { valueRef: e.target.value })}
+          onChange={(valueRef) => onChange(rule.id, { valueRef })}
           placeholder="e.g. req1.response.status"
-          className="h-7 font-mono text-[11px]"
-          list={`suggestions-${rule.id}`}
+          inputClassName="h-7 text-[11px]"
+          aria-label={`Condition variable ${index + 1}`}
+          suggestions={suggestions}
         />
-        <datalist id={`suggestions-${rule.id}`}>
-          {suggestions.map((s) => (
-            <option key={s.path} value={s.path} label={s.label} />
-          ))}
-        </datalist>
 
         {/* Operator + value */}
         <div className="flex gap-2">
@@ -218,14 +238,16 @@ interface PathDisplayProps {
   label: string;
   target: string | null;
   semantics: "true" | "false";
+  routeOptions?: RequestRouteOption[];
 }
 
-function PathDisplay({ label, target, semantics }: PathDisplayProps) {
+function PathDisplay({ label, target, semantics, routeOptions = [] }: PathDisplayProps) {
   const colorClass = semantics === "true" ? "text-emerald-600" : "text-rose-500";
   const bgClass =
     semantics === "true"
       ? "bg-emerald-500/8 border-emerald-500/20"
       : "bg-rose-500/8 border-rose-500/20";
+  const targetOption = routeOptions.find((option) => option.stepId === target);
 
   return (
     <div className={cn("flex items-center justify-between rounded-md border px-3 py-2", bgClass)}>
@@ -233,8 +255,65 @@ function PathDisplay({ label, target, semantics }: PathDisplayProps) {
         {label}
       </span>
       <span className="text-[11px] text-foreground/50">
-        {target ? `→ ${target}` : <span className="italic text-foreground/30">not connected</span>}
+        {target ? (
+          targetOption ? (
+            `→ ${targetOption.label}`
+          ) : (
+            "→ Selected request"
+          )
+        ) : (
+          <span className="italic text-foreground/30">not connected</span>
+        )}
       </span>
+    </div>
+  );
+}
+
+function PathSelector({
+  label,
+  target,
+  otherTarget,
+  semantics,
+  routeOptions,
+  onChange,
+}: PathDisplayProps & {
+  routeOptions: RequestRouteOption[];
+  otherTarget: string | null;
+  onChange: (targetId: string | null) => void;
+}) {
+  const selectedOption = routeOptions.find((option) => option.stepId === target);
+  const availableOptions = routeOptions.filter(
+    (option) => option.stepId === target || option.stepId !== otherTarget,
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      <PathDisplay
+        label={label}
+        target={target}
+        semantics={semantics}
+        routeOptions={routeOptions}
+      />
+      <Select
+        value={target ?? EMPTY_ROUTE_VALUE}
+        onValueChange={(value) => onChange(value === EMPTY_ROUTE_VALUE ? null : value)}
+      >
+        <SelectTrigger className="h-8 text-[11px]" aria-label={`${label} target`}>
+          <SelectValue placeholder={`Select ${label.toLowerCase()}`}>
+            {target ? (selectedOption?.label ?? "Selected request") : undefined}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={EMPTY_ROUTE_VALUE} className="text-[11px]">
+            none
+          </SelectItem>
+          {availableOptions.map((option) => (
+            <SelectItem key={option.stepId} value={option.stepId} className="text-[11px]">
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

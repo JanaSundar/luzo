@@ -101,9 +101,17 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
         if (
           event.type !== "step_ready" &&
           event.type !== "step_stream_chunk" &&
+          event.type !== "condition_evaluated" &&
           event.type !== "step_completed" &&
           event.type !== "step_failed"
         ) {
+          return;
+        }
+
+        // Condition nodes emit step_ready before evaluation so debug mode can pause.
+        // Skip that placeholder snapshot to avoid rendering an empty condition row
+        // before the real condition_evaluated event arrives.
+        if (event.type === "step_ready" && event.snapshot.entryType === "condition") {
           return;
         }
 
@@ -112,6 +120,9 @@ export const useTimelineStore = create<TimelineState & TimelineActions>()(
           executionId,
           layoutByStep?.get(event.snapshot.stepId),
         );
+        if (!timelineEvent) {
+          return;
+        }
         const isNew = !state.eventById.has(timelineEvent.eventId);
         state.eventById.set(timelineEvent.eventId, timelineEvent);
         if (isNew) {

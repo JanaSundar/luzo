@@ -92,13 +92,66 @@ vi.mock("@/features/pipeline/autocomplete", () => ({
 }));
 
 vi.mock("@/features/pipeline/request-routing", () => ({
-  buildRequestRouteOptions: vi.fn(() => []),
+  buildRequestRouteOptions: vi.fn((steps, currentStepId) =>
+    steps
+      .filter((step: { id: string }) => step.id !== currentStepId)
+      .map((step: { id: string; name: string; method: string; url: string }, index: number) => ({
+        stepId: step.id,
+        stepIndex: index,
+        label: step.name,
+        subtitle: step.url,
+        detail: `Request ${index + 1}`,
+        method: step.method,
+      })),
+  ),
   getRequestRouteTargets: vi.fn(() => ({ success: null, failure: null })),
+  getConditionRouteTargets: vi.fn((document, nodeId) => {
+    const trueEdge = document?.edges.find(
+      (edge: { source: string; semantics: string }) =>
+        edge.source === nodeId && edge.semantics === "true",
+    );
+    const falseEdge = document?.edges.find(
+      (edge: { source: string; semantics: string }) =>
+        edge.source === nodeId && edge.semantics === "false",
+    );
+    return { true: trueEdge?.target ?? null, false: falseEdge?.target ?? null };
+  }),
   resolveRequestRouteDisplay: vi.fn((_target, _options, title, description) => ({
-    title,
-    description,
+    label: title,
+    subtitle: description,
+    detail: title,
+    method: null,
   })),
   updateRequestRouteTargets: vi.fn((document) => document),
+  updateConditionRouteTargets: vi.fn((document, nodeId, targets) => ({
+    ...document,
+    edges: [
+      ...document.edges.filter(
+        (edge: { source: string; semantics: string }) =>
+          edge.source !== nodeId || (edge.semantics !== "true" && edge.semantics !== "false"),
+      ),
+      ...(targets.true
+        ? [
+            {
+              id: `${nodeId}:true:${targets.true}`,
+              source: nodeId,
+              target: targets.true,
+              semantics: "true",
+            },
+          ]
+        : []),
+      ...(targets.false
+        ? [
+            {
+              id: `${nodeId}:false:${targets.false}`,
+              source: nodeId,
+              target: targets.false,
+              semantics: "false",
+            },
+          ]
+        : []),
+    ],
+  })),
 }));
 
 vi.mock("@/stores/usePipelineStore", () => ({
@@ -176,5 +229,137 @@ describe("PipelineSideInspector", () => {
 
     await user.click(screen.getByRole("tab", { name: /mock/i }));
     expect(screen.getByText("Mock panel")).toBeInTheDocument();
+  });
+
+  it("shows connected condition path targets in the routing inspector", async () => {
+    const user = userEvent.setup();
+    const flowDocument = pipelineStoreState.pipelines[0].flowDocument as any;
+    const steps = pipelineStoreState.pipelines[0].steps as any[];
+    const originalNodeCount = flowDocument.nodes.length;
+    const originalEdgeCount = flowDocument.edges.length;
+    const originalStepCount = steps.length;
+
+    flowDocument.nodes.push({
+      id: "cond-1",
+      kind: "condition",
+      position: { x: 320, y: 0 },
+      config: { kind: "condition", label: "Branch", rules: [], expression: "true" },
+    });
+    flowDocument.nodes.push({
+      id: "step-2",
+      kind: "request",
+      position: { x: 640, y: -80 },
+      requestRef: "step-2",
+      dataRef: "step-2",
+      config: { kind: "request", label: "True branch" },
+    });
+    steps.push({
+      ...steps[0],
+      id: "step-2",
+      name: "True branch",
+      method: "GET",
+      url: "https://api.example.com/true",
+    });
+    flowDocument.nodes.push({
+      id: "step-3",
+      kind: "request",
+      position: { x: 640, y: 80 },
+      requestRef: "step-3",
+      dataRef: "step-3",
+      config: { kind: "request", label: "False branch" },
+    });
+    steps.push({
+      ...steps[0],
+      id: "step-3",
+      name: "False branch",
+      method: "POST",
+      url: "https://api.example.com/false",
+    });
+    flowDocument.edges.push({
+      id: "step-1-cond-1",
+      source: "step-1",
+      target: "cond-1",
+      semantics: "control",
+    });
+    flowDocument.edges.push({
+      id: "cond-1-step-2",
+      source: "cond-1",
+      target: "step-2",
+      semantics: "true",
+    });
+    flowDocument.edges.push({
+      id: "cond-1-step-3",
+      source: "cond-1",
+      target: "step-3",
+      semantics: "false",
+    });
+
+    render(<PipelineSideInspector pipelineId="pipeline-1" stepId="step-1" onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("tab", { name: /routing/i }));
+
+    expect(screen.getByText("→ True branch")).toBeInTheDocument();
+    expect(screen.getByText("→ False branch")).toBeInTheDocument();
+
+    steps.splice(originalStepCount);
+    flowDocument.nodes.splice(originalNodeCount);
+    flowDocument.edges.splice(originalEdgeCount);
+  });
+
+  it("seeds a default true branch when adding a condition", async () => {
+    const user = userEvent.setup();
+    const pipeline = pipelineStoreState.pipelines[0] as any;
+    const flowDocument = pipeline.flowDocument;
+    const steps = pipeline.steps as any[];
+    const originalNodeCount = flowDocument.nodes.length;
+    const originalEdgeCount = flowDocument.edges.length;
+    const originalStepCount = steps.length;
+
+    steps.push({
+      ...steps[0],
+      id: "step-2",
+      name: "Review Payment",
+      method: "GET",
+      url: "https://api.example.com/review",
+    });
+    flowDocument.nodes.push({
+      id: "step-2",
+      kind: "request",
+      position: { x: 320, y: 0 },
+      requestRef: "step-2",
+      dataRef: "step-2",
+      config: { kind: "request", label: "Review Payment" },
+    });
+
+    render(<PipelineSideInspector pipelineId="pipeline-1" stepId="step-1" onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("tab", { name: /routing/i }));
+    await user.click(screen.getByRole("button", { name: /add if \/ else condition/i }));
+
+    expect(pipelineStoreState.replaceFlowDocument).toHaveBeenCalled();
+    const [, nextDocument] = vi.mocked(pipelineStoreState.replaceFlowDocument).mock.calls.at(-1)!;
+    const conditionNode = nextDocument.nodes.find(
+      (node: { kind: string }) => node.kind === "condition",
+    );
+
+    expect(conditionNode).toBeDefined();
+    expect(
+      nextDocument.edges.some(
+        (edge: { source: string; target: string; semantics: string }) =>
+          edge.source === "step-1" &&
+          edge.target === conditionNode.id &&
+          edge.semantics === "control",
+      ),
+    ).toBe(true);
+    expect(
+      nextDocument.edges.some(
+        (edge: { source: string; target: string; semantics: string }) =>
+          edge.source === conditionNode.id && edge.target === "step-2" && edge.semantics === "true",
+      ),
+    ).toBe(true);
+
+    steps.splice(originalStepCount);
+    flowDocument.nodes.splice(originalNodeCount);
+    flowDocument.edges.splice(originalEdgeCount);
   });
 });

@@ -178,6 +178,7 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
           }
 
           case "step_completed":
+          case "condition_evaluated":
           case "step_failed": {
             const index = state.snapshots.findIndex(
               (snap) => snap.stepId === event.snapshot.stepId,

@@ -81,4 +81,102 @@ describe("execution plan compilation", () => {
       ),
     ).toBe(true);
   });
+
+  it("marks condition nodes with both branch edges as branch-capable", () => {
+    const registry = createRegistry();
+    const result = compileExecutionPlan({
+      workflow: {
+        kind: "workflow-definition",
+        version: 1,
+        id: "wf-condition",
+        name: "Condition Workflow",
+        createdAt: "2026-03-27T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+        requestRegistryId: "registry-1",
+        entryNodeIds: ["req1"],
+        nodes: [
+          { id: "req1", kind: "request", requestRef: "req1" },
+          {
+            id: "cond1",
+            kind: "condition",
+            config: {
+              kind: "condition",
+              label: "Status gate",
+              rules: [
+                {
+                  id: "rule-1",
+                  valueRef: "req1.response.status",
+                  operator: "equals",
+                  value: "200",
+                },
+              ],
+              expression: "",
+            },
+          },
+          { id: "req2", kind: "request", requestRef: "req2" },
+          { id: "req3", kind: "request", requestRef: "req3" },
+        ],
+        edges: [
+          { id: "req1-cond1", source: "req1", target: "cond1", semantics: "control" },
+          { id: "cond1-req2", source: "cond1", target: "req2", semantics: "true" },
+          { id: "cond1-req3", source: "cond1", target: "req3", semantics: "false" },
+        ],
+      },
+      registry,
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.plan.nodes.find((node) => node.nodeId === "cond1")?.branch).toEqual({
+      mode: "all",
+    });
+  });
+
+  it("reports incomplete condition routing without the extra entry-node error", () => {
+    const registry = createRegistry();
+    const result = compileExecutionPlan({
+      workflow: {
+        kind: "workflow-definition",
+        version: 1,
+        id: "wf-condition-incomplete",
+        name: "Condition Workflow Incomplete",
+        createdAt: "2026-03-27T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+        requestRegistryId: "registry-1",
+        entryNodeIds: ["req1"],
+        nodes: [
+          { id: "req1", kind: "request", requestRef: "req1" },
+          {
+            id: "cond1",
+            kind: "condition",
+            config: {
+              kind: "condition",
+              label: "Status gate",
+              rules: [
+                {
+                  id: "rule-1",
+                  valueRef: "req1.response.status",
+                  operator: "equals",
+                  value: "200",
+                },
+              ],
+              expression: "",
+            },
+          },
+        ],
+        edges: [{ id: "req1-cond1", source: "req1", target: "cond1", semantics: "control" }],
+      },
+      registry,
+    });
+
+    expect(
+      result.warnings.filter(
+        (warning) => warning.stepId === "cond1" && warning.severity === "error",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        field: "routing",
+        message: 'Condition node "cond1" has no true or false edges',
+      }),
+    ]);
+  });
 });

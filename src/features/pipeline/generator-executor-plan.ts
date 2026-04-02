@@ -36,6 +36,7 @@ export function primeRuntimeState(
   startStepId: string | undefined,
   completed: Set<string>,
   activatedDeps: Map<string, Set<string>>,
+  skipped: Set<string>,
 ) {
   if (!startStepId) return;
 
@@ -61,6 +62,8 @@ export function primeRuntimeState(
       activatedDeps.set(targetId, deps);
     }
   }
+
+  skipped.clear();
 }
 
 export function seedReadyQueue(
@@ -118,6 +121,7 @@ export function processCompletion(
   planNodeMap: Map<string, CompiledPipelineNode>,
   activatedDeps: Map<string, Set<string>>,
   completed: Set<string>,
+  skipped: Set<string>,
   readyQueue: string[],
   queued: Set<string>,
   conditionResults: Map<string, boolean>,
@@ -133,6 +137,10 @@ export function processCompletion(
     nextTargets = event.result ? planNode.routes.true : planNode.routes.false;
     // Fall through to control if the matched path has no edges configured.
     if (nextTargets.length === 0) nextTargets = planNode.routes.control;
+    const skippedTargets = event.result ? planNode.routes.false : planNode.routes.true;
+    skippedTargets.forEach((targetId) =>
+      markSkippedSubgraph(targetId, planNodeMap, completed, skipped, readyQueue, queued),
+    );
   } else {
     nextTargets =
       event.type === "step_failed"
@@ -157,6 +165,7 @@ export function promoteReadyNodes(
   planNodeMap: Map<string, CompiledPipelineNode>,
   activatedDeps: Map<string, Set<string>>,
   completed: Set<string>,
+  skipped: Set<string>,
   readyQueue: string[],
   queued: Set<string>,
 ) {
@@ -166,7 +175,9 @@ export function promoteReadyNodes(
     if (node.dependencyIds.length === 0) return true;
 
     const activated = activatedDeps.get(nodeId) ?? new Set<string>();
-    return node.dependencyIds.every((depId) => completed.has(depId) && activated.has(depId));
+    return node.dependencyIds.every(
+      (depId) => skipped.has(depId) || (completed.has(depId) && activated.has(depId)),
+    );
   });
 
   readyQueue.splice(
@@ -181,5 +192,42 @@ export function promoteReadyNodes(
 
   for (const nodeId of Array.from(queued)) {
     if (!readyQueue.includes(nodeId)) queued.delete(nodeId);
+  }
+}
+
+function markSkippedSubgraph(
+  startNodeId: string,
+  planNodeMap: Map<string, CompiledPipelineNode>,
+  completed: Set<string>,
+  skipped: Set<string>,
+  readyQueue: string[],
+  queued: Set<string>,
+) {
+  const stack = [startNodeId];
+
+  while (stack.length > 0) {
+    const nodeId = stack.pop();
+    if (!nodeId || completed.has(nodeId) || skipped.has(nodeId)) continue;
+
+    const node = planNodeMap.get(nodeId);
+    if (!node) continue;
+
+    const canSkip =
+      nodeId === startNodeId ||
+      node.dependencyIds.every((dependencyId) => skipped.has(dependencyId));
+    if (!canSkip) continue;
+
+    skipped.add(nodeId);
+    completed.add(nodeId);
+
+    const queueIndex = readyQueue.indexOf(nodeId);
+    if (queueIndex >= 0) readyQueue.splice(queueIndex, 1);
+    queued.delete(nodeId);
+
+    node.downstreamIds.forEach((downstreamId) => {
+      if (!completed.has(downstreamId) && !skipped.has(downstreamId)) {
+        stack.push(downstreamId);
+      }
+    });
   }
 }
