@@ -102,7 +102,7 @@ describe("pipeline execution support", () => {
     expect(support.reason).toBeNull();
   });
 
-  it("blocks execution when unsupported node kinds are present", () => {
+  it("allows execution when condition nodes are present", () => {
     const pipeline = createPipelineRecord("Has Condition");
     pipeline.steps = [
       {
@@ -135,7 +135,7 @@ describe("pipeline execution support", () => {
 
     const support = getPipelineExecutionSupport(pipeline);
 
-    expect(support.supported).toBe(false);
-    expect(support.reason).toContain("condition");
+    expect(support.supported).toBe(true);
+    expect(support.reason).toBeNull();
   });
 });

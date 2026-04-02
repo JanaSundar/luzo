@@ -99,6 +99,11 @@ export function applyEvent(state: ControllerState, event: PipelineExecutionEvent
       state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);
       state.currentStepIndex = event.snapshot.stepIndex + 1;
       return;
+    case "condition_evaluated":
+      upsertSnapshot(state.snapshots, cloneSnapshot(event.snapshot));
+      state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);
+      state.currentStepIndex = event.snapshot.stepIndex + 1;
+      return;
     case "step_failed":
       upsertSnapshot(state.snapshots, cloneSnapshot(event.snapshot));
       state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);

@@ -25,8 +25,6 @@ export function TimelinePanel() {
   const pipeline = usePipelineStore((s) =>
     s.activePipelineId ? s.pipelines.find((p) => p.id === s.activePipelineId) : null,
   );
-  const setSelectedNodeId = usePipelineStore((s) => s.setSelectedNodeId);
-  const activePipelineId = usePipelineStore((s) => s.activePipelineId);
 
   const syncFromExecution = useTimelineStore((s) => s.syncFromExecution);
   const selectEvent = useTimelineStore((s) => s.selectEvent);
@@ -82,12 +80,8 @@ export function TimelinePanel() {
   const handleSelectEvent = useCallback(
     (eventId: string) => {
       selectEvent(eventId);
-      const event = useTimelineStore.getState().eventById.get(eventId);
-      if (event && activePipelineId) {
-        setSelectedNodeId(activePipelineId, event.targetStepId ?? event.stepId);
-      }
     },
-    [activePipelineId, selectEvent, setSelectedNodeId],
+    [selectEvent],
   );
 
   if (panelState === "empty") return <TimelineEmpty />;

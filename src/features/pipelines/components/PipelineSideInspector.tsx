@@ -4,7 +4,11 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useVariableSuggestions } from "@/features/pipeline/autocomplete";
-import { updateRequestRouteTargets } from "@/features/pipeline/request-routing";
+import {
+  getConditionRouteTargets,
+  updateConditionRouteTargets,
+  updateRequestRouteTargets,
+} from "@/features/pipeline/request-routing";
 import {
   createFlowEdge,
   createFlowNodeRecord,
@@ -115,6 +119,13 @@ export function PipelineSideInspector({
     if (!edge) return null;
     return doc.nodes.find((n) => n.id === edge.target) ?? null;
   }, [pipeline?.flowDocument, stepId]);
+  const conditionRouteTargets = useMemo(
+    () =>
+      connectedConditionNode
+        ? getConditionRouteTargets(pipeline?.flowDocument, connectedConditionNode.id)
+        : { true: null, false: null },
+    [connectedConditionNode, pipeline?.flowDocument],
+  );
 
   if (!selectedNode) return null;
   if (selectedNode.kind === "subflow" && selectedNode.config?.kind === "subflow") {
@@ -285,12 +296,29 @@ export function PipelineSideInspector({
                   const condNode = createFlowNodeRecord("condition", pos, {
                     config: createDefaultNodeConfig("condition"),
                   });
-                  const edge = createFlowEdge(stepId, condNode.id, "control");
-                  replaceFlowDocument(pipelineId, {
-                    ...doc,
-                    nodes: [...doc.nodes, condNode],
-                    edges: [...doc.edges, edge],
+                  const requestToConditionEdge = createFlowEdge(stepId, condNode.id, "control");
+                  const defaultTrueTarget =
+                    routeTargets.success ?? routeTargets.failure ?? routeOptions[0]?.stepId ?? null;
+                  const defaultFalseTarget =
+                    routeTargets.failure && routeTargets.failure !== defaultTrueTarget
+                      ? routeTargets.failure
+                      : null;
+                  const nextDoc = updateRequestRouteTargets(doc, stepId, {
+                    success: null,
+                    failure: null,
                   });
+                  const docWithCondition = {
+                    ...nextDoc,
+                    nodes: [...nextDoc.nodes, condNode],
+                    edges: [...nextDoc.edges, requestToConditionEdge],
+                  };
+                  replaceFlowDocument(
+                    pipelineId,
+                    updateConditionRouteTargets(docWithCondition, condNode.id, {
+                      true: defaultTrueTarget,
+                      false: defaultFalseTarget,
+                    }),
+                  );
                 }}
                 onConditionChange={(nextConfig) =>
                   replaceFlowDocument(pipelineId, {
@@ -313,6 +341,28 @@ export function PipelineSideInspector({
                         e.target !== connectedConditionNode.id,
                     ),
                   });
+                }}
+                conditionTrueTarget={conditionRouteTargets.true}
+                conditionFalseTarget={conditionRouteTargets.false}
+                onConditionTrueChange={(trueTarget) => {
+                  if (!connectedConditionNode) return;
+                  replaceFlowDocument(
+                    pipelineId,
+                    updateConditionRouteTargets(pipeline.flowDocument!, connectedConditionNode.id, {
+                      true: trueTarget,
+                      false: conditionRouteTargets.false,
+                    }),
+                  );
+                }}
+                onConditionFalseChange={(falseTarget) => {
+                  if (!connectedConditionNode) return;
+                  replaceFlowDocument(
+                    pipelineId,
+                    updateConditionRouteTargets(pipeline.flowDocument!, connectedConditionNode.id, {
+                      true: conditionRouteTargets.true,
+                      false: falseTarget,
+                    }),
+                  );
                 }}
                 onReset={() =>
                   replaceFlowDocument(

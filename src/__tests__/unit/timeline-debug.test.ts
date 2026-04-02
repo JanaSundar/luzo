@@ -117,6 +117,8 @@ describe("event-adapter", () => {
     it("converts a successful snapshot", () => {
       const snapshot = makeSnapshot();
       const event = snapshotToTimelineEvent(snapshot, "exec-1");
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
 
       expect(event.eventId).toBe("exec-1:step-1");
       expect(event.status).toBe("completed");
@@ -131,6 +133,8 @@ describe("event-adapter", () => {
     it("converts a failed snapshot", () => {
       const snapshot = makeSnapshot({ status: "error", error: "Connection refused" });
       const event = snapshotToTimelineEvent(snapshot, "exec-1");
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
 
       expect(event.status).toBe("failed");
       expect(event.errorSnapshot?.message).toBe("Connection refused");
@@ -141,6 +145,8 @@ describe("event-adapter", () => {
         fullHeaders: { "x-luzo-mock": "true" },
       });
       const event = snapshotToTimelineEvent(snapshot, "exec-1");
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
 
       expect(event.isMock).toBe(true);
     });
@@ -155,6 +161,8 @@ describe("event-adapter", () => {
         detail: "",
       };
       const event = snapshotToTimelineEvent(snapshot, "exec-1", layout);
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
 
       // sequenceNumber = stageIndex(1) * 1000 + stepIndex(2) = 1002
       expect(event.sequenceNumber).toBe(1002);
@@ -171,8 +179,42 @@ describe("event-adapter", () => {
         detail: "",
       };
       const event = snapshotToTimelineEvent(snapshot, "exec-1", layout);
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
 
       expect(event.branchId).toBe("stage-0");
+    });
+
+    it("maps condition snapshots to a single condition event", () => {
+      const snapshot = makeSnapshot({
+        entryType: "condition",
+        status: "done",
+        conditionResult: {
+          result: true,
+          resolvedInputs: { "req1.response.status": 200 },
+        },
+      });
+      const event = snapshotToTimelineEvent(snapshot, "exec-1");
+      expect(event).not.toBeNull();
+      if (!event) throw new Error("expected timeline event");
+
+      expect(event.eventKind).toBe("condition_evaluated");
+      expect(event.routeSemantics).toBe("true");
+      expect(event.outcome).toBe("selected");
+      expect(event.terminalReason).toBe("Condition resolved true");
+    });
+
+    it("ignores unresolved condition snapshots", () => {
+      const snapshot = makeSnapshot({
+        entryType: "condition",
+        stepId: "cond-1",
+        stepName: "Status gate",
+        status: "running",
+        reducedResponse: null,
+        completedAt: null,
+      });
+
+      expect(snapshotToTimelineEvent(snapshot, "exec-1")).toBeNull();
     });
   });
 
@@ -187,6 +229,109 @@ describe("event-adapter", () => {
       expect(events).toHaveLength(2);
       expect(events[0].stepId).toBe("s1");
       expect(events[1].stepId).toBe("s2");
+    });
+
+    it("does not duplicate the condition node row", () => {
+      const snapshot = makeSnapshot({
+        stepId: "cond-1",
+        stepName: "Status gate",
+        entryType: "condition",
+        status: "done",
+        conditionResult: {
+          result: true,
+          resolvedInputs: { "req1.response.status": 200 },
+        },
+      });
+      const events = snapshotsToTimelineEvents(
+        [snapshot],
+        "exec-1",
+        new Map([
+          [
+            "cond-1",
+            {
+              depth: 0,
+              groupLabel: "Stage 1",
+              mode: "sequential" as const,
+              parallelGroup: false,
+              detail: "",
+            },
+          ],
+        ]),
+        [
+          {
+            nodeId: "cond-1",
+            kind: "condition",
+            orderIndex: 0,
+            stageIndex: 0,
+            dependencyIds: [],
+            activationIds: [],
+            downstreamIds: ["step-true", "step-false"],
+            entry: true,
+            conditionConfig: {
+              kind: "condition",
+              label: "Status gate",
+              rules: [],
+              expression: "",
+            },
+            routes: {
+              control: [],
+              success: [],
+              failure: [],
+              true: ["step-true"],
+              false: ["step-false"],
+            },
+            runtimeRoutes: [],
+            branch: { mode: "all" },
+          },
+          {
+            nodeId: "step-true",
+            kind: "request",
+            orderIndex: 1,
+            stageIndex: 1,
+            dependencyIds: ["cond-1"],
+            activationIds: ["cond-1"],
+            downstreamIds: [],
+            entry: false,
+            routes: { control: [], success: [], failure: [], true: [], false: [] },
+            runtimeRoutes: [],
+          },
+          {
+            nodeId: "step-false",
+            kind: "request",
+            orderIndex: 2,
+            stageIndex: 1,
+            dependencyIds: ["cond-1"],
+            activationIds: ["cond-1"],
+            downstreamIds: [],
+            entry: false,
+            routes: { control: [], success: [], failure: [], true: [], false: [] },
+            runtimeRoutes: [],
+          },
+        ],
+      );
+
+      expect(events.filter((event) => event.stepId === "cond-1")).toHaveLength(1);
+      expect(events[0]?.eventKind).toBe("condition_evaluated");
+      expect(events.some((event) => event.eventKind === "step_skipped")).toBe(true);
+    });
+
+    it("skips unresolved condition snapshots during batch sync", () => {
+      const events = snapshotsToTimelineEvents(
+        [
+          makeSnapshot({
+            stepId: "cond-1",
+            stepName: "Status gate",
+            entryType: "condition",
+            status: "running",
+            reducedResponse: null,
+            completedAt: null,
+          }),
+        ],
+        "exec-1",
+        new Map(),
+      );
+
+      expect(events).toHaveLength(0);
     });
   });
 });

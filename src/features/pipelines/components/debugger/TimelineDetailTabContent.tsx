@@ -2,6 +2,7 @@
 
 import { METHOD_COLORS } from "@/utils/http";
 import type { TimelineEvent } from "@/types/timeline-event";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import {
   formatBytes,
   formatDuration,
@@ -19,6 +20,12 @@ import { TimelineLineageTable } from "./TimelineLineageTable";
 import type { TimelineLineageRow } from "./timelineLineageUtils";
 
 export function OverviewTab({ event }: { event: TimelineEvent }) {
+  const activePipelineId = usePipelineStore((state) => state.activePipelineId);
+  const targetStepName = usePipelineStore((state) => {
+    const pipeline = state.pipelines.find((entry) => entry.id === activePipelineId);
+    return pipeline?.steps.find((step) => step.id === event.targetStepId)?.name ?? null;
+  });
+
   return (
     <div className="space-y-4">
       <section className="grid gap-3 md:grid-cols-2">
@@ -64,7 +71,9 @@ export function OverviewTab({ event }: { event: TimelineEvent }) {
         {event.terminalReason ? (
           <MetaRow label="Terminal Reason" value={event.terminalReason} />
         ) : null}
-        {event.targetStepId ? <MetaRow label="Target Step" value={event.targetStepId} /> : null}
+        {event.targetStepId ? (
+          <MetaRow label="Target Step" value={targetStepName ?? "Selected request"} />
+        ) : null}
         {event.skippedReason ? (
           <MetaRow label="Skipped Reason" value={event.skippedReason} />
         ) : null}

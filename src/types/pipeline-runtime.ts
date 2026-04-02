@@ -6,7 +6,7 @@ export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error"
 
 export type StreamStatus = "idle" | "streaming" | "done" | "error";
 
-export type EntryType = "pre_request" | "request" | "post_request" | "test";
+export type EntryType = "pre_request" | "request" | "post_request" | "test" | "condition";
 
 export type DebugStatus =
   | "idle"

@@ -21,7 +21,7 @@ function createConditionSnapshot(
     stepId: nodeId,
     stepIndex: orderIndex,
     stepName: label || "Condition",
-    entryType: "request",
+    entryType: "condition",
     method: CONDITION_METHOD,
     url: CONDITION_URL,
     resolvedRequest: { method: CONDITION_METHOD, url: CONDITION_URL, headers: {}, body: null },
@@ -50,8 +50,17 @@ export async function* executeConditionGenerator(params: {
   runtimeVariables: Record<string, unknown>;
   envVariables: Record<string, string>;
   snapshots: StepSnapshot[];
+  pauseBeforeEvaluate?: boolean;
 }): AsyncGenerator<PipelineExecutionEvent, void, Record<string, string> | undefined> {
-  const { nodeId, orderIndex, conditionConfig, runtimeVariables, envVariables, snapshots } = params;
+  const {
+    nodeId,
+    orderIndex,
+    conditionConfig,
+    runtimeVariables,
+    envVariables,
+    snapshots,
+    pauseBeforeEvaluate = false,
+  } = params;
 
   let snapshot = createConditionSnapshot(
     nodeId,
@@ -62,8 +71,13 @@ export async function* executeConditionGenerator(params: {
   snapshots.push(snapshot);
   const snapshotIndex = snapshots.length - 1;
 
-  // Pause point in debug mode — debug controller catches step_ready.
-  yield { type: "step_ready", snapshot: cloneSnapshot(snapshot) } satisfies PipelineExecutionEvent;
+  if (pauseBeforeEvaluate) {
+    // Pause point in debug mode — debug controller catches step_ready.
+    yield {
+      type: "step_ready",
+      snapshot: cloneSnapshot(snapshot),
+    } satisfies PipelineExecutionEvent;
+  }
 
   const { result, resolvedInputs } = evaluateConditionStep(
     conditionConfig,

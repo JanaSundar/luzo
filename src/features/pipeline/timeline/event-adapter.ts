@@ -79,26 +79,37 @@ export function snapshotToTimelineEvent(
   snapshot: StepSnapshot,
   executionId: string,
   layout?: PipelineExecutionLayout,
-): TimelineEvent {
+): TimelineEvent | null {
+  if (snapshot.entryType === "condition" && snapshot.conditionResult == null) {
+    return null;
+  }
+
   const stageIndex = layout?.depth ?? 0;
   const isParallel = layout?.parallelGroup ?? false;
+  const isCondition = snapshot.conditionResult != null;
 
   return {
     eventId: `${executionId}:${snapshot.stepId}`,
     executionId,
-    eventKind: "request",
+    eventKind: isCondition ? "condition_evaluated" : "request",
     stepId: snapshot.stepId,
     stepName: snapshot.stepName,
     sourceStepId: snapshot.stepId,
-    targetStepId: snapshot.stepId,
-    routeSemantics: null,
+    targetStepId: isCondition ? null : snapshot.stepId,
+    routeSemantics: isCondition ? (snapshot.conditionResult?.result ? "true" : "false") : null,
     skippedReason: null,
     lineagePath: snapshot.highlightPath ?? snapshot.stepId,
-    outcome: snapshot.status === "error" ? "failed" : "executed",
+    outcome: isCondition ? "selected" : snapshot.status === "error" ? "failed" : "executed",
     attemptNumber: null,
-    terminalReason: null,
+    terminalReason: isCondition
+      ? snapshot.conditionResult?.result
+        ? "Condition resolved true"
+        : "Condition resolved false"
+      : null,
     summary: null,
-    metadata: null,
+    metadata: isCondition
+      ? { resolvedInputs: snapshot.conditionResult?.resolvedInputs ?? {} }
+      : null,
     subflowInstanceId: snapshot.subflowSource?.subflowInstanceId ?? null,
     subflowDefinitionId: snapshot.subflowSource?.subflowDefinitionId ?? null,
     subflowDefinitionVersion: snapshot.subflowSource?.subflowDefinitionVersion ?? null,
@@ -150,11 +161,16 @@ export function snapshotsToTimelineEvents(
   layoutByStep: Map<string, PipelineExecutionLayout>,
   planNodes: CompiledPipelineNode[] = [],
 ): TimelineEvent[] {
-  const baseEvents = snapshots.map((snapshot) =>
-    snapshotToTimelineEvent(snapshot, executionId, layoutByStep.get(snapshot.stepId)),
-  );
-  const asyncEvents = snapshots.flatMap((snapshot) => snapshot.timelineEvents ?? []);
   const planNodeById = new Map(planNodes.map((node) => [node.nodeId, node]));
+  const baseEvents = snapshots.flatMap((snapshot) => {
+    const planNode = planNodeById.get(snapshot.stepId);
+    if (planNode?.kind === "condition" && snapshot.conditionResult != null) {
+      return [];
+    }
+    const event = snapshotToTimelineEvent(snapshot, executionId, layoutByStep.get(snapshot.stepId));
+    return event ? [event] : [];
+  });
+  const asyncEvents = snapshots.flatMap((snapshot) => snapshot.timelineEvents ?? []);
 
   for (const snapshot of snapshots) {
     const planNode = planNodeById.get(snapshot.stepId);
@@ -167,28 +183,20 @@ export function snapshotsToTimelineEvents(
       const skippedTarget = result ? planNode.routes.false[0] : planNode.routes.true[0];
       const takenSemantics = result ? ("true" as const) : ("false" as const);
       const skippedSemantics = result ? ("false" as const) : ("true" as const);
-      const sourceEvent = baseEvents.find((event) => event.stepId === snapshot.stepId);
+      const sourceEvent =
+        snapshotToTimelineEvent(snapshot, executionId, layoutByStep.get(snapshot.stepId)) ?? null;
       if (!sourceEvent) continue;
-
       baseEvents.push({
         ...sourceEvent,
-        eventId: `${executionId}:${snapshot.stepId}:condition:${takenSemantics}`,
         eventKind: "condition_evaluated",
-        stepId: snapshot.stepId,
-        stepName: snapshot.stepName,
-        sourceStepId: snapshot.stepId,
         targetStepId: takenTarget ?? null,
         routeSemantics: takenSemantics,
         lineagePath: `${snapshot.stepId}:${takenSemantics}:${takenTarget}`,
         outcome: "selected",
         terminalReason: result
-          ? `Condition resolved true — following true path${takenTarget ? ` to ${takenTarget}` : ""}`
-          : `Condition resolved false — following false path${takenTarget ? ` to ${takenTarget}` : ""}`,
+          ? "Condition resolved true — following true path"
+          : "Condition resolved false — following false path",
         metadata: { resolvedInputs: snapshot.conditionResult.resolvedInputs },
-        sequenceNumber: sourceEvent.sequenceNumber + 0.1,
-        inputSnapshot: null,
-        outputSnapshot: null,
-        errorSnapshot: null,
       });
 
       if (skippedTarget) {

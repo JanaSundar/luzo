@@ -51,11 +51,29 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
       .filter((edge) => edge.semantics === "success" || edge.semantics === "failure")
       .map((edge) => edge.source),
   );
+  const requestNodeIds = new Set(requestNodes.map((node) => node.id));
+  const conditionNodeIds = new Set(
+    executableNodes.filter((node) => node.kind === "condition").map((node) => node.id),
+  );
   const normalizedRequestEdges = requestEdges.filter(
     (edge) => !(edge.semantics === "control" && requestNodesWithExplicitRoutes.has(edge.source)),
   );
+  const requestNodesRoutedThroughCondition = new Set(
+    normalizedRequestEdges
+      .filter(
+        (edge) =>
+          requestNodeIds.has(edge.source) &&
+          conditionNodeIds.has(edge.target) &&
+          edge.semantics === "control",
+      )
+      .map((edge) => edge.source),
+  );
+  const executionEdges = normalizedRequestEdges.filter((edge) => {
+    if (!requestNodesRoutedThroughCondition.has(edge.source)) return true;
+    return conditionNodeIds.has(edge.target);
+  });
   const incomingRequestEdges = new Map<string, number>();
-  for (const edge of normalizedRequestEdges) {
+  for (const edge of executionEdges) {
     incomingRequestEdges.set(edge.target, (incomingRequestEdges.get(edge.target) ?? 0) + 1);
   }
 
@@ -83,7 +101,7 @@ export function buildWorkflowBundleFromPipeline(pipeline: Pipeline): WorkflowBun
               ?.requestSource
           : undefined,
     })),
-    edges: normalizedRequestEdges.map((edge) => ({ ...edge })),
+    edges: executionEdges.map((edge) => ({ ...edge })),
   };
 
   return { flow, workflow, registry };
