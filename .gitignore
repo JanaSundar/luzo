@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,13 +12,17 @@
 
 # testing
 /coverage
+**/.vite/
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
 /build
+/packages/*/dist/
+/packages/*/src/**/*.d.ts
+/packages/*/src/**/*.d.ts.map
 
 # misc
 .DS_Store

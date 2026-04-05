@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm --dir apps/luzo build",
+  "outputDirectory": "apps/luzo/.next",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://luzoapi.vercel.app"

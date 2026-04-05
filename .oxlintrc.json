@@ -1,8 +1,27 @@
 {
+  "plugins": ["import"],
   "rules": {
     "no-unused-vars": "error",
     "no-unused-imports": "error",
     "no-debugger": "warn",
     "no-console": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["apps/luzo/src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@luzo/flow-builder/src/*",
+              "@luzo/flow-types/src/*",
+              "../../../packages/flow-builder/src/*",
+              "../../../packages/flow-types/src/*"
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

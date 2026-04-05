@@ -1,0 +1,38 @@
+{
+  "name": "@luzo/flow-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./contracts": {
+      "types": "./src/contracts/index.ts",
+      "default": "./src/contracts/index.ts"
+    },
+    "./graph": {
+      "types": "./src/graph/index.ts",
+      "default": "./src/graph/index.ts"
+    },
+    "./transform": {
+      "types": "./src/transform/index.ts",
+      "default": "./src/transform/index.ts"
+    },
+    "./validate": {
+      "types": "./src/validate/index.ts",
+      "default": "./src/validate/index.ts"
+    },
+    "./serialize": {
+      "types": "./src/serialize/index.ts",
+      "default": "./src/serialize/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

@@ -1,0 +1,145 @@
+"use client";
+
+import { Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { AIConfigurator } from "@/components/pipelines/AIConfigurator";
+import { DebuggerShell } from "@/components/pipelines/DebuggerShell";
+import { PipelineLayout } from "@/components/pipelines/PipelineLayout";
+import { ReportPreview } from "@/components/pipelines/ReportPreview";
+import { FlowEditorPage } from "@/features/flow-editor/FlowEditorPage";
+import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { usePipelinePageController } from "./usePipelinePageController";
+import { useSavePipelineToDb } from "./useSavePipelineToDb";
+
+function PipelinesPageContent() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pipelines = usePipelineStore((state) => state.pipelines);
+  const activePipelineId = usePipelineStore((state) => state.activePipelineId);
+  const currentView = usePipelineStore((state) => state.currentView);
+  const addPipeline = usePipelineStore((state) => state.addPipeline);
+  const mergeMissingPipelines = usePipelineStore((state) => state.mergeMissingPipelines);
+  const { dbStatus, dbSchemaReady, dbUrl } = useSettingsStore();
+  const requestedCollectionId = searchParams.get("generateFromCollection");
+  const activePipeline = pipelines.find((pipeline) => pipeline.id === activePipelineId) ?? null;
+  const { isSaving, savePipelineToDb } = useSavePipelineToDb();
+
+  const {
+    handleRun,
+    handleDebug,
+    handleStop,
+    handleRetry,
+    handleStep,
+    handleResume,
+    handleGenerateReport,
+    handleExportReport,
+  } = usePipelinePageController();
+
+  const [hydrated, setHydrated] = useState(false);
+  const lastMergedDbUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = usePipelineStore.persist.onFinishHydration(() => setHydrated(true));
+    if (usePipelineStore.persist.hasHydrated()) {
+      setHydrated(true);
+    }
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && pipelines.length === 0) {
+      addPipeline("API Pipeline");
+    }
+  }, [addPipeline, hydrated, pipelines.length]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (dbStatus !== "connected" || !dbSchemaReady || !dbUrl.trim()) return;
+
+    const normalizedDbUrl = dbUrl.trim();
+    if (lastMergedDbUrlRef.current === normalizedDbUrl) return;
+
+    let cancelled = false;
+
+    const syncMissingDbPipelines = async () => {
+      try {
+        const response = await fetch("/api/db/collections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dbUrl: normalizedDbUrl,
+            action: "load-pipelines",
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Unable to load pipelines from DB");
+        }
+        if (cancelled) return;
+
+        mergeMissingPipelines(data.pipelines ?? []);
+        lastMergedDbUrlRef.current = normalizedDbUrl;
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(
+            error instanceof Error ? error.message : "Unable to load pipelines from database",
+          );
+        }
+      }
+    };
+
+    void syncMissingDbPipelines();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dbSchemaReady, dbStatus, dbUrl, hydrated, mergeMissingPipelines]);
+
+  const clearRequestedCollection = () => {
+    if (!requestedCollectionId) return;
+    router.replace(pathname);
+  };
+
+  return (
+    <PipelineLayout
+      onRun={handleRun}
+      onDebug={handleDebug}
+      onStop={handleStop}
+      onSaveToDb={() => void savePipelineToDb(activePipeline)}
+      onGenerateReport={handleGenerateReport}
+      onExportReport={handleExportReport}
+      isSavingToDb={isSaving}
+    >
+      {currentView === "builder" && (
+        <FlowEditorPage
+          onClearRequestedCollection={clearRequestedCollection}
+          requestedCollectionId={requestedCollectionId}
+        />
+      )}
+      {currentView === "stream" && (
+        <DebuggerShell
+          onStep={handleStep}
+          onResume={handleResume}
+          onRetry={handleRetry}
+          onStop={handleStop}
+          onRunAuto={handleRun}
+        />
+      )}
+      {currentView === "ai-config" && <AIConfigurator />}
+      {currentView === "report" && <ReportPreview />}
+    </PipelineLayout>
+  );
+}
+
+export default function PipelinesPage() {
+  return (
+    <Suspense fallback={null}>
+      <PipelinesPageContent />
+    </Suspense>
+  );
+}
