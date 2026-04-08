@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "incremental": true,
+    "noEmit": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@luzo/flow-core": ["../../packages/flow-core/src/index.ts"],
+      "@luzo/flow-core/*": ["../../packages/flow-core/src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "vitest.setup.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/features/flow-editor/domain/ai-step.ts",
+    "src/features/flow-editor/domain/flow-runtime.ts",
+    "src/features/flow-editor/domain/pipeline-sync.ts"
+  ]
+}
