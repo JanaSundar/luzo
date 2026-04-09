@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { initSchema, testConnection } from "@/services/db/runtime";
+import { initSchema, testConnection } from "@/server/db/runtime";
 import { logger } from "@/utils/logger";
 
 /**

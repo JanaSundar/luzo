@@ -6,8 +6,8 @@ import {
   listCollections,
   upsertCollection,
   upsertRequest,
-} from "@/services/db/collections-repository";
-import { createDbClient, initSchema } from "@/services/db/runtime";
+} from "@/server/db/collections-repository";
+import { createDbClient, initSchema } from "@/server/db/runtime";
 import type { Collection } from "@/types";
 import { logger } from "@/utils/logger";
 

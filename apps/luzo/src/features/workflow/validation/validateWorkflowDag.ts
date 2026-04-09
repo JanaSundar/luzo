@@ -1,8 +1,8 @@
 import type { ValidationError } from "@/types/pipeline-runtime";
 import type { DagValidationResult } from "@/types/worker-results";
 import type { WorkflowDefinition, WorkflowNodeKind } from "@/types/workflow";
+import { deriveStages } from "@luzo/flow-core";
 import { buildAdjacency } from "./buildAdjacency";
-import { deriveStages } from "./deriveStages";
 import { findUnreachableNodes } from "./findUnreachableNodes";
 
 const KIND_WEIGHT: Record<WorkflowNodeKind, number> = {

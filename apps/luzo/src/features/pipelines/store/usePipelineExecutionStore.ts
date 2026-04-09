@@ -192,9 +192,12 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
             state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);
             if (event.type === "step_failed") {
               state.errorMessage = event.snapshot.error;
-              // In debug mode the controller will pause on failure so the
-              // execution can continue; only go to "error" in auto mode.
-              state.status = state.originExecutionMode === "debug" ? "paused" : "error";
+              // In debug mode, pause so the user can inspect before continuing.
+              // In auto mode, keep status as "running" — the generator continues
+              // along failure routes and execution_completed will set the final status.
+              if (state.originExecutionMode === "debug") {
+                state.status = "paused";
+              }
             } else {
               state.currentStepIndex = event.snapshot.stepIndex + 1;
             }
@@ -211,6 +214,14 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
             state.completedAt = event.completedAt;
             state.errorMessage = event.reason;
             return;
+
+          default:
+            if (process.env.NODE_ENV === "development") {
+              console.warn(
+                "[ExecutionStore] Unhandled execution event type:",
+                (event as { type: string }).type,
+              );
+            }
         }
       }),
 

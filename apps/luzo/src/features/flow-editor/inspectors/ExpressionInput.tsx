@@ -8,7 +8,7 @@ import {
   DEFAULT_TEMPLATE_MENU_POSITION,
   getTemplateMenuPosition,
   type TemplateMenuPosition,
-} from "@/lib/utils/templateMenuPosition";
+} from "@/utils/templateMenuPosition";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 export function ExpressionInput({
@@ -74,6 +74,13 @@ export function ExpressionInput({
     },
     [suggestions],
   );
+
+  // Re-sync displayed items when suggestions change (e.g. a new upstream connection was added).
+  // refreshItems captures the latest suggestions, so its identity changes whenever suggestions changes.
+  useEffect(() => {
+    refreshItems(value, cursorRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshItems]);
 
   const { isOpen, getInputProps, getItemProps, getMenuProps, highlightedIndex, closeMenu } =
     useCombobox({

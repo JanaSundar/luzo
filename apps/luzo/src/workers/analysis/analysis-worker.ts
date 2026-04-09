@@ -1,5 +1,5 @@
 import * as Comlink from "comlink";
-import { getAutocompleteSuggestions } from "@/features/pipeline/autocomplete-core";
+import { getAutocompleteSuggestions } from "@/features/pipelines/autocomplete/suggestions";
 import { rebuildRuntimeVariables } from "@/features/pipeline/execution-artifacts";
 import { runWorkerTask } from "@/workers/shared/run-worker-task";
 import { analyzeVariables } from "@/features/workflow/analysis/analyzeVariables";

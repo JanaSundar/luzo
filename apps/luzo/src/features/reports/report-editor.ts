@@ -1,5 +1,4 @@
 import type { JSONContent } from "@tiptap/react";
-import { nanoid } from "nanoid";
 import { buildHealthSummary } from "@/features/pipeline/report-generation";
 import type { StructuredReport } from "@/types/pipeline-debug";
 
@@ -189,7 +188,7 @@ export function updateReportSectionOrder(
 }
 
 export function addReportCustomSection(report: StructuredReport): StructuredReport {
-  const customSection = { id: nanoid(8), title: "New Section", content: "" };
+  const customSection = { id: crypto.randomUUID(), title: "New Section", content: "" };
   const baseOrder = sanitizeSectionOrder(
     report.sectionOrder,
     (report.customSections ?? []).map((section) => section.id),

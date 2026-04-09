@@ -1,4 +1,4 @@
-const VARIABLE_REGEX = /\{\{([^}]+)\}\}/g;
+import { VARIABLE_REGEX } from "@/utils/variables";
 import type { StepAlias } from "@/types/pipeline-debug";
 
 /**

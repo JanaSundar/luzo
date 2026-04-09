@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createDbClient, initSchema } from "@/services/db/runtime";
-import { templates } from "@/services/db/schema";
+import { createDbClient, initSchema } from "@/server/db/runtime";
+import { templates } from "@/server/db/schema";
 import { hydrateTemplateFromDb, sanitizeTemplateForDb } from "@/features/templates/template-db";
 import type { TemplateDefinition } from "@/types";
 import { logger } from "@/utils/logger";

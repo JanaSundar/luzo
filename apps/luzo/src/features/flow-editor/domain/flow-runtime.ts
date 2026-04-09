@@ -1,5 +1,5 @@
 import type { PipelineStep } from "@/types";
-import { kahnTopoSort } from "@/lib/pipeline/topo-sort";
+import { kahnTopoSort } from "@luzo/flow-core";
 
 import {
   buildIncomingExecutableDependencies,

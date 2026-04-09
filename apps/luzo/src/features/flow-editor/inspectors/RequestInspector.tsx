@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { RequestNode } from "@luzo/flow-types";
 import { Input } from "@/components/ui/input";
 import { TemplateInput } from "@/components/ui/template-input";
-import { compilePreRequestRules, compileTestRules } from "@/lib/utils/rule-compiler";
+import { compilePreRequestRules, compileTestRules } from "@/utils/rule-compiler";
 import type { HttpMethod } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 import type { RequestBlock } from "../domain/types";

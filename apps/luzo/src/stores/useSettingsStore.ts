@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import { MODEL_REGISTRY } from "@/config/model-registry";
-import type { RuntimeTableStatus } from "@/services/db";
+import type { RuntimeTableStatus } from "@/server/db";
 import type { AiProvider } from "@/types";
 
 export type ValidationStatus = "idle" | "valid" | "invalid";

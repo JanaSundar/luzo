@@ -38,6 +38,7 @@ export function EdgeLayer({
   const draggingPositions = useEditorStore((state) => state.draggingPositions);
   const nodeSizes = useEditorStore((state) => state.nodeSizes);
   const openEdgeMenu = useEditorStore((state) => state.openEdgeMenu);
+  const isConnecting = useEditorStore((state) => state.activeConnection !== null);
 
   const nodeMap = new Map(
     nodes.map((node) => {
@@ -94,6 +95,7 @@ export function EdgeLayer({
             edge={edge}
             source={getHandlePosition(sourceNode, sourceHandle, sourceHandles)}
             target={getHandlePosition(targetNode, targetHandle, targetHandles)}
+            interactive={!isConnecting}
             onClick={() => {
               const nodeChanges = nodes
                 .filter((node) => node.selected)

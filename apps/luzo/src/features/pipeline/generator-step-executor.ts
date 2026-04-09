@@ -3,11 +3,11 @@ import {
   type StreamChunk,
   type StreamResult,
   executeRequestStream as executeStream,
-} from "@/services/http/client";
+} from "@/server/http/client";
 import {
   executeBatchRequestsThroughApiRoute,
   type RouteExecutionResponse,
-} from "@/services/http/execute-route-client";
+} from "@/server/http/execute-route-client";
 import type { PipelineStep } from "@/types";
 import type { PipelineExecutionEvent, StepAlias, StepSnapshot } from "@/types/pipeline-runtime";
 import { resolveAsyncStepPolicies } from "./async-step-executor";

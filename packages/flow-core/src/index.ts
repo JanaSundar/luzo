@@ -11,7 +11,13 @@ export type {
   ValidationIssueCode,
   ValidationResult,
 } from "./contracts/index";
-export { buildGraphIndex, buildRouteMetadata, kahnTopoSort, topoSort } from "./graph/index";
+export {
+  buildGraphIndex,
+  buildRouteMetadata,
+  deriveStages,
+  kahnTopoSort,
+  topoSort,
+} from "./graph/index";
 export {
   bitsetToNodeIds,
   createEmptyBitset,

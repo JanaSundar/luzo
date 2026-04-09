@@ -2,6 +2,7 @@
 import { Play, RotateCcw, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
+import { EXECUTION_STATUS_DOT } from "../constants/statusColors";
 
 interface DebugControlsBarProps {
   status: string;
@@ -18,16 +19,6 @@ interface DebugControlsBarProps {
   onStop?: () => void;
   onRunAuto?: () => void;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  idle: "bg-muted-foreground",
-  running: "bg-primary animate-pulse",
-  paused: "bg-amber-500",
-  completed: "bg-emerald-500",
-  error: "bg-destructive",
-  aborted: "bg-amber-500",
-  interrupted: "bg-amber-500",
-};
 
 export function DebugControlsBar({
   status,
@@ -56,7 +47,10 @@ export function DebugControlsBar({
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div
-            className={cn("h-2 w-2 rounded-full", STATUS_COLORS[status] ?? "bg-muted-foreground")}
+            className={cn(
+              "h-2 w-2 rounded-full",
+              EXECUTION_STATUS_DOT[status] ?? "bg-muted-foreground",
+            )}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {status}

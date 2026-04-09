@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createDbClient, initSchema } from "@/services/db/runtime";
-import { pipelines } from "@/services/db/schema";
+import { createDbClient, initSchema } from "@/server/db/runtime";
+import { pipelines } from "@/server/db/schema";
 import { hydratePipelineFromDb, sanitizePipelineForDb } from "@/features/pipeline/pipeline-db";
 import type { Pipeline } from "@/types";
 import { logger } from "@/utils/logger";

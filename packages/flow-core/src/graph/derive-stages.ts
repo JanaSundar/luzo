@@ -1,3 +1,11 @@
+/**
+ * Given a topological order and a predecessor adjacency map, group nodes into
+ * parallel execution stages. Nodes in the same stage have no dependency on each
+ * other and can be executed concurrently.
+ *
+ * @param order - Node IDs in topological order (dependencies first).
+ * @param adjacency - Map of nodeId → list of prerequisite node IDs.
+ */
 export function deriveStages(order: string[], adjacency: Record<string, string[]>): string[][] {
   const depthByNode: Record<string, number> = {};
   const stages: string[][] = [];

@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { buildStepAliases } from "@/lib/pipeline/dag-validator";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { buildStepAliases } from "@/features/pipeline/dag-validator";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { Pipeline } from "@/types";
 
 export function createAiBlockDef(pipeline: Pipeline | null): BlockDefinition {

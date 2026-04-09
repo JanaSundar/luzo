@@ -9,8 +9,8 @@ import { usePipelineStore } from "@/stores/usePipelineStore";
 export {
   filterSuggestions,
   getAutocompleteSuggestions,
-  progressiveValidate,
-} from "./autocomplete-core";
+} from "@/features/pipelines/autocomplete/suggestions";
+export { progressiveValidate } from "@/features/pipelines/autocomplete/validation";
 
 export function useVariableSuggestions(
   pipeline: Pipeline | undefined,
@@ -40,7 +40,11 @@ export function useVariableSuggestions(
           setSuggestions(res.data);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[Autocomplete] Worker error:", err);
+        }
+      });
 
     return () => {
       active = false;

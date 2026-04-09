@@ -8,11 +8,20 @@ interface EdgePathProps {
   edge: FlowEdge;
   source: { x: number; y: number };
   target: { x: number; y: number };
+  /** When false, the hit-area path receives no pointer events (e.g. during a connection drag). */
+  interactive?: boolean;
   onClick: () => void;
   onContextMenu: (event: MouseEvent<SVGPathElement>) => void;
 }
 
-export function EdgePath({ edge, source, target, onClick, onContextMenu }: EdgePathProps) {
+export function EdgePath({
+  edge,
+  source,
+  target,
+  interactive = true,
+  onClick,
+  onContextMenu,
+}: EdgePathProps) {
   const appearance = getEdgeAppearance({
     ...(edge.selected !== undefined ? { selected: edge.selected } : {}),
     ...(edge.sourceHandle ? { sourceHandleId: edge.sourceHandle } : {}),
@@ -27,7 +36,7 @@ export function EdgePath({ edge, source, target, onClick, onContextMenu }: EdgeP
         data-edge-id={edge.id}
         data-edge-role="hit-area"
         fill="none"
-        pointerEvents="stroke"
+        pointerEvents={interactive ? "stroke" : "none"}
         stroke="transparent"
         strokeLinecap="round"
         strokeLinejoin="round"

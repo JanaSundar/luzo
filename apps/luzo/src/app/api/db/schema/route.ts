@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createDbClient } from "@/services/db/runtime";
+import { createDbClient } from "@/server/db/runtime";
 import { logger } from "@/utils/logger";
 
 /**

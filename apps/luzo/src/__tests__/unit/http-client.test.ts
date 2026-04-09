@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRequestConfig } from "@/services/http/client";
+import { buildRequestConfig } from "@/server/http/client";
 import type { ApiRequest } from "@/types";
 
 const baseRequest: ApiRequest = {

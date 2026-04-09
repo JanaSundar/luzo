@@ -1,4 +1,4 @@
-import { executeApiRequest } from "@/services/http/client";
+import { executeApiRequest } from "@/server/http/client";
 import type { ApiRequest } from "@/types";
 import { logger } from "@/utils/logger";
 

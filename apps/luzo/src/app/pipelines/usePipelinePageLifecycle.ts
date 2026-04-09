@@ -174,10 +174,15 @@ export function usePipelinePageLifecycle(args: LifecycleArgs) {
       (s) => s.status === "success" || s.status === "done",
     ).length;
     const failCount = snapshots.filter((s) => s.status === "error").length;
-    if (status === "completed" && failCount === 0) {
-      toast.success(`Pipeline Completed: ${successCount} steps succeeded`);
+    if (status === "error") {
+      // Unrecoverable runtime error (not a step failure — those continue along failure routes)
+      toast.error(`Pipeline encountered an unexpected error`);
+    } else if (failCount === 0) {
+      toast.success(
+        `Pipeline Completed: ${successCount} step${successCount !== 1 ? "s" : ""} succeeded`,
+      );
     } else {
-      toast.error(`Pipeline Finished with issues: ${successCount} Succeeded, ${failCount} Failed`);
+      toast.warning(`Pipeline Completed: ${successCount} succeeded, ${failCount} failed`);
     }
     lastStatusRef.current = status;
   }, [status, snapshots]);

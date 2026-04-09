@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { executeRequest } from "@/app/actions/api-tests";
-import { executeRequestStream } from "@/services/http/client";
+import { executeRequestStream } from "@/server/http/client";
 import type { AnalysisWorkerApi, GraphWorkerApi } from "@/types/workers";
 import {
   type GeneratorExecutorModule,
@@ -28,7 +28,7 @@ vi.mock("@/app/actions/api-tests", () => ({
   executeRequest: vi.fn(),
 }));
 
-vi.mock("@/services/http/client", () => ({
+vi.mock("@/server/http/client", () => ({
   executeRequestStream: vi.fn(),
 }));
 

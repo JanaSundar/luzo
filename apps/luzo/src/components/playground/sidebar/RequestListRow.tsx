@@ -12,7 +12,7 @@ import {
 import { UrlStartEllipsisText } from "@/components/playground/sidebar/UrlStartEllipsisText";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIsTruncated } from "@/hooks/useIsTruncated";
+import { useIsTruncated } from "@/shared/hooks/useIsTruncated";
 import { cn, DESTRUCTIVE_ICON_BUTTON_CLASSES } from "@/utils";
 import { stripMethodPrefixFromRequestName } from "@/utils/requestDisplayName";
 

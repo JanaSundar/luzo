@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { fetch as undiciFetch } from "undici";
-import { runPostRequestScript, runPreRequestScript, runTestScript } from "@/services/http/scripts";
+import { runPostRequestScript, runPreRequestScript, runTestScript } from "@/server/http/scripts";
 import {
   CONFIG_KEY,
   applyAuth,

@@ -67,7 +67,10 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
     fallback: event.stepName,
     stepNameById,
   });
-  const tabs = getTabs({ hasError: Boolean(event.errorSnapshot) });
+  const tabs = getTabs({
+    hasError: Boolean(event.errorSnapshot),
+    isCondition: event.eventKind === "condition_evaluated",
+  });
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -80,9 +83,11 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className={cn("font-mono font-bold", METHOD_COLORS[event.method])}>
-            {event.method}
-          </span>
+          {event.eventKind !== "condition_evaluated" && (
+            <span className={cn("font-mono font-bold", METHOD_COLORS[event.method])}>
+              {event.method}
+            </span>
+          )}
           <span className="truncate">{displayStepName}</span>
           {event.durationMs != null ? <span>· {formatDuration(event.durationMs)}</span> : null}
           {event.responseSize != null ? <span>· {formatBytes(event.responseSize)}</span> : null}
@@ -126,8 +131,18 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
   );
 }
 
-function getTabs({ hasError }: { hasError: boolean }): DetailTab[] {
-  const tabs: DetailTab[] = ["overview", "request", "response", "lineage"];
+function getTabs({
+  hasError,
+  isCondition,
+}: {
+  hasError: boolean;
+  isCondition: boolean;
+}): DetailTab[] {
+  const tabs: DetailTab[] = ["overview"];
+  if (!isCondition) {
+    tabs.push("request", "response");
+  }
+  tabs.push("lineage");
   if (hasError) tabs.push("error");
   return tabs;
 }

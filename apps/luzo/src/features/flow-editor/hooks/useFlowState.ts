@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import type { Connection, EdgeChange, NodeChange, SuggestionDropParams } from "@luzo/flow-types";
 
 import { MODEL_REGISTRY } from "@/config/model-registry";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
-import { useSettingsStore } from "@/lib/stores/useSettingsStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { PipelineStep } from "@/types";
 import { createDefaultRequestName } from "@/features/pipeline/request-names";
 import { applyEdgeChanges, applyNodeChanges } from "../changeHandlers";
@@ -75,6 +75,8 @@ export function useFlowState(pipelineId: string | null) {
     [blocks],
   );
 
+  const multiInputBlockIds = useMemo(() => new Set<string>(), []);
+
   const updateFlow = useCallback(
     (updater: (current: NonNullable<typeof flow>) => NonNullable<typeof flow>) => {
       if (!pipelineId || !flow || !pipeline) return;
@@ -127,28 +129,32 @@ export function useFlowState(pipelineId: string | null) {
     (connection: Connection) => {
       updateFlow((current) => ({
         ...current,
-        connections: appendConnectionWithFlowRules(current.connections, {
-          id: crypto.randomUUID(),
-          sourceBlockId: connection.source,
-          sourceHandleId: connection.sourceHandle,
-          targetBlockId: connection.target,
-          targetHandleId: connection.targetHandle,
-          kind:
-            connection.sourceHandle === "success" || connection.sourceHandle === "fail"
-              ? "conditional"
-              : "control",
-        } satisfies FlowConnection),
+        connections: appendConnectionWithFlowRules(
+          current.connections,
+          {
+            id: crypto.randomUUID(),
+            sourceBlockId: connection.source,
+            sourceHandleId: connection.sourceHandle,
+            targetBlockId: connection.target,
+            targetHandleId: connection.targetHandle,
+            kind:
+              connection.sourceHandle === "success" || connection.sourceHandle === "fail"
+                ? "conditional"
+                : "control",
+          } satisfies FlowConnection,
+          multiInputBlockIds,
+        ),
       }));
     },
-    [updateFlow],
+    [updateFlow, multiInputBlockIds],
   );
 
   const canConnect = useCallback(
     (connection: Connection) => {
       if (!flow) return false;
-      return canConnectWithFlowRules(connection, flow.connections);
+      return canConnectWithFlowRules(connection, flow.connections, multiInputBlockIds);
     },
-    [flow],
+    [flow, multiInputBlockIds],
   );
 
   const addBlockFromSuggestion = useCallback(
@@ -165,17 +171,21 @@ export function useFlowState(pipelineId: string | null) {
         // An empty sourceNodeId means the block was added from the bottom bar
         // and the user will wire it manually.
         const newConnections: FlowConnection[] = params.sourceNodeId
-          ? appendConnectionWithFlowRules(current.connections, {
-              id: crypto.randomUUID(),
-              sourceBlockId: params.sourceNodeId,
-              sourceHandleId: params.sourceHandleId,
-              targetBlockId: block.id,
-              targetHandleId: "input",
-              kind:
-                params.sourceHandleId === "success" || params.sourceHandleId === "fail"
-                  ? "conditional"
-                  : "control",
-            })
+          ? appendConnectionWithFlowRules(
+              current.connections,
+              {
+                id: crypto.randomUUID(),
+                sourceBlockId: params.sourceNodeId,
+                sourceHandleId: params.sourceHandleId,
+                targetBlockId: block.id,
+                targetHandleId: "input",
+                kind:
+                  params.sourceHandleId === "success" || params.sourceHandleId === "fail"
+                    ? "conditional"
+                    : "control",
+              },
+              multiInputBlockIds,
+            )
           : current.connections;
         return {
           ...current,

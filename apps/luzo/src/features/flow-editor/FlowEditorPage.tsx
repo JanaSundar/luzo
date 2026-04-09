@@ -7,10 +7,10 @@ import type { SuggestionDropParams } from "@luzo/flow-types";
 
 import { CollectionPipelineDialog } from "@/components/pipelines/collection-generator/CollectionPipelineDialog";
 import { Button } from "@/components/ui/button";
-import { getFlowNodeAutocompleteSuggestions } from "@/lib/pipeline/autocomplete";
-import { useEnvironmentStore } from "@/lib/stores/useEnvironmentStore";
-import { usePipelineExecutionStore } from "@/lib/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/lib/stores/usePipelineStore";
+import { getFlowNodeAutocompleteSuggestions } from "@/features/pipelines/autocomplete/suggestions";
+import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
+import { usePipelineStore } from "@/stores/usePipelineStore";
 import { getUnsupportedWorkflowNodeKinds } from "./domain/flow-document";
 import { createLuzoBlockRegistry } from "./blockDefs";
 import { useFlowState } from "./hooks/useFlowState";

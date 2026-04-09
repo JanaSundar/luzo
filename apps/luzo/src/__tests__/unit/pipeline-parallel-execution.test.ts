@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { executeBatchRequestsThroughApiRoute } from "@/services/http/execute-route-client";
+import { executeBatchRequestsThroughApiRoute } from "@/server/http/execute-route-client";
 import { createPipelineGenerator } from "@/features/pipeline/generator-executor";
 import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
 import type { GraphWorkerApi } from "@/types/workers";
 import type { Pipeline } from "@/types";
 
-vi.mock("@/services/http/execute-route-client", () => ({
+vi.mock("@/server/http/execute-route-client", () => ({
   executeBatchRequestsThroughApiRoute: vi.fn(),
 }));
 

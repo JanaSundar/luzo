@@ -132,8 +132,9 @@ function getAncestorNodeIds(nodeId: string, adjacency: Record<string, string[]>)
 
 function pickDisplayRef(refs: string[]) {
   return (
-    refs.find((ref) => isFriendlyDisplayRef(ref)) ??
+    refs.find((ref) => isFriendlyDisplayRef(ref) && isJavaScriptIdentifier(ref)) ??
     refs.find((ref) => /^req\d+$/.test(ref)) ??
+    refs.find((ref) => isJavaScriptIdentifier(ref)) ??
     refs[0] ??
     null
   );
@@ -150,6 +151,10 @@ function looksLikeUuid(value: string) {
 function looksLikeExpandedNodeRef(value: string) {
   const [left, right] = value.split("::");
   return Boolean(right && looksLikeUuid(left) && looksLikeUuid(right));
+}
+
+function isJavaScriptIdentifier(value: string) {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value);
 }
 
 function pushUniqueSuggestion(
@@ -173,4 +178,15 @@ export function filterSuggestions(
       suggestion.path.toLowerCase().includes(normalizedQuery) ||
       suggestion.label.toLowerCase().includes(normalizedQuery),
   );
+}
+
+/** Adapter for the flow editor: 4-param interface over getAutocompleteSuggestions. */
+export function getFlowNodeAutocompleteSuggestions(
+  pipeline: Pipeline | undefined,
+  nodeId: string,
+  envVars: Record<string, string>,
+  runtimeVariables: Record<string, unknown>,
+): VariableSuggestion[] {
+  if (!pipeline) return [];
+  return getAutocompleteSuggestions(pipeline, nodeId, envVars, runtimeVariables);
 }

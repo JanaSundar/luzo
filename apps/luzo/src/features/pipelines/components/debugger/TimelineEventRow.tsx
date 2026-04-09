@@ -68,21 +68,23 @@ export const TimelineEventRow = memo(function TimelineEventRow({
   const title =
     event.eventKind === "route_selected"
       ? `${displayStepName} routed ${event.routeSemantics ?? "forward"}`
-      : event.eventKind === "step_skipped"
-        ? `${displayStepName} skipped`
-        : event.eventKind === "poll_attempt"
-          ? `${displayStepName} polling attempt ${event.attemptNumber ?? 1}`
-          : event.eventKind === "poll_wait"
-            ? `${displayStepName} waiting to retry`
-            : event.eventKind === "poll_terminal"
-              ? `${displayStepName} polling finished`
-              : event.eventKind === "webhook_wait"
-                ? `${displayStepName} waiting for webhook`
-                : event.eventKind === "webhook_matched"
-                  ? `${displayStepName} webhook matched`
-                  : event.eventKind === "webhook_timeout"
-                    ? `${displayStepName} webhook timed out`
-                    : displayStepName;
+      : event.eventKind === "condition_evaluated"
+        ? `${displayStepName} → ${event.routeSemantics ?? "evaluated"}`
+        : event.eventKind === "step_skipped"
+          ? `${displayStepName} skipped`
+          : event.eventKind === "poll_attempt"
+            ? `${displayStepName} polling attempt ${event.attemptNumber ?? 1}`
+            : event.eventKind === "poll_wait"
+              ? `${displayStepName} waiting to retry`
+              : event.eventKind === "poll_terminal"
+                ? `${displayStepName} polling finished`
+                : event.eventKind === "webhook_wait"
+                  ? `${displayStepName} waiting for webhook`
+                  : event.eventKind === "webhook_matched"
+                    ? `${displayStepName} webhook matched`
+                    : event.eventKind === "webhook_timeout"
+                      ? `${displayStepName} webhook timed out`
+                      : displayStepName;
   const relativeStart =
     event.startedAt != null && baselineTimestamp != null
       ? `+${Math.max(0, event.startedAt - baselineTimestamp)}ms`
@@ -123,6 +125,18 @@ export const TimelineEventRow = memo(function TimelineEventRow({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {event.eventKind === "condition_evaluated" && event.routeSemantics ? (
+            <span
+              className={cn(
+                "rounded-md border px-1.5 py-0.5 font-mono text-[9px]",
+                event.routeSemantics === "true"
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+                  : "border-amber-500/20 bg-amber-500/10 text-amber-700",
+              )}
+            >
+              {event.routeSemantics.toUpperCase()}
+            </span>
+          ) : null}
           {event.eventKind === "route_selected" && event.routeSemantics ? (
             <span className="rounded-md border px-1.5 py-0.5 font-mono text-[9px] border-sky-500/20 bg-sky-500/10 text-sky-700">
               {event.routeSemantics.toUpperCase()}

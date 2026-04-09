@@ -36,33 +36,42 @@ export function OverviewTab({ event }: { event: TimelineEvent }) {
     return pipeline?.steps.find((step) => step.id === event.targetStepId)?.name ?? null;
   });
 
+  const isCondition = event.eventKind === "condition_evaluated";
+
   return (
     <div className="space-y-4">
-      <section className="grid gap-3 md:grid-cols-2">
-        <PayloadSummaryCard
-          title="Request summary"
-          items={[
-            { label: "Request", value: `${event.method} ${event.inputSnapshot?.url ?? event.url}` },
-            {
-              label: "Response",
-              value:
-                event.httpStatus != null
-                  ? `${event.httpStatus} ${event.outputSnapshot?.statusText ?? ""}`.trim()
-                  : getStatusVisual(event.status).label,
-              className:
-                event.httpStatus != null ? getHttpStatusColor(event.httpStatus) : undefined,
-            },
-            {
-              label: "Headers",
-              value: `${Object.keys(event.inputSnapshot?.headers ?? {}).length} req / ${Object.keys(event.outputSnapshot?.headers ?? {}).length} res`,
-            },
-            {
-              label: "Payload",
-              value: `${sizeLabel(event.inputSnapshot?.body)} req / ${sizeLabel(event.outputSnapshot?.body)} res`,
-            },
-          ]}
-        />
-      </section>
+      {isCondition ? (
+        <ConditionSummarySection event={event} />
+      ) : (
+        <section className="grid gap-3 md:grid-cols-2">
+          <PayloadSummaryCard
+            title="Request summary"
+            items={[
+              {
+                label: "Request",
+                value: `${event.method} ${event.inputSnapshot?.url ?? event.url}`,
+              },
+              {
+                label: "Response",
+                value:
+                  event.httpStatus != null
+                    ? `${event.httpStatus} ${event.outputSnapshot?.statusText ?? ""}`.trim()
+                    : getStatusVisual(event.status).label,
+                className:
+                  event.httpStatus != null ? getHttpStatusColor(event.httpStatus) : undefined,
+              },
+              {
+                label: "Headers",
+                value: `${Object.keys(event.inputSnapshot?.headers ?? {}).length} req / ${Object.keys(event.outputSnapshot?.headers ?? {}).length} res`,
+              },
+              {
+                label: "Payload",
+                value: `${sizeLabel(event.inputSnapshot?.body)} req / ${sizeLabel(event.outputSnapshot?.body)} res`,
+              },
+            ]}
+          />
+        </section>
+      )}
       <div className="space-y-0">
         {event.eventKind ? <MetaRow label="Event Kind" value={event.eventKind} /> : null}
         {event.summary ? <MetaRow label="Summary" value={event.summary} /> : null}
@@ -72,8 +81,10 @@ export function OverviewTab({ event }: { event: TimelineEvent }) {
           value={getStatusVisual(event.status).label}
           className={getStatusVisual(event.status).color}
         />
-        <MetaRow label="Method" value={event.method} className={METHOD_COLORS[event.method]} />
-        <MetaRow label="URL" value={event.url} />
+        {!isCondition && (
+          <MetaRow label="Method" value={event.method} className={METHOD_COLORS[event.method]} />
+        )}
+        {!isCondition && <MetaRow label="URL" value={event.url} />}
         {event.routeSemantics ? <MetaRow label="Route" value={event.routeSemantics} /> : null}
         {event.attemptNumber != null ? (
           <MetaRow label="Attempt" value={String(event.attemptNumber)} />
@@ -112,6 +123,41 @@ export function OverviewTab({ event }: { event: TimelineEvent }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function ConditionSummarySection({ event }: { event: TimelineEvent }) {
+  const resultIsTrue = event.routeSemantics === "true";
+  const resolvedInputs = (event.metadata?.resolvedInputs ?? {}) as Record<string, unknown>;
+  const inputEntries = Object.entries(resolvedInputs);
+
+  return (
+    <section className="space-y-3">
+      <PayloadSummaryCard
+        title="Condition summary"
+        items={[
+          {
+            label: "Result",
+            value: resultIsTrue ? "✓ True" : "✗ False",
+            className: resultIsTrue ? "text-emerald-600" : "text-rose-500",
+          },
+          {
+            label: "Route taken",
+            value: resultIsTrue ? "True path" : "False path",
+          },
+        ]}
+      />
+      {inputEntries.length > 0 && (
+        <div className="rounded-lg border bg-muted/10 p-3">
+          <p className="mb-3 text-xs font-medium text-muted-foreground">Resolved inputs</p>
+          <div className="space-y-0">
+            {inputEntries.map(([key, value]) => (
+              <MetaRow key={key} label={key} value={String(value)} />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

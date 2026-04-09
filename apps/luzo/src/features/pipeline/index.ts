@@ -1,8 +1,4 @@
-export {
-  filterSuggestions,
-  getAutocompleteSuggestions,
-  progressiveValidate,
-} from "./autocomplete-core";
+export { filterSuggestions, getAutocompleteSuggestions, progressiveValidate } from "./autocomplete";
 export { buildReducedContext, formatContextForAI, reduceResponse } from "./context-reducer";
 export { extractSignals, getDefaultSelectedSignals } from "./context-signals";
 export { buildStepAliases, validatePipelineDag } from "./dag-validator";

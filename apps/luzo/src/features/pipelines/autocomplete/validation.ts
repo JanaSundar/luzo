@@ -1,7 +1,8 @@
 import type { PipelineStep } from "@/types";
 import type { ValidationError } from "@/types/pipeline-debug";
 import { buildStepAliases } from "@/features/pipeline/dag-validator";
-import { resolveStepAlias } from "@/features/pipeline/variable-resolver";
+import { getByPath, resolveStepAlias } from "@/features/pipeline/variable-resolver";
+import { VARIABLE_REGEX } from "@/utils/variables";
 
 export function progressiveValidate(
   template: string,
@@ -14,8 +15,7 @@ export function progressiveValidate(
   const aliasSet = new Set(aliases.map((alias) => alias.alias));
   const aliasToIndex = new Map(aliases.map((alias) => [alias.alias, alias.index]));
 
-  const variableRegex = /\{\{([^}]+)\}\}/g;
-  const matches = [...template.matchAll(variableRegex)];
+  const matches = [...template.matchAll(VARIABLE_REGEX)];
 
   for (const match of matches) {
     const path = match[1].trim();
@@ -50,20 +50,13 @@ export function progressiveValidate(
     if (!stepContext) continue;
 
     const fieldPath = path.substring(path.indexOf(".") + 1);
-    const parts = fieldPath.split(".");
-    let current: unknown = stepContext;
-
-    for (const part of parts) {
-      if (current == null || typeof current !== "object") {
-        errors.push({
-          stepId: "",
-          field: path,
-          message: `Unknown field "${fieldPath}" in ${matchedAlias.alias}`,
-          severity: "warning",
-        });
-        break;
-      }
-      current = (current as Record<string, unknown>)[part];
+    if (getByPath(stepContext, fieldPath) === undefined) {
+      errors.push({
+        stepId: "",
+        field: path,
+        message: `Unknown field "${fieldPath}" in ${matchedAlias.alias}`,
+        severity: "warning",
+      });
     }
   }
 

@@ -39,12 +39,12 @@ const SCRIPT_BLOCKED_PATTERNS = [
   /\.\s*constructor\s*\(/,
 ];
 
-export interface ValidationResult {
+export interface SecurityValidationResult {
   valid: boolean;
   error?: string;
 }
 
-export function validateUrl(url: string): ValidationResult {
+export function validateUrl(url: string): SecurityValidationResult {
   if (!url || typeof url !== "string") {
     return { valid: false, error: "URL is required" };
   }
@@ -87,7 +87,7 @@ export function validateUrl(url: string): ValidationResult {
   return { valid: true };
 }
 
-export function sanitizeHeader(key: string, value: string): ValidationResult {
+export function sanitizeHeader(key: string, value: string): SecurityValidationResult {
   const crlf = /[\r\n]/;
   if (crlf.test(key) || crlf.test(value) || key.includes("\0") || value.includes("\0")) {
     return { valid: false, error: "Header keys and values cannot contain CRLF or null bytes" };
@@ -104,7 +104,7 @@ export function sanitizeHeader(key: string, value: string): ValidationResult {
 
 export function validateHeaders(
   headers: Array<{ key: string; value: string; enabled?: boolean }>,
-): ValidationResult {
+): SecurityValidationResult {
   const enabled = headers.filter((h) => h.enabled !== false && h.key);
   if (enabled.length > MAX_HEADERS) {
     return { valid: false, error: `Maximum ${MAX_HEADERS} headers allowed` };
@@ -118,7 +118,7 @@ export function validateHeaders(
 
 export function validateParams(
   params: Array<{ key: string; value: string; enabled?: boolean }>,
-): ValidationResult {
+): SecurityValidationResult {
   const enabled = params.filter((p) => p.enabled !== false && p.key);
   if (enabled.length > MAX_PARAMS) {
     return { valid: false, error: `Maximum ${MAX_PARAMS} query parameters allowed` };
@@ -126,7 +126,7 @@ export function validateParams(
   return { valid: true };
 }
 
-export function validateBodySize(body: string | null, _bodyType: string): ValidationResult {
+export function validateBodySize(body: string | null, _bodyType: string): SecurityValidationResult {
   if (!body) return { valid: true };
   const bytes = new TextEncoder().encode(body).length;
   if (bytes > MAX_BODY_BYTES) {
@@ -138,7 +138,7 @@ export function validateBodySize(body: string | null, _bodyType: string): Valida
   return { valid: true };
 }
 
-export function validateJsonBody(body: string | null, bodyType: string): ValidationResult {
+export function validateJsonBody(body: string | null, bodyType: string): SecurityValidationResult {
   if (bodyType !== "json" || !body?.trim()) return { valid: true };
   try {
     JSON.parse(body);
@@ -148,7 +148,7 @@ export function validateJsonBody(body: string | null, bodyType: string): Validat
   }
 }
 
-export function validateScript(script: string): ValidationResult {
+export function validateScript(script: string): SecurityValidationResult {
   if (!script?.trim()) return { valid: true };
   if (script.length > MAX_SCRIPT_LENGTH) {
     return {

@@ -108,12 +108,12 @@ export function applyEvent(state: ControllerState, event: PipelineExecutionEvent
       upsertSnapshot(state.snapshots, cloneSnapshot(event.snapshot));
       state.runtimeVariables = cloneRuntimeRecord(event.runtimeVariables);
       if (state.executionMode === "debug") {
+        // Pause so the user can inspect/step past the failure.
         state.status = "paused";
         executionStore.setStatus("paused");
-      } else {
-        state.status = "error";
-        executionStore.setStatus("error");
       }
+      // In auto mode: keep "running" — execution continues along failure routes.
+      // The final status is set by execution_completed / execution_interrupted.
       return;
     case "execution_completed":
       state.status = "completed";

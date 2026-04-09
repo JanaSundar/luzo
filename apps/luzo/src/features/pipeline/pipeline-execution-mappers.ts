@@ -59,9 +59,31 @@ export function toTestResult(response: ExecutionResponse): ScriptResult | undefi
 }
 
 function parseResponseBody(body: string) {
-  try {
-    return JSON.parse(body) as unknown;
-  } catch {
-    return body;
+  const parsed = tryParseJson(body);
+  if (parsed === undefined) return body;
+
+  // Some APIs return JSON as an encoded string payload (e.g. "{\"users\":[...]}").
+  // Parse one additional level for object/array-like strings so path expressions work.
+  if (typeof parsed === "string" && looksLikeJsonContainer(parsed)) {
+    const reparsed = tryParseJson(parsed);
+    if (reparsed !== undefined) return reparsed;
   }
+
+  return parsed;
+}
+
+function tryParseJson(input: string): unknown | undefined {
+  try {
+    return JSON.parse(input) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function looksLikeJsonContainer(input: string): boolean {
+  const trimmed = input.trim();
+  return (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  );
 }

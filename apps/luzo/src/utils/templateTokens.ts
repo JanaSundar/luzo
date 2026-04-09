@@ -1,4 +1,4 @@
-const VARIABLE_REGEX = /\{\{\s*([^}]+?)\s*\}\}/g;
+import { VARIABLE_REGEX } from "@/utils/variables";
 
 export const TEMPLATE_TRIGGER = "{{";
 export const TEMPLATE_CLOSE = "}}";

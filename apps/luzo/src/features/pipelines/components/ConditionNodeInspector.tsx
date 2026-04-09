@@ -1,9 +1,10 @@
 "use client";
 
 import { GitBranch, Plus, Trash2 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { VariablePathInput } from "@/components/ui/variable-path-input";
 import {
   Select,
@@ -54,6 +55,29 @@ export function ConditionNodeInspector({
   onTrueTargetChange,
   onFalseTargetChange,
 }: ConditionNodeInspectorProps) {
+  const [mode, setMode] = useState<"rules" | "expression">(() =>
+    config.expression ? "expression" : "rules",
+  );
+
+  const handleModeChange = useCallback(
+    (next: "rules" | "expression") => {
+      setMode(next);
+      if (next === "expression") {
+        onChange({ ...config, rules: [] });
+      } else {
+        onChange({ ...config, expression: "" });
+      }
+    },
+    [config, onChange],
+  );
+
+  const handleExpressionChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange({ ...config, expression: e.target.value });
+    },
+    [config, onChange],
+  );
+
   const handleLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ ...config, label: e.target.value });
@@ -98,24 +122,68 @@ export function ConditionNodeInspector({
         <Input value={config.label} onChange={handleLabelChange} placeholder="Condition" />
       </div>
 
-      {/* Rules */}
+      {/* Conditions */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/50">
             Conditions (all must pass)
           </label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddRule}
-            className="h-7 gap-1.5 px-2 text-[11px]"
-          >
-            <Plus className="h-3 w-3" />
-            Add rule
-          </Button>
+          <div className="flex items-center gap-1">
+            <div className="flex overflow-hidden rounded-md border border-border/40 text-[11px]">
+              <button
+                type="button"
+                onClick={() => handleModeChange("rules")}
+                className={cn(
+                  "px-2 py-1",
+                  mode === "rules"
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Rules
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange("expression")}
+                className={cn(
+                  "border-l border-border/40 px-2 py-1",
+                  mode === "expression"
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Expression
+              </button>
+            </div>
+            {mode === "rules" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAddRule}
+                className="h-7 gap-1.5 px-2 text-[11px]"
+              >
+                <Plus className="h-3 w-3" />
+                Add rule
+              </Button>
+            )}
+          </div>
         </div>
 
-        {(config.rules ?? []).length === 0 ? (
+        {mode === "expression" ? (
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+              value={config.expression}
+              onChange={handleExpressionChange}
+              placeholder="e.g. req1.response.body.users[0].id == 1"
+              className="min-h-[80px] font-mono text-[12px]"
+            />
+            <p className="text-[11px] text-foreground/40">
+              JavaScript expression. Use step aliases like{" "}
+              <code className="rounded bg-muted/40 px-1 font-mono">req1.response.body.field</code>.
+              Must return a truthy value.
+            </p>
+          </div>
+        ) : (config.rules ?? []).length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/50 px-4 py-6 text-center">
             <GitBranch className="h-5 w-5 text-foreground/25" />
             <p className="text-[12px] text-foreground/40">

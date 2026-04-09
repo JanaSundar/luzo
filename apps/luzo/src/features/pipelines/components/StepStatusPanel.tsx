@@ -9,6 +9,7 @@ import {
 } from "@/utils/ui/segmentedTabs";
 import { cn } from "@/utils";
 import { METHOD_COLORS } from "@/utils/http";
+import { EXECUTION_STATUS_BADGE } from "../constants/statusColors";
 import type { StepSnapshot, StepStatus } from "@/types/pipeline-debug";
 
 function formatSize(bytes: number): string {
@@ -23,20 +24,11 @@ function StatusIcon({ status }: { status: StepStatus }) {
 }
 
 function ExecutionBadge({ status }: { status: string }) {
-  const variants: Record<string, string> = {
-    idle: "bg-muted text-muted-foreground",
-    running: "bg-primary/10 text-primary",
-    paused: "bg-amber-500/10 text-amber-600",
-    completed: "bg-emerald-500/10 text-emerald-600",
-    error: "bg-destructive/10 text-destructive",
-    aborted: "bg-amber-500/10 text-amber-600",
-    interrupted: "bg-amber-500/10 text-amber-600",
-  };
   return (
     <span
       className={cn(
         "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-        variants[status] ?? "bg-muted text-muted-foreground",
+        EXECUTION_STATUS_BADGE[status] ?? "bg-muted text-muted-foreground",
       )}
     >
       {status}

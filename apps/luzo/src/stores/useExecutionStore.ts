@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { deriveAiSafeResponse } from "@/services/http/response-utils";
+import { deriveAiSafeResponse } from "@/server/http/response-utils";
 import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import type { ApiResponse } from "@/types";
 import type { DebugRuntimeState, StepSnapshot } from "@/types/pipeline-debug";
