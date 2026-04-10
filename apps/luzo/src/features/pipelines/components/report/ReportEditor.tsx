@@ -26,9 +26,9 @@ export function ReportEditor({ report, aiConfigured, onChange, onAskAi }: Report
   ).filter((sectionKey) => sectionKey !== "requests");
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <article className="rounded-[2rem] bg-background px-6 py-6">
-        <div className="pb-5">
+    <div className="mx-auto max-w-4xl px-6 py-5">
+      <article className="rounded-[2rem] bg-background px-6 py-4">
+        <div className="pb-2">
           <p className="text-[10px] font-black uppercase tracking-[0.26em] text-muted-foreground">
             Report Editor
           </p>
@@ -38,7 +38,7 @@ export function ReportEditor({ report, aiConfigured, onChange, onAskAi }: Report
           </p>
         </div>
 
-        <div className="pt-6">
+        <div className="pt-3">
           <TextSectionEditorCard
             title="Title"
             placeholder="Untitled report"

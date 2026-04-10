@@ -5,7 +5,6 @@ import type { PipelineExecutionEvent } from "@/types/pipeline-runtime";
 import type { CompilePlanOutput, Result } from "@/types/worker-results";
 import type { CompiledPipelineNode, CompiledPipelinePlan } from "@/types/workflow";
 import { graphWorkerClient } from "@/workers/client/graph-client";
-import { usePipelineStore } from "@/stores/usePipelineStore";
 import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
 import { markSkippedSubgraph } from "./branch-skipping";
 
@@ -16,14 +15,12 @@ export async function resolveCompiledPlan(
   if (cachedPlan) return cachedPlan;
 
   const bundle = buildWorkflowBundleFromPipeline(pipeline);
-  const subflowDefinitions = usePipelineStore.getState().subflowDefinitions;
   const res = await graphWorkerClient.callLatest<Result<CompilePlanOutput>>(
     "pipeline-compilation",
     async (api) =>
       api.compileExecutionPlan({
         workflow: bundle.workflow,
         registry: bundle.registry,
-        subflowDefinitions,
       }),
   );
 
@@ -50,12 +47,15 @@ export function primeRuntimeState(
 
     // For condition nodes: follow both branches so downstream nodes can be activated.
     // We don't know the original result, so treat both paths as potentially taken.
+    // For switch nodes: follow all case routes for the same reason.
     const primeTargets =
       node?.kind === "condition"
         ? [...(node.routes.true ?? []), ...(node.routes.false ?? [])]
-        : node?.routes.success.length
-          ? node.routes.success
-          : (node?.routes.control ?? []);
+        : node?.kind === "switch"
+          ? node.runtimeRoutes.map((r) => r.targetId)
+          : node?.routes.success.length
+            ? node.routes.success
+            : (node?.routes.control ?? []);
 
     for (const targetId of primeTargets) {
       const deps = activatedDeps.get(targetId) ?? new Set<string>();
@@ -104,19 +104,38 @@ export function isTerminalStepEvent(
   event: PipelineExecutionEvent,
 ): event is Extract<
   PipelineExecutionEvent,
-  { type: "step_completed" | "step_failed" | "condition_evaluated" }
+  {
+    type:
+      | "step_completed"
+      | "step_failed"
+      | "condition_evaluated"
+      | "switch_evaluated"
+      | "delay_elapsed"
+      | "end_reached";
+  }
 > {
   return (
     event.type === "step_completed" ||
     event.type === "step_failed" ||
-    event.type === "condition_evaluated"
+    event.type === "condition_evaluated" ||
+    event.type === "switch_evaluated" ||
+    event.type === "delay_elapsed" ||
+    event.type === "end_reached"
   );
 }
 
 export function processCompletion(
   event: Extract<
     PipelineExecutionEvent,
-    { type: "step_completed" | "step_failed" | "condition_evaluated" }
+    {
+      type:
+        | "step_completed"
+        | "step_failed"
+        | "condition_evaluated"
+        | "switch_evaluated"
+        | "delay_elapsed"
+        | "end_reached";
+    }
   >,
   nodeId: string,
   planNodeMap: Map<string, CompiledPipelineNode>,
@@ -142,6 +161,20 @@ export function processCompletion(
     skippedTargets.forEach((targetId) =>
       markSkippedSubgraph(targetId, planNodeMap, completed, skipped, readyQueue, queued),
     );
+  } else if (event.type === "switch_evaluated") {
+    const matchedId = event.matchedCaseId;
+    const matchedRoute = matchedId
+      ? planNode.runtimeRoutes.filter((r) => r.semantics === matchedId).map((r) => r.targetId)
+      : [];
+    nextTargets = matchedRoute.length > 0 ? matchedRoute : planNode.routes.control;
+    const skippedRoutes = planNode.runtimeRoutes
+      .filter((r) => r.semantics !== matchedId && r.semantics !== "control")
+      .map((r) => r.targetId);
+    skippedRoutes.forEach((targetId) =>
+      markSkippedSubgraph(targetId, planNodeMap, completed, skipped, readyQueue, queued),
+    );
+  } else if (event.type === "delay_elapsed" || event.type === "end_reached") {
+    nextTargets = planNode.routes.control;
   } else {
     nextTargets =
       event.type === "step_failed"

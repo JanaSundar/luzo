@@ -16,13 +16,20 @@ export type TimelineEventKind =
   | "condition_evaluated"
   | "route_selected"
   | "step_skipped"
+  | "delay_elapsed"
+  | "end_reached"
   | "poll_attempt"
   | "poll_wait"
   | "poll_terminal"
   | "webhook_wait"
   | "webhook_matched"
   | "webhook_timeout"
-  | "webhook_ignored";
+  | "webhook_ignored"
+  | "iteration_start"
+  | "iteration_end"
+  | "iteration_skip"
+  | "log_emitted"
+  | "assert_failed";
 export type TimelineEventOutcome =
   | "executed"
   | "selected"
@@ -50,11 +57,6 @@ export interface TimelineEvent {
   terminalReason?: string | null;
   summary?: string | null;
   metadata?: Record<string, unknown> | null;
-  subflowInstanceId?: string | null;
-  subflowDefinitionId?: string | null;
-  subflowDefinitionVersion?: number | null;
-  subflowName?: string | null;
-  subflowDepth?: number | null;
 
   /** DAG depth — steps at the same depth can run in parallel */
   stageIndex: number;

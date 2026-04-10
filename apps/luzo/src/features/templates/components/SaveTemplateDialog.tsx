@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { BookmarkPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useTemplateMutations } from "@/features/templates/useTemplates";
+import { inferTemplateInputSchema } from "@/features/templates/template-utils";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import type { Pipeline, TemplateDefinition } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,10 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
     (state) => state.dbStatus === "connected" && state.dbSchemaReady,
   );
   const mutation = useTemplateMutations().saveTemplate;
+  const inferredInputs = useMemo(
+    () => (pipeline ? inferTemplateInputSchema(pipeline) : []),
+    [pipeline],
+  );
 
   const canSave = useMemo(
     () => dbReady && pipeline && pipeline.steps.length > 0 && name.trim().length > 0,
@@ -59,7 +64,7 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
       complexity: pipeline.steps.length >= 4 ? "intermediate" : "starter",
       sourceType: "user",
       pipelineDefinition: pipeline,
-      inputSchema: [],
+      inputSchema: inferredInputs,
       sampleOutputs: [],
       assumptions: [],
       createdAt: new Date().toISOString(),
@@ -128,6 +133,37 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="auth, polling, smoke-test"
               />
+            </div>
+            <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Detected Template Inputs</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {
+                      "Luzo will parameterize unresolved `{{variable}}` placeholders when this template is instantiated."
+                    }
+                  </p>
+                </div>
+                <span className="rounded-full border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {inferredInputs.length}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {inferredInputs.length > 0 ? (
+                  inferredInputs.map((field) => (
+                    <span
+                      key={field.key}
+                      className="rounded-full border border-border/50 bg-background px-2.5 py-1 text-[11px] text-foreground"
+                    >
+                      {field.label}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No external template inputs were detected.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

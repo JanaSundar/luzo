@@ -62,7 +62,13 @@ export function NodeWrapper({
     height: node.height ?? 180,
   };
   const isSelected = Boolean(node.selected);
-  const handles = useMemo(() => getHandleLayout(definition?.handles ?? []), [definition?.handles]);
+  const handles = useMemo(() => {
+    const raw =
+      typeof definition?.handles === "function"
+        ? definition.handles(node)
+        : (definition?.handles ?? []);
+    return getHandleLayout(raw);
+  }, [definition, node]);
 
   useEffect(() => {
     const element = nodeRef.current;

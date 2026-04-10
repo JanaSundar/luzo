@@ -9,7 +9,6 @@ import { createExecutionSlice } from "./slices/executionSlice";
 import { createNodeSlice } from "./slices/nodeSlice";
 import { createPipelineSlice } from "./slices/pipelineSlice";
 import { createStepSlice } from "./slices/stepSlice";
-import { createSubflowSlice } from "./slices/subflowSlice";
 
 export const usePipelineStore = create<PipelineStore>()(
   persist(
@@ -17,7 +16,6 @@ export const usePipelineStore = create<PipelineStore>()(
       ...createPipelineSlice(...a),
       ...createStepSlice(...a),
       ...createNodeSlice(...a),
-      ...createSubflowSlice(...a),
       ...createExecutionSlice(...a),
     })),
     {
@@ -36,7 +34,6 @@ export const usePipelineStore = create<PipelineStore>()(
             ...pipeline,
             flowDocument: ensurePipelineFlowDocument(pipeline),
           })),
-          subflowDefinitions: persisted.subflowDefinitions ?? [],
         } as PipelineStore;
       },
       merge: (persisted, current) => {
@@ -52,7 +49,6 @@ export const usePipelineStore = create<PipelineStore>()(
       },
       partialize: (state) => ({
         pipelines: state.pipelines,
-        subflowDefinitions: state.subflowDefinitions,
         activePipelineId: state.activePipelineId,
       }),
     },

@@ -21,22 +21,6 @@ export interface RequestBlock extends FlowBlockBase {
   data: Omit<PipelineStep, "id" | "upstreamStepIds">;
 }
 
-export interface EvaluateBlock extends FlowBlockBase {
-  type: "evaluate";
-  data: {
-    label?: string;
-    conditionType: "if" | "switch" | "foreach";
-    expression?: string;
-    variables?: Array<{
-      id: string;
-      name: string;
-      sourceBlockId?: string;
-      sourceHandleId?: string;
-    }>;
-    hasFalseBranch?: boolean;
-  };
-}
-
 export interface ListBlock extends FlowBlockBase {
   type: "list";
   data: { label?: string; itemCount?: number };
@@ -68,11 +52,100 @@ export interface AIBlock extends FlowBlockBase {
   };
 }
 
+export interface IfBlock extends FlowBlockBase {
+  type: "if";
+  data: {
+    label?: string;
+    expression?: string;
+    hasFalseBranch?: boolean;
+  };
+}
+
+export interface DelayBlock extends FlowBlockBase {
+  type: "delay";
+  data: {
+    label?: string;
+    /** Duration to wait in milliseconds. */
+    durationMs: number;
+  };
+}
+
+export interface EndBlock extends FlowBlockBase {
+  type: "end";
+  data: { label?: string };
+}
+
+export interface ForEachBlock extends FlowBlockBase {
+  type: "forEach";
+  data: {
+    label?: string;
+    collectionPath: string;
+    mapExpression?: string;
+  };
+}
+
+export interface TransformBlock extends FlowBlockBase {
+  type: "transform";
+  data: { label?: string; script: string };
+}
+
+export interface LogBlock extends FlowBlockBase {
+  type: "log";
+  data: { label?: string; message: string };
+}
+
+export interface AssertBlock extends FlowBlockBase {
+  type: "assert";
+  data: { label?: string; expression: string; message?: string };
+}
+
+export interface WebhookWaitBlock extends FlowBlockBase {
+  type: "webhookWait";
+  data: { label?: string; timeoutMs?: number; correlationKey?: string };
+}
+
+export interface PollBlock extends FlowBlockBase {
+  type: "poll";
+  data: {
+    label?: string;
+    /** JS expression evaluated against runtime variables — must return truthy to stop. */
+    stopCondition: string;
+    /** Milliseconds between poll attempts. Default: 2000. */
+    intervalMs?: number;
+    /** Maximum number of attempts before failing. Default: 10. */
+    maxAttempts?: number;
+  };
+}
+
+export interface SwitchCaseData {
+  id: string;
+  label: string;
+  expression: string;
+  isDefault: boolean;
+}
+
+export interface SwitchBlock extends FlowBlockBase {
+  type: "switch";
+  data: {
+    label?: string;
+    cases: SwitchCaseData[];
+  };
+}
+
 export type FlowBlock =
   | AIBlock
+  | DelayBlock
   | DisplayBlock
-  | EvaluateBlock
+  | EndBlock
+  | ForEachBlock
+  | TransformBlock
+  | LogBlock
+  | AssertBlock
+  | WebhookWaitBlock
+  | PollBlock
+  | SwitchBlock
   | GroupBlock
+  | IfBlock
   | ListBlock
   | RequestBlock
   | StartBlock

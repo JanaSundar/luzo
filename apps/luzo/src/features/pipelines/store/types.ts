@@ -1,12 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Pipeline, PipelineExecutionResult, PipelineStep, PipelineView } from "@/types";
-import type {
-  FlowDocument,
-  FlowNodeRecord,
-  RequestDefinition,
-  SubflowDefinition,
-  WorkflowNodeKind,
-} from "@/types/workflow";
+import type { FlowDocument, FlowNodeRecord, WorkflowNodeKind } from "@/types/workflow";
 
 export interface PipelineSlice {
   pipelines: Pipeline[];
@@ -47,24 +41,6 @@ export interface NodeSlice {
   duplicateNode: (pipelineId: string, nodeId: string) => string | null;
 }
 
-export interface SubflowSlice {
-  subflowDefinitions: SubflowDefinition[];
-  createSubflowFromStep: (pipelineId: string, stepId: string) => string | null;
-  insertSubflow: (pipelineId: string, subflowId: string, version?: number) => string | null;
-  deleteSubflowDefinition: (subflowId: string, version?: number) => void;
-  updateSubflowRequest: (
-    subflowId: string,
-    version: number,
-    requestId: string,
-    partial: Partial<RequestDefinition>,
-  ) => void;
-  updateSubflowNode: (
-    pipelineId: string,
-    nodeId: string,
-    partial: Partial<NonNullable<FlowNodeRecord["config"]>>,
-  ) => void;
-}
-
 export interface ExecutionSlice {
   executing: boolean;
   executionResult: PipelineExecutionResult | null;
@@ -72,6 +48,6 @@ export interface ExecutionSlice {
   setExecutionResult: (result: PipelineExecutionResult | null) => void;
 }
 
-export type PipelineStore = PipelineSlice & StepSlice & NodeSlice & SubflowSlice & ExecutionSlice;
+export type PipelineStore = PipelineSlice & StepSlice & NodeSlice & ExecutionSlice;
 export type PipelineMutator = [["zustand/immer", never]];
 export type PipelineSliceCreator<T> = StateCreator<PipelineStore, PipelineMutator, [], T>;

@@ -30,7 +30,11 @@ export function moveDraftStep(
   const index = steps.findIndex((step) => step.id === stepId);
   const nextIndex = direction === "up" ? index - 1 : index + 1;
   if (index < 0 || nextIndex < 0 || nextIndex >= steps.length) return draft;
-  [steps[index], steps[nextIndex]] = [steps[nextIndex], steps[index]];
+  const currentStep = steps[index];
+  const adjacentStep = steps[nextIndex];
+  if (!currentStep || !adjacentStep) return draft;
+  steps[index] = adjacentStep;
+  steps[nextIndex] = currentStep;
   return revalidate({ ...draft, steps });
 }
 

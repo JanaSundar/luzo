@@ -92,15 +92,18 @@ export function buildLineageIndex(input: AnalyzeVariablesInput): VariableAnalysi
 
       edges.push(edge);
       references.push(reference);
-      byVariableRef[dependency.rawRef] ??= [];
-      byVariableRef[dependency.rawRef].push(edgeId);
-      byDependentStep[step.id] ??= [];
-      byDependentStep[step.id].push(edgeId);
+      const variableRefs = byVariableRef[dependency.rawRef] ?? [];
+      variableRefs.push(edgeId);
+      byVariableRef[dependency.rawRef] = variableRefs;
+      const dependentEdges = byDependentStep[step.id] ?? [];
+      dependentEdges.push(edgeId);
+      byDependentStep[step.id] = dependentEdges;
       byUnresolvedState[resolutionStatus].push(edgeId);
 
       if (sourceAlias?.stepId) {
-        bySourceStep[sourceAlias.stepId] ??= [];
-        bySourceStep[sourceAlias.stepId].push(edgeId);
+        const sourceEdges = bySourceStep[sourceAlias.stepId] ?? [];
+        sourceEdges.push(edgeId);
+        bySourceStep[sourceAlias.stepId] = sourceEdges;
         const consumers = consumersSetBySourceStep.get(sourceAlias.stepId) ?? new Set<string>();
         consumers.add(step.id);
         consumersSetBySourceStep.set(sourceAlias.stepId, consumers);

@@ -3,7 +3,7 @@ import type { BlockRegistry, FlowNode, Handle } from "@luzo/flow-types";
 import { useEditorStore } from "../store/editorStore";
 import { getNodeSize } from "../store/selectors";
 import { getBezierPath } from "../utils/bezier";
-import { getHandlePosition } from "../utils/handles";
+import { getHandlePosition, resolveHandles } from "../utils/handles";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { getEdgeAppearance } from "./edgeAppearance";
 
@@ -26,11 +26,12 @@ export function ConnectionPreview({
   const sourceNode = nodes.find((node) => node.id === activeConnection.sourceNodeId);
   if (!sourceNode) return null;
 
-  const sourceHandle = blockRegistry[sourceNode.type]?.handles.find(
+  const allHandles = resolveHandles(blockRegistry[sourceNode.type], sourceNode);
+  const sourceHandle = allHandles.find(
     (handle: Handle) => handle.id === activeConnection.sourceHandleId,
   );
   if (!sourceHandle) return null;
-  const sourceHandles = blockRegistry[sourceNode.type]?.handles ?? [sourceHandle];
+  const sourceHandles = allHandles.length > 0 ? allHandles : [sourceHandle];
   const sourceSize = getNodeSize(sourceNode, nodeSizes);
   const source = getHandlePosition(
     { ...sourceNode, width: sourceSize.width, height: sourceSize.height },

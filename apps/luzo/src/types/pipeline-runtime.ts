@@ -1,12 +1,17 @@
 import type { HttpMethod } from ".";
 import type { TimelineEvent } from "./timeline-event";
-import type { ExpandedNodeOrigin } from "./workflow";
 
 export type StepStatus = "idle" | "step_ready" | "running" | "success" | "error" | "done";
 
 export type StreamStatus = "idle" | "streaming" | "done" | "error";
 
-export type EntryType = "pre_request" | "request" | "post_request" | "test" | "condition";
+export type EntryType =
+  | "pre_request"
+  | "request"
+  | "post_request"
+  | "test"
+  | "condition"
+  | "switch";
 
 export type DebugStatus =
   | "idle"
@@ -67,9 +72,9 @@ export interface StepSnapshot {
   streamStatus: StreamStatus;
   streamChunks: string[];
   highlightPath?: string;
-  subflowSource?: ExpandedNodeOrigin;
   timelineEvents?: TimelineEvent[];
   conditionResult?: { result: boolean; resolvedInputs: Record<string, unknown> };
+  switchResult?: { matchedCaseId: string | null };
 }
 
 export interface DebugRuntimeState {
@@ -179,6 +184,19 @@ export type GeneratorYield =
       result: boolean;
       runtimeVariables: Record<string, unknown>;
     }
+  | {
+      type: "switch_evaluated";
+      snapshot: StepSnapshot;
+      matchedCaseId: string | null;
+      runtimeVariables: Record<string, unknown>;
+    }
+  | {
+      type: "delay_elapsed";
+      snapshot: StepSnapshot;
+      runtimeVariables: Record<string, unknown>;
+      durationMs: number;
+    }
+  | { type: "end_reached"; snapshot: StepSnapshot; runtimeVariables: Record<string, unknown> }
   | { type: "execution_completed"; completedAt: number }
   | { type: "execution_interrupted"; completedAt: number; reason: string };
 

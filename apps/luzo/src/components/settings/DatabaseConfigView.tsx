@@ -194,14 +194,18 @@ export function DatabaseConfigView() {
 }
 
 function StatusBadge({ status, latencyMs }: { status: string; latencyMs: number | null }) {
+  const disconnectedConfig = {
+    color: "bg-muted-foreground/30",
+    label: "Idle",
+  };
   const configs: Record<string, { color: string; label: string }> = {
     connected: { color: "bg-emerald-500", label: "Active" },
     connecting: { color: "bg-amber-500", label: "Connecting..." },
     error: { color: "bg-destructive", label: "Failed" },
-    disconnected: { color: "bg-muted-foreground/30", label: "Idle" },
+    disconnected: disconnectedConfig,
   };
 
-  const current = configs[status] ?? configs.disconnected;
+  const current = configs[status] ?? disconnectedConfig;
 
   return (
     <div className="flex items-center gap-2 bg-muted/40 px-3 py-1 rounded-full border border-border/50">

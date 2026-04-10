@@ -67,7 +67,8 @@ export function extractVariableRefs(template: string): string[] {
   if (!template) return [];
   const refs: string[] = [];
   for (const match of template.matchAll(VARIABLE_REGEX)) {
-    refs.push(match[1].trim());
+    const ref = match[1]?.trim();
+    if (ref) refs.push(ref);
   }
   return refs;
 }
@@ -128,7 +129,9 @@ export function flattenObject(
       const entries = Object.entries(val as Record<string, unknown>);
       // Push in reverse to maintain original object key order in results
       for (let i = entries.length - 1; i >= 0; i--) {
-        const [key, v] = entries[i];
+        const entry = entries[i];
+        if (!entry) continue;
+        const [key, v] = entry;
         const fullPath = pref ? `${pref}.${key}` : key;
         results.push({ path: fullPath, value: v });
 

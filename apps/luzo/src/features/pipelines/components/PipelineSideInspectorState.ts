@@ -35,8 +35,9 @@ export function usePipelineSideInspectorState({
   const lineageByField = useMemo(
     () =>
       lineageView.incoming.reduce<Record<string, typeof lineageView.incoming>>((acc, edge) => {
-        acc[edge.consumerField] ??= [];
-        acc[edge.consumerField].push(edge);
+        const bucket = acc[edge.consumerField] ?? [];
+        bucket.push(edge);
+        acc[edge.consumerField] = bucket;
         return acc;
       }, {}),
     [lineageView.incoming],

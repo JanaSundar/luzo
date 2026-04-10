@@ -27,7 +27,9 @@ export function filterTimeline(input: TimelineFilterInput): TimelineFilterOutput
 
   return {
     eventIds: candidateIds,
-    events: candidateIds.map((eventId) => input.index.byId[eventId]).filter(Boolean),
+    events: candidateIds
+      .map((eventId) => input.index.byId[eventId])
+      .filter((event): event is NonNullable<typeof event> => Boolean(event)),
   };
 }
 

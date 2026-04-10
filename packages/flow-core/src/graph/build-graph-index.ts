@@ -83,7 +83,7 @@ export function buildRouteMetadata<
       if (edge.sourceHandleId)
         appendMapEntry(routeBySourceAndHandle, sourceNodeId, edge.sourceHandleId, edge.routeId);
 
-      if (params.blockById.get(sourceNodeId)?.type === "evaluate") {
+      if (params.blockById.get(sourceNodeId)?.type === "if") {
         appendMapArray(conditionRoutesByNode, sourceNodeId, edge.routeId);
       }
     }

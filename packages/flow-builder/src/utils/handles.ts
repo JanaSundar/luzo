@@ -1,4 +1,13 @@
-import type { Handle, FlowNode, FlowPosition } from "@luzo/flow-types";
+import type { BlockDefinition, Handle, FlowNode, FlowPosition } from "@luzo/flow-types";
+
+/**
+ * Resolves the handles from a BlockDefinition for a given node.
+ * Supports both static arrays and dynamic functions.
+ */
+export function resolveHandles(definition: BlockDefinition | undefined, node: FlowNode): Handle[] {
+  if (!definition) return [];
+  return typeof definition.handles === "function" ? definition.handles(node) : definition.handles;
+}
 
 export function getHandlePosition(
   node: FlowNode,

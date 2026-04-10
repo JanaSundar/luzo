@@ -64,8 +64,8 @@ export function getProducedKeys(request: ApiRequest) {
 }
 
 export function getPrimaryResourceKey(url: string) {
-  const path = stripOrigin(url)
-    .split("?")[0]
+  const normalizedPath = stripOrigin(url).split("?").at(0) ?? "";
+  const path = normalizedPath
     .split("/")
     .map((segment) => segment.trim())
     .filter(Boolean)

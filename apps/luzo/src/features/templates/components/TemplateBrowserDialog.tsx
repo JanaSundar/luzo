@@ -1,15 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import { BUILTIN_TEMPLATES } from "@/features/templates/builtins";
 import { instantiateTemplate } from "@/features/templates/instantiate-template";
+import { filterTemplates } from "@/features/templates/template-utils";
 import { useTemplatesQuery } from "@/features/templates/useTemplates";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +39,12 @@ export function TemplateBrowserDialog({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
     BUILTIN_TEMPLATES[0]?.id ?? "",
   );
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [complexity, setComplexity] = useState<"all" | "starter" | "intermediate" | "advanced">(
+    "all",
+  );
+  const [tag, setTag] = useState("all");
   const [values, setValues] = useState<Record<string, string>>({});
   const { data: userTemplates = [] } = useTemplatesQuery();
   const environments = useEnvironmentStore((state) => state.environments);
@@ -54,6 +63,18 @@ export function TemplateBrowserDialog({
     () => [...BUILTIN_TEMPLATES, ...(dbConnected ? userTemplates : [])],
     [dbConnected, userTemplates],
   );
+  const categories = useMemo(
+    () => ["all", ...new Set(templates.map((template) => template.category).sort())],
+    [templates],
+  );
+  const tags = useMemo(
+    () => ["all", ...new Set(templates.flatMap((template) => template.tags).sort())],
+    [templates],
+  );
+  const filteredTemplates = useMemo(
+    () => filterTemplates(templates, { category, complexity, search, tag }),
+    [category, complexity, search, tag, templates],
+  );
   const environmentVariables = useMemo(() => {
     const activeEnvironment = environments.find(
       (environment) => environment.id === activeEnvironmentId,
@@ -61,7 +82,9 @@ export function TemplateBrowserDialog({
     return activeEnvironment?.variables.filter((variable) => variable.enabled) ?? [];
   }, [activeEnvironmentId, environments]);
   const selectedTemplate =
-    templates.find((template) => template.id === selectedTemplateId) ?? templates[0] ?? null;
+    filteredTemplates.find((template) => template.id === selectedTemplateId) ??
+    filteredTemplates[0] ??
+    null;
   const handleInstantiate = () => {
     if (!selectedTemplate) return;
     const missing = selectedTemplate.inputSchema.filter(
@@ -127,26 +150,101 @@ export function TemplateBrowserDialog({
         <div className="grid min-h-0 flex-1 gap-0 md:grid-cols-[300px_minmax(0,1fr)]">
           <ScrollArea className="min-h-0 border-r border-border/50">
             <div className="space-y-3 p-4">
-              <SectionTitle label="Built-in" />
-              {BUILTIN_TEMPLATES.map((template) => (
-                <TemplateListButton
-                  key={template.id}
-                  template={template}
-                  isSelected={template.id === selectedTemplate?.id}
-                  onClick={() => setSelectedTemplateId(template.id)}
-                />
-              ))}
-              {dbConnected && userTemplates.length > 0 ? (
+              <div className="space-y-3 rounded-2xl border border-border/50 bg-muted/20 p-3">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search templates"
+                    className="h-9 pl-9"
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Category
+                    </Label>
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      {categories.map((entry) => (
+                        <option key={entry} value={entry}>
+                          {entry === "all" ? "All categories" : entry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Complexity
+                    </Label>
+                    <select
+                      value={complexity}
+                      onChange={(event) => setComplexity(event.target.value as typeof complexity)}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="all">All complexities</option>
+                      <option value="starter">Starter</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Tag
+                    </Label>
+                    <select
+                      value={tag}
+                      onChange={(event) => setTag(event.target.value)}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      {tags.map((entry) => (
+                        <option key={entry} value={entry}>
+                          {entry === "all" ? "All tags" : entry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {filteredTemplates.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
+                  No templates match the current filters.
+                </div>
+              ) : null}
+
+              {filteredTemplates.some((template) => template.sourceType === "builtin") ? (
+                <>
+                  <SectionTitle label="Built-in" />
+                  {filteredTemplates
+                    .filter((template) => template.sourceType === "builtin")
+                    .map((template) => (
+                      <TemplateListButton
+                        key={template.id}
+                        template={template}
+                        isSelected={template.id === selectedTemplate?.id}
+                        onClick={() => setSelectedTemplateId(template.id)}
+                      />
+                    ))}
+                </>
+              ) : null}
+              {filteredTemplates.some((template) => template.sourceType === "user") ? (
                 <>
                   <SectionTitle label="My Templates" />
-                  {userTemplates.map((template) => (
-                    <TemplateListButton
-                      key={template.id}
-                      template={template}
-                      isSelected={template.id === selectedTemplate?.id}
-                      onClick={() => setSelectedTemplateId(template.id)}
-                    />
-                  ))}
+                  {filteredTemplates
+                    .filter((template) => template.sourceType === "user")
+                    .map((template) => (
+                      <TemplateListButton
+                        key={template.id}
+                        template={template}
+                        isSelected={template.id === selectedTemplate?.id}
+                        onClick={() => setSelectedTemplateId(template.id)}
+                      />
+                    ))}
                 </>
               ) : null}
             </div>

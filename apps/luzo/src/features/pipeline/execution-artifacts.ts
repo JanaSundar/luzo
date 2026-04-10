@@ -80,7 +80,9 @@ export function buildRuntimeVariablesFromArtifact(
   return Object.fromEntries(
     activeAliases
       .map((alias) => artifact.stepContextByAlias[alias])
-      .filter(Boolean)
+      .filter((context): context is NonNullable<(typeof artifact.stepContextByAlias)[string]> =>
+        Boolean(context),
+      )
       .map((context) => [context.alias, cloneValue(context.payload)]),
   );
 }

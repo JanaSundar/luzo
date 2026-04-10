@@ -18,11 +18,16 @@
   --fb-node-group-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
   --fb-node-accent-start: #ef4444;
   --fb-node-accent-request: #f97316;
-  --fb-node-accent-evaluate: #64748b;
   --fb-node-accent-list: #2563eb;
   --fb-node-accent-display: #0f766e;
   --fb-node-accent-text: #7c3aed;
   --fb-node-accent-group: #94a3b8;
+  --fb-node-accent-if: #14b8a6;
+  --fb-node-accent-delay: #38bdf8;
+  --fb-node-accent-forEach: #8b5cf6;
+  --fb-node-accent-assert: #f59e0b;
+  --fb-node-accent-webhookWait: #60a5fa;
+  --fb-node-accent-poll: #ec4899;
   --fb-handle-size: 12px;
   --fb-handle-color: #94a3b8;
   --fb-handle-color-hover: #2563eb;
@@ -63,7 +68,7 @@
   --fb-toolbar-button-bg: rgba(148, 163, 184, 0.08);
   --fb-toolbar-primary-bg: #2563eb;
   --fb-toolbar-primary-text: #eff6ff;
-  --fb-font-sans: system-ui, sans-serif;
+  --fb-font-sans: "General Sans", "Satoshi", system-ui, sans-serif;
   --fb-font-mono: ui-monospace, monospace;
 }
 
@@ -81,6 +86,12 @@
   --fb-node-group-bg: rgba(30, 41, 59, 0.42);
   --fb-node-group-border: rgba(148, 163, 184, 0.36);
   --fb-node-group-shadow: 0 14px 32px rgba(2, 6, 23, 0.32);
+  --fb-node-accent-if: #2dd4bf;
+  --fb-node-accent-delay: #38bdf8;
+  --fb-node-accent-forEach: #a78bfa;
+  --fb-node-accent-assert: #fbbf24;
+  --fb-node-accent-webhookWait: #60a5fa;
+  --fb-node-accent-poll: #f472b6;
   --fb-handle-color: #94a3b8;
   --fb-edge-stroke: #cbd5e1;
   --fb-edge-stroke-selected: #60a5fa;

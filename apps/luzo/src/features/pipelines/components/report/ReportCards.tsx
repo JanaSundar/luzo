@@ -42,10 +42,10 @@ export function ReportSection({
       className={cn(
         mode === "pdf"
           ? "mb-8 border-b border-border/60 bg-transparent px-0 pb-6 last:mb-0 last:border-b-0 last:pb-0"
-          : "mb-10 rounded-[1.5rem] border border-border/40 bg-background/75 p-6 last:mb-0",
+          : "mb-3 rounded-[1.5rem] border border-border/40 bg-background/75 p-4 last:mb-0",
       )}
     >
-      <div className="mb-5 flex items-center justify-between gap-2.5">
+      <div className="mb-2.5 flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
           <h2
             className={cn(
@@ -63,7 +63,7 @@ export function ReportSection({
         )}
       </div>
 
-      <div className="max-w-[98%] space-y-5 text-[13px] font-medium leading-[1.7] text-foreground/80">
+      <div className="max-w-[98%] space-y-2 text-[13px] font-medium leading-[1.7] text-foreground/80 [&_p]:my-0 [&_p+p]:mt-2">
         {children}
       </div>
     </section>
@@ -74,7 +74,7 @@ export function ReportList({ items }: { items?: ReactNode[] }) {
   if (!items?.length) return null;
 
   return (
-    <ul className="mt-5 space-y-4 px-1">
+    <ul className="mt-2 space-y-2 px-1">
       {items.map((item, i) => (
         <li key={i} className="flex gap-4 text-[15px] font-medium leading-[1.7] text-foreground/80">
           <span className="mt-[6px] shrink-0 text-muted-foreground/40 scale-150 leading-none font-black">
@@ -104,7 +104,7 @@ export function RequestCard({
   return (
     <div
       className={cn(
-        "mb-6 overflow-hidden last:mb-0",
+        "mb-2 overflow-hidden last:mb-0",
         mode === "pdf"
           ? "break-inside-avoid-page border border-border/60 bg-transparent"
           : "rounded-[1.5rem] border border-border/45 bg-gradient-to-br from-background via-background to-muted/[0.18] shadow-[0_18px_40px_rgba(15,23,42,0.06)]",
@@ -130,7 +130,7 @@ export function RequestCard({
         </div>
       </div>
 
-      <div className="space-y-4 px-5 py-5">
+      <div className="space-y-3 px-4 py-3">
         <div
           className={cn(
             "rounded-xl border border-border/40 px-3 py-2",

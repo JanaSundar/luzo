@@ -11,7 +11,7 @@ function extractHostFromDbUrl(url: string): string {
   try {
     const match = url.match(/@([^/]+)/);
     if (match) {
-      return match[1].split(":")[0];
+      return (match[1] ?? "").split(":")[0] ?? "";
     }
     return "";
   } catch {

@@ -9,10 +9,14 @@ const KIND_WEIGHT: Record<WorkflowNodeKind, number> = {
   start: 0,
   request: 1,
   condition: 2,
+  switch: 2,
   transform: 3,
+  forEach: 3,
+  log: 3,
+  assert: 3,
+  webhookWait: 3,
   delay: 4,
   poll: 5,
-  subflow: 6,
   end: 7,
 };
 

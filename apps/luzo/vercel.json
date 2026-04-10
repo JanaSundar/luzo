@@ -1,12 +1,11 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://luzoapi.vercel.app"
   },
   "functions": {
-    "apps/luzo/src/app/api/export/pdf/route.ts": {
+    "src/app/api/export/pdf/route.ts": {
       "maxDuration": 60
     }
   }

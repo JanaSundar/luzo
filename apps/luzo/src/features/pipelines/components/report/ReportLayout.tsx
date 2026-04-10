@@ -17,7 +17,7 @@ export function ReportLayoutContainer({
       className={cn(
         mode === "pdf"
           ? "w-full bg-background px-0 py-0 text-foreground"
-          : "w-full rounded-[2rem] border border-border/50 bg-background/90 px-6 py-8 text-foreground shadow-sm backdrop-blur sm:px-8 sm:py-10",
+          : "w-full rounded-[2rem] border border-border/50 bg-background/90 px-6 py-5 text-foreground shadow-sm backdrop-blur sm:px-8 sm:py-6",
         className,
       )}
     >
@@ -47,7 +47,7 @@ export function ReportHeader({
   mode?: ReportRenderMode;
 }) {
   return (
-    <header className={cn("space-y-6", mode === "pdf" ? "mb-10" : "mb-12")}>
+    <header className={cn("space-y-6", mode === "pdf" ? "mb-10" : "mb-6")}>
       <div>
         <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
           Technical Audit Report

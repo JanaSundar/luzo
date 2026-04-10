@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildWorkflowBundleFromPipeline } from "@/features/workflow/pipeline-adapters";
-import { usePipelineStore } from "@/stores/usePipelineStore";
 import { analysisWorkerClient } from "@/workers/client/analysis-client";
 import type { Pipeline } from "@/types";
 import type { Result, VariableAnalysisOutput } from "@/types/worker-results";
@@ -13,12 +12,6 @@ export function usePipelineLineage(
   requestKey = "default",
 ) {
   const [analysis, setAnalysis] = useState<VariableAnalysisOutput | null>(null);
-  const subflowState = usePipelineStore((state) => state.subflowDefinitions);
-  const subflowDefinitions = Array.isArray(subflowState)
-    ? subflowState
-    : (((subflowState as { subflowDefinitions?: unknown })?.subflowDefinitions as
-        | typeof subflowState
-        | undefined) ?? []);
 
   const signature = useMemo(() => {
     if (!pipeline) return null;
@@ -37,13 +30,8 @@ export function usePipelineLineage(
         body: step.body,
         auth: step.auth,
       })),
-      subflows: subflowDefinitions.map((definition) => ({
-        id: definition.id,
-        version: definition.version,
-        updatedAt: definition.updatedAt,
-      })),
     });
-  }, [pipeline, requestKey, subflowDefinitions]);
+  }, [pipeline, requestKey]);
 
   const executionContextSignature = useMemo(
     () => JSON.stringify(executionContext ?? null),
@@ -64,7 +52,6 @@ export function usePipelineLineage(
         const result = (await api.analyzeVariables({
           workflow: bundle.workflow,
           registry: bundle.registry,
-          subflowDefinitions,
           executionContext,
         })) as Result<VariableAnalysisOutput>;
         return result;

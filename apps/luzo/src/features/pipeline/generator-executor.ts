@@ -7,7 +7,7 @@ import type {
 } from "@/types/pipeline-runtime";
 import type { CompiledPipelineNode } from "@/types/workflow";
 import { buildExecutionPipelineFromCompileOutput } from "@/features/workflow/pipeline-adapters";
-import { cloneRuntimeVariables, type GeneratorOptions } from "./generator-executor-shared";
+import { executeSingleNode } from "./generator-node-dispatch";
 import {
   isTerminalStepEvent,
   primeRuntimeState,
@@ -17,8 +17,8 @@ import {
   seedReadyQueue,
   takeStage,
 } from "./generator-executor-plan";
-import { executeConditionGenerator } from "./condition-step-executor";
-import { executeParallelStage, executeStepGenerator } from "./generator-step-executor";
+import { cloneRuntimeVariables, type GeneratorOptions } from "./generator-executor-shared";
+import { executeParallelStage } from "./generator-step-executor";
 
 export type GeneratorExecutorModule = typeof import("./generator-executor");
 
@@ -30,22 +30,17 @@ export async function* createPipelineGenerator(
   const compiled =
     options.compiledResult ?? (await resolveCompiledPlan(pipeline, options.compiledPlan));
   if (!compiled) return;
+
   const compiledPlan = "plan" in compiled ? compiled.plan : compiled;
   const executionPipeline =
     "plan" in compiled ? buildExecutionPipelineFromCompileOutput(pipeline, compiled) : pipeline;
 
-  yield {
-    type: "execution_started",
-    startedAt: Date.now(),
-    totalSteps: compiledPlan.order.length,
-  } satisfies PipelineExecutionEvent;
+  yield { type: "execution_started", startedAt: Date.now(), totalSteps: compiledPlan.order.length };
 
   const stepMap = new Map(executionPipeline.steps.map((step) => [step.id, step] as const));
   const aliasMap = new Map(compiledPlan.aliases.map((alias) => [alias.stepId, alias]));
-  const planNodeMap = new Map<string, CompiledPipelineNode>(
-    compiledPlan.nodes.map((node) => [node.nodeId, node]),
-  );
-  const snapshots: import("@/types/pipeline-runtime").StepSnapshot[] = [];
+  const planNodeMap = new Map(compiledPlan.nodes.map((node) => [node.nodeId, node]));
+  const snapshots: StepSnapshot[] = [];
   const runtimeVariables = cloneRuntimeVariables(options.initialRuntimeVariables);
   const completed = new Set<string>();
   const skipped = new Set<string>();
@@ -67,27 +62,22 @@ export async function* createPipelineGenerator(
     );
     const stage = takeStage(readyQueue, queued, planNodeMap, stageIndex);
 
-    // Condition nodes must always run single-step — they are synchronous and sequencing-sensitive.
-    const hasConditionNode = stage.some((nodeId) => planNodeMap.get(nodeId)?.kind === "condition");
-
-    if (options.useStream || stage.length === 1 || hasConditionNode) {
-      yield* runSingleStage(
-        stage,
-        compiledPlan.order,
-        stepMap,
-        aliasMap,
-        planNodeMap,
-        runtimeVariables,
-        envVariables,
-        snapshots,
-        options,
-        activatedDeps,
-        completed,
-        skipped,
-        readyQueue,
-        queued,
-        conditionResults,
-      );
+    if (options.useStream || stage.length === 1 || hasSerializedNode(stage, planNodeMap)) {
+      for (const nodeId of stage) {
+        yield* executeSingleNode(nodeId, compiledPlan.order, stepMap, aliasMap, planNodeMap, {
+          activatedDeps,
+          completed,
+          conditionResults,
+          envVariables,
+          options,
+          planNodeMap,
+          queued,
+          readyQueue,
+          runtimeVariables,
+          skipped,
+          snapshots,
+        });
+      }
       continue;
     }
 
@@ -109,91 +99,7 @@ export async function* createPipelineGenerator(
     );
   }
 
-  yield { type: "execution_completed", completedAt: Date.now() } satisfies PipelineExecutionEvent;
-}
-
-async function* runSingleStage(
-  stage: string[],
-  orderedNodeIds: string[],
-  stepMap: Map<string, Pipeline["steps"][number]>,
-  aliasMap: Map<string, StepAlias>,
-  planNodeMap: Map<string, CompiledPipelineNode>,
-  runtimeVariables: Record<string, unknown>,
-  envVariables: Record<string, string>,
-  snapshots: StepSnapshot[],
-  options: GeneratorOptions,
-  activatedDeps: Map<string, Set<string>>,
-  completed: Set<string>,
-  skipped: Set<string>,
-  readyQueue: string[],
-  queued: Set<string>,
-  conditionResults: Map<string, boolean>,
-): PipelineRuntime {
-  for (const nodeId of stage) {
-    const planNode = planNodeMap.get(nodeId);
-    const orderIndex = planNode?.orderIndex ?? orderedNodeIds.indexOf(nodeId);
-
-    if (planNode?.kind === "condition" && planNode.conditionConfig) {
-      for await (const event of executeConditionGenerator({
-        nodeId,
-        orderIndex,
-        conditionConfig: planNode.conditionConfig,
-        runtimeVariables,
-        envVariables,
-        snapshots,
-        pauseBeforeEvaluate: options.useStream,
-      })) {
-        yield event;
-        if (!isTerminalStepEvent(event)) continue;
-        processCompletion(
-          event,
-          nodeId,
-          planNodeMap,
-          activatedDeps,
-          completed,
-          skipped,
-          readyQueue,
-          queued,
-          conditionResults,
-        );
-        promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
-      }
-      continue;
-    }
-
-    const step = stepMap.get(nodeId);
-    if (!step) continue;
-
-    for await (const event of executeStepGenerator(
-      step,
-      orderIndex,
-      aliasMap.get(step.id) ?? {
-        alias: "reqUnknown",
-        index: orderIndex,
-        refs: ["reqUnknown"],
-        stepId: step.id,
-      },
-      runtimeVariables,
-      envVariables,
-      snapshots,
-      options,
-    )) {
-      yield event;
-      if (!isTerminalStepEvent(event)) continue;
-      processCompletion(
-        event,
-        nodeId,
-        planNodeMap,
-        activatedDeps,
-        completed,
-        skipped,
-        readyQueue,
-        queued,
-        conditionResults,
-      );
-      promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
-    }
-  }
+  yield { type: "execution_completed", completedAt: Date.now() };
 }
 
 async function* runParallelStage(
@@ -238,6 +144,22 @@ async function* runParallelStage(
     );
   }
   promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
+}
+
+function hasSerializedNode(stage: string[], planNodeMap: Map<string, CompiledPipelineNode>) {
+  return stage.some((nodeId) =>
+    [
+      "condition",
+      "delay",
+      "end",
+      "forEach",
+      "transform",
+      "log",
+      "assert",
+      "webhookWait",
+      "poll",
+    ].includes(planNodeMap.get(nodeId)?.kind ?? ""),
+  );
 }
 
 function interruptedEvent(): PipelineExecutionEvent {

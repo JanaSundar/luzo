@@ -2,12 +2,10 @@ import type { StepAlias, ValidationError } from "./pipeline-runtime";
 import type { TimelineEvent, TimelineEventStatus } from "./timeline-event";
 import type {
   CompiledPipelinePlan,
-  ExpandedNodeOrigin,
   FlowDocument,
   RequestRegistry,
   TimelineIndex,
   WorkflowDefinition,
-  SubflowDefinition,
 } from "./workflow";
 
 export type EngineErrorCode =
@@ -45,7 +43,6 @@ export interface ValidateDagInput {
 export interface CompilePlanInput {
   workflow: WorkflowDefinition;
   registry: RequestRegistry;
-  subflowDefinitions?: SubflowDefinition[];
 }
 
 export interface AnalyzeVariablesInput extends CompilePlanInput {
@@ -58,7 +55,6 @@ export interface CompilePlanOutput {
   warnings: ValidationError[];
   expandedWorkflow?: WorkflowDefinition;
   expandedRegistry?: RequestRegistry;
-  expandedOrigins?: Record<string, ExpandedNodeOrigin>;
 }
 
 export interface VariableReference {
@@ -161,7 +157,6 @@ export interface BuildVariableSuggestionsInput {
   currentStepId: string;
   envVars?: Record<string, string>;
   executionContext?: Record<string, unknown>;
-  subflowDefinitions?: import("./workflow").SubflowDefinition[];
 }
 
 export interface RebuildRuntimeVariablesInput {

@@ -1,13 +1,16 @@
 "use client";
 
-import { Braces, Plus } from "lucide-react";
-import { useMemo } from "react";
+import { Braces, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/utils";
+import type { FlowNode } from "@luzo/flow-types";
 import { FlowBuilder } from "@luzo/flow-builder";
-import type { SuggestionDropParams } from "@luzo/flow-types";
 
 import { CollectionPipelineDialog } from "@/components/pipelines/collection-generator/CollectionPipelineDialog";
 import { Button } from "@/components/ui/button";
 import { getFlowNodeAutocompleteSuggestions } from "@/features/pipelines/autocomplete/suggestions";
+import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
+import { toCompilePlanInput } from "@/features/workflow/pipeline-adapters";
 import { useEnvironmentStore } from "@/stores/useEnvironmentStore";
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
@@ -15,13 +18,28 @@ import { getUnsupportedWorkflowNodeKinds } from "./domain/flow-document";
 import { createLuzoBlockRegistry } from "./blockDefs";
 import { useFlowState } from "./hooks/useFlowState";
 
-const suggestionSources = [
+export const FLOW_EDITOR_SUGGESTION_SOURCES = [
+  { id: "requests", label: "Requests", items: [{ label: "Request", type: "request" }] },
   {
-    id: "core",
-    label: "Core",
+    id: "control",
+    label: "Control flow",
     items: [
-      { label: "Request", type: "request" },
-      { label: "Condition", type: "evaluate" },
+      { label: "If", type: "if" },
+      { label: "Switch", type: "switch" },
+      { label: "Delay", type: "delay" },
+      { label: "End", type: "end" },
+      { label: "Poll", type: "poll" },
+    ],
+  },
+  {
+    id: "utilities",
+    label: "Utilities",
+    items: [
+      { label: "For Each", type: "forEach" },
+      { label: "Transform", type: "transform" },
+      { label: "Log", type: "log" },
+      { label: "Assert", type: "assert" },
+      { label: "Webhook Wait", type: "webhookWait" },
     ],
   },
 ];
@@ -71,13 +89,27 @@ export function FlowEditorPage({
       ),
     [envVars, pipeline, runtimeVariables],
   );
+  const nodeRuntimeRefById = useMemo(() => {
+    if (!pipeline) return new Map<string, string>();
+    const { aliases } = compileExecutionPlan(toCompilePlanInput(pipeline));
+    return new Map(
+      aliases.map((alias) => {
+        const runtimeRef =
+          alias.refs.find((ref) => ref !== alias.stepId && !/^req\d+$/.test(ref)) ??
+          alias.refs.find((ref) => !/^req\d+$/.test(ref)) ??
+          alias.alias;
+        return [alias.stepId, runtimeRef];
+      }),
+    );
+  }, [pipeline]);
   const blockRegistry = useMemo(
     () =>
       createLuzoBlockRegistry(blockMap, {
         getNodeSuggestions,
+        getNodeRuntimeRef: (nodeId) => nodeRuntimeRefById.get(nodeId) ?? null,
         pipeline,
       }),
-    [blockMap, getNodeSuggestions, pipeline],
+    [blockMap, getNodeSuggestions, nodeRuntimeRefById, pipeline],
   );
 
   if (!pipeline) return null;
@@ -153,51 +185,224 @@ export function FlowEditorPage({
             setSelectedNodeIds([]);
           }}
           readOnly={readOnly}
+          renderNodeContextMenu={(node, close) => (
+            <FlowNodeMenu
+              node={node}
+              close={close}
+              onDuplicate={node.type !== "start" ? () => duplicateNode(node.id) : undefined}
+              onDelete={() => {
+                onNodesChange([{ type: "remove", id: node.id }]);
+                close();
+              }}
+            />
+          )}
           renderSuggestionMenu={(params, close) => (
             <SuggestionPanel
               close={close}
               onSelect={(type) => addBlockFromSuggestion(params, type)}
-              params={params}
             />
           )}
-          suggestionSources={suggestionSources}
+          suggestionSources={FLOW_EDITOR_SUGGESTION_SOURCES}
         />
       </div>
     </div>
   );
 }
 
+type SuggestionBlockType =
+  | "request"
+  | "if"
+  | "switch"
+  | "delay"
+  | "end"
+  | "poll"
+  | "forEach"
+  | "transform"
+  | "log"
+  | "assert"
+  | "webhookWait";
+
+export const FLOW_EDITOR_SUGGESTION_SECTIONS: Array<{
+  label: string;
+  items: Array<{ label: string; description: string; type: SuggestionBlockType }>;
+}> = [
+  {
+    label: "Requests",
+    items: [{ label: "Request", description: "Make an HTTP call", type: "request" }],
+  },
+  {
+    label: "Control flow",
+    items: [
+      { label: "If", description: "Branch on a condition", type: "if" },
+      { label: "Switch", description: "Multi-way branch on cases", type: "switch" },
+      { label: "Delay", description: "Wait before continuing", type: "delay" },
+      { label: "End", description: "Terminate this branch", type: "end" },
+      { label: "Poll", description: "Repeat until condition", type: "poll" },
+    ],
+  },
+  {
+    label: "Utilities",
+    items: [
+      { label: "For Each", description: "Iterate over a collection", type: "forEach" },
+      { label: "Transform", description: "Map or reshape data", type: "transform" },
+      { label: "Log", description: "Emit a debug message", type: "log" },
+      { label: "Assert", description: "Halt if condition fails", type: "assert" },
+      { label: "Webhook Wait", description: "Pause for inbound webhook", type: "webhookWait" },
+    ],
+  },
+];
+
 function SuggestionPanel({
   close,
   onSelect,
 }: {
   close: () => void;
-  onSelect: (type: "request" | "evaluate") => void;
-  params: SuggestionDropParams;
+  onSelect: (type: SuggestionBlockType) => void;
 }) {
-  const items: Array<{ label: string; type: "request" | "evaluate" }> = [
-    { label: "Request", type: "request" },
-    { label: "Condition", type: "evaluate" },
-  ];
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const h = (e: WheelEvent) => e.stopPropagation();
+    el.addEventListener("wheel", h, { passive: false });
+    return () => el.removeEventListener("wheel", h);
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query]);
+
+  const filteredSections = query.trim()
+    ? FLOW_EDITOR_SUGGESTION_SECTIONS.map((section) => ({
+        ...section,
+        items: section.items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(query.toLowerCase()) ||
+            item.description.toLowerCase().includes(query.toLowerCase()),
+        ),
+      })).filter((section) => section.items.length > 0)
+    : FLOW_EDITOR_SUGGESTION_SECTIONS;
+
+  const flatItems = filteredSections.flatMap((s) => s.items);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, flatItems.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const item = flatItems[activeIndex];
+      if (item) {
+        onSelect(item.type);
+        close();
+      }
+    } else if (e.key === "Escape") {
+      close();
+    }
+  };
+
+  let flatIndex = 0;
 
   return (
-    <div className="grid gap-1">
-      <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        Add block
+    <div className="flex w-60 flex-col">
+      <div className="px-2 pb-1 pt-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1.5">
+          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search blocks…"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+          />
+        </div>
       </div>
-      {items.map((item) => (
+      <div ref={scrollRef} className="max-h-72 overflow-y-auto pb-1">
+        {filteredSections.length === 0 ? (
+          <div className="px-3 py-4 text-center text-xs text-muted-foreground">No blocks found</div>
+        ) : (
+          filteredSections.map((section) => (
+            <div key={section.label}>
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                {section.label}
+              </div>
+              {section.items.map((item) => {
+                const index = flatIndex++;
+                const isActive = index === activeIndex;
+                return (
+                  <button
+                    key={item.type}
+                    type="button"
+                    className={cn(
+                      "w-full rounded-xl px-3 py-2 text-left transition",
+                      isActive ? "bg-muted" : "hover:bg-muted",
+                    )}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => {
+                      onSelect(item.type);
+                      close();
+                    }}
+                  >
+                    <div className="text-sm font-medium">{item.label}</div>
+                    <div className="text-[11px] text-muted-foreground">{item.description}</div>
+                  </button>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FlowNodeMenu({
+  close,
+  node,
+  onDelete,
+  onDuplicate,
+}: {
+  close: () => void;
+  node: FlowNode;
+  onDelete: () => void;
+  onDuplicate?: () => void;
+}) {
+  return (
+    <div className="grid min-w-[160px] gap-0.5 p-1">
+      <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {node.type}
+      </div>
+      {onDuplicate ? (
         <button
-          key={item.type}
           type="button"
-          className="rounded-xl px-3 py-2 text-left text-sm transition hover:bg-muted"
+          className="w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-muted"
           onClick={() => {
-            onSelect(item.type);
+            onDuplicate();
             close();
           }}
         >
-          {item.label}
+          Duplicate
         </button>
-      ))}
+      ) : null}
+      <button
+        type="button"
+        className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-destructive transition hover:bg-destructive/10"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
     </div>
   );
 }

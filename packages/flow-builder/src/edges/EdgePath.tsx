@@ -1,8 +1,15 @@
 import type { MouseEvent } from "react";
 import type { FlowEdge } from "@luzo/flow-types";
 
-import { getBezierPath } from "../utils/bezier";
+import { getBezierMidpoint, getBezierPath } from "../utils/bezier";
 import { getEdgeAppearance } from "./edgeAppearance";
+
+const ROUTE_LABELS: Record<string, string> = {
+  true: "true",
+  false: "false",
+  success: "success",
+  fail: "fail",
+};
 
 interface EdgePathProps {
   edge: FlowEdge;
@@ -12,6 +19,7 @@ interface EdgePathProps {
   interactive?: boolean;
   onClick: () => void;
   onContextMenu: (event: MouseEvent<SVGPathElement>) => void;
+  onDelete?: () => void;
 }
 
 export function EdgePath({
@@ -21,6 +29,7 @@ export function EdgePath({
   interactive = true,
   onClick,
   onContextMenu,
+  onDelete,
 }: EdgePathProps) {
   const appearance = getEdgeAppearance({
     ...(edge.selected !== undefined ? { selected: edge.selected } : {}),
@@ -28,6 +37,9 @@ export function EdgePath({
     ...(edge.type ? { type: edge.type } : {}),
   });
   const path = getBezierPath(source, target);
+  const mid = getBezierMidpoint(source, target);
+  const routeLabel = edge.sourceHandle ? ROUTE_LABELS[edge.sourceHandle] : undefined;
+  const showControls = edge.selected && interactive;
 
   return (
     <>
@@ -58,6 +70,55 @@ export function EdgePath({
         strokeDasharray={appearance.dasharray}
         strokeWidth={appearance.strokeWidth}
       />
+      {routeLabel && (
+        <text
+          x={mid.x}
+          y={mid.y - 10}
+          data-edge-id={edge.id}
+          data-edge-role="label"
+          dominantBaseline="auto"
+          fill={appearance.stroke}
+          fontSize={9}
+          fontFamily="ui-monospace, monospace"
+          fontWeight={600}
+          pointerEvents="none"
+          textAnchor="middle"
+        >
+          {routeLabel}
+        </text>
+      )}
+      {showControls && onDelete && (
+        <g
+          data-edge-id={edge.id}
+          data-edge-role="delete-btn"
+          style={{ cursor: "pointer" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <circle
+            cx={mid.x}
+            cy={mid.y}
+            r={9}
+            fill="hsl(var(--background))"
+            stroke={appearance.stroke}
+            strokeWidth={1.5}
+          />
+          <text
+            x={mid.x}
+            y={mid.y}
+            dominantBaseline="central"
+            fill={appearance.stroke}
+            fontSize={10}
+            fontWeight={700}
+            pointerEvents="none"
+            textAnchor="middle"
+          >
+            ×
+          </text>
+        </g>
+      )}
     </>
   );
 }

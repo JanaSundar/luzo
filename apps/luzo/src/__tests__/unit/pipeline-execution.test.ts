@@ -927,6 +927,153 @@ describe("Pipeline Execution Architecture", () => {
     ).toBe(true);
   });
 
+  it("resolves downstream templates from coined transform runtime aliases", async () => {
+    vi.mocked(executeRequest).mockReset();
+
+    const pipelineWithTransform: Pipeline = {
+      id: "transform-pipeline",
+      name: "Transform Pipeline",
+      createdAt: "",
+      updatedAt: "",
+      narrativeConfig: { tone: "technical", prompt: "", enabled: true },
+      steps: [
+        {
+          id: "step-a",
+          name: "Fetch token",
+          method: "GET",
+          url: "https://api.example.com/token",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+        {
+          id: "step-b",
+          name: "Use token",
+          method: "GET",
+          url: "https://api.example.com/{{transform1.output.token}}",
+          headers: [],
+          params: [],
+          body: null,
+          bodyType: "none",
+          auth: { type: "none" },
+        },
+      ],
+      flowDocument: {
+        kind: "flow-document",
+        version: 1,
+        id: "transform-pipeline",
+        name: "Transform Pipeline",
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: "transform-pipeline:start",
+            kind: "start",
+            geometry: { position: { x: 0, y: 0 } },
+            position: { x: 0, y: 0 },
+            config: { kind: "start", label: "Start" },
+          },
+          {
+            id: "step-a",
+            kind: "request",
+            geometry: { position: { x: 100, y: 0 } },
+            position: { x: 100, y: 0 },
+            dataRef: "step-a",
+            requestRef: "step-a",
+            config: { kind: "request", label: "Fetch token" },
+          },
+          {
+            id: "transform-1",
+            kind: "transform",
+            geometry: { position: { x: 240, y: 0 } },
+            position: { x: 240, y: 0 },
+            config: {
+              kind: "transform",
+              label: "Token Shape",
+              script: "{ token: req1.response.body.token }",
+            },
+          },
+          {
+            id: "step-b",
+            kind: "request",
+            geometry: { position: { x: 380, y: 0 } },
+            position: { x: 380, y: 0 },
+            dataRef: "step-b",
+            requestRef: "step-b",
+            config: { kind: "request", label: "Use token" },
+          },
+        ],
+        edges: [
+          {
+            id: "step-a-transform-1",
+            source: "step-a",
+            target: "transform-1",
+            semantics: "control",
+          },
+          {
+            id: "transform-1-step-b",
+            source: "transform-1",
+            target: "step-b",
+            semantics: "control",
+          },
+        ],
+      },
+    };
+
+    vi.mocked(executeRequest)
+      .mockResolvedValueOnce({
+        ...mockResponse,
+        body: '{"token":"abc"}',
+      })
+      .mockImplementationOnce(async (request) => {
+        expect(request.url).toBe("https://api.example.com/abc");
+        return mockResponse;
+      });
+
+    const generator = createPipelineGenerator(
+      pipelineWithTransform,
+      {},
+      {
+        abortControls: new Map(),
+        masterAbort: new AbortController(),
+        useStream: false,
+      },
+    );
+
+    let transformRuntimeVariables: Record<string, unknown> | null = null;
+    let transformTerminalEvent: {
+      type: "step_completed" | "step_failed";
+      error: string | null;
+    } | null = null;
+    let result = await generator.next();
+    while (!result.done) {
+      if (
+        (result.value.type === "step_completed" || result.value.type === "step_failed") &&
+        result.value.snapshot.stepId === "transform-1"
+      ) {
+        transformRuntimeVariables = result.value.runtimeVariables;
+        transformTerminalEvent = {
+          type: result.value.type,
+          error: result.value.snapshot.error,
+        };
+      }
+      result = await generator.next();
+    }
+
+    expect(transformTerminalEvent).toEqual({
+      type: "step_completed",
+      error: null,
+    });
+    expect(transformRuntimeVariables).toMatchObject({
+      "transform-1": { output: { token: "abc" } },
+      transform1: { output: { token: "abc" } },
+      token_shape: { output: { token: "abc" } },
+    });
+    expect(transformRuntimeVariables?.["transform-1.output"]).toBeUndefined();
+    expect(executeRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("executes condition nodes and ignores stale direct request routes once a condition is attached", async () => {
     vi.mocked(executeRequest).mockReset();
 

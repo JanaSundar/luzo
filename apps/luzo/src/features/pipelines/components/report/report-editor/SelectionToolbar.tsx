@@ -144,7 +144,7 @@ export function SelectionToolbar({
             <Textarea
               value={instruction}
               onChange={(event) => onInstructionChange(event.target.value)}
-              className="field-sizing-fixed mt-3 min-h-[120px] resize-none overflow-y-auto rounded-2xl text-sm"
+              className="field-sizing-fixed mt-3 min-h-[80px] resize-none overflow-y-auto rounded-2xl text-sm"
               placeholder="Make it clearer, shorter, more technical, or adjust tone..."
             />
             <div className="mt-3 flex items-center justify-end gap-2">

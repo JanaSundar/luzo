@@ -18,11 +18,14 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
       /(?:pm|lz)\.env\.set\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
     );
     if (setEnvMatch) {
+      const key = setEnvMatch[2];
+      const value = setEnvMatch[4];
+      if (!key || value === undefined) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "set_env_var",
-        key: setEnvMatch[2],
-        value: setEnvMatch[4],
+        key,
+        value,
       });
       continue;
     }
@@ -31,7 +34,9 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
       /(?:pm|lz)\.env\.unset\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
     );
     if (unsetEnvMatch) {
-      rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key: unsetEnvMatch[2] });
+      const key = unsetEnvMatch[2];
+      if (!key) continue;
+      rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key });
       continue;
     }
 
@@ -39,11 +44,14 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
       /(?:pm|lz)\.request\.headers\.upsert\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
     );
     if (setHeaderMatch) {
+      const key = setHeaderMatch[2];
+      const value = setHeaderMatch[4];
+      if (!key || value === undefined) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "set_header",
-        key: setHeaderMatch[2],
-        value: setHeaderMatch[4],
+        key,
+        value,
       });
       continue;
     }
@@ -52,7 +60,9 @@ export function parsePreRequestScript(script: string | undefined): PreRequestRul
       /(?:pm|lz)\.request\.headers\.remove\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
     );
     if (removeHeaderMatch) {
-      rules.push({ id: crypto.randomUUID(), type: "delete_header", key: removeHeaderMatch[2] });
+      const key = removeHeaderMatch[2];
+      if (!key) continue;
+      rules.push({ id: crypto.randomUUID(), type: "delete_header", key });
     }
   }
 
@@ -73,11 +83,14 @@ export function parsePostRequestScript(script: string | undefined): PostRequestR
       /(?:pm|lz)\.env\.set\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
     );
     if (setEnvMatch) {
+      const key = setEnvMatch[2];
+      const value = setEnvMatch[4];
+      if (!key || value === undefined) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "set_env_var",
-        key: setEnvMatch[2],
-        value: setEnvMatch[4],
+        key,
+        value,
       });
       continue;
     }
@@ -86,7 +99,9 @@ export function parsePostRequestScript(script: string | undefined): PostRequestR
       /(?:pm|lz)\.env\.unset\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
     );
     if (unsetEnvMatch) {
-      rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key: unsetEnvMatch[2] });
+      const key = unsetEnvMatch[2];
+      if (!key) continue;
+      rules.push({ id: crypto.randomUUID(), type: "clear_env_var", key });
       continue;
     }
 
@@ -94,11 +109,14 @@ export function parsePostRequestScript(script: string | undefined): PostRequestR
       /(?:pm|lz)\.response\.headers\.(?:upsert|set)\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*,\s*(['"])((?:(?!\3)[^\\]|\\.)*)\3\s*\);?/,
     );
     if (setHeaderMatch) {
+      const key = setHeaderMatch[2];
+      const value = setHeaderMatch[4];
+      if (!key || value === undefined) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "set_response_header",
-        key: setHeaderMatch[2],
-        value: setHeaderMatch[4],
+        key,
+        value,
       });
       continue;
     }
@@ -107,10 +125,12 @@ export function parsePostRequestScript(script: string | undefined): PostRequestR
       /(?:pm|lz)\.response\.headers\.(?:remove|delete)\s*\(\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1\s*\);?/,
     );
     if (removeHeaderMatch) {
+      const key = removeHeaderMatch[2];
+      if (!key) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "delete_response_header",
-        key: removeHeaderMatch[2],
+        key,
       });
       continue;
     }
@@ -119,11 +139,13 @@ export function parsePostRequestScript(script: string | undefined): PostRequestR
       /(?:pm|lz)\.response\.body\s*=\s*(['"])((?:(?!\1)[^\\]|\\.)*)\1;?/,
     );
     if (setBodyMatch) {
+      const value = setBodyMatch[2];
+      if (value === undefined) continue;
       rules.push({
         id: crypto.randomUUID(),
         type: "set_response_body",
         key: "",
-        value: setBodyMatch[2],
+        value,
       });
     }
   }
@@ -146,7 +168,11 @@ export function parseTestScript(script: string | undefined): TestRule[] {
   let match: RegExpExecArray | null = testBlockRegex.exec(script);
 
   while (match !== null) {
-    const testBody = match[3].trim();
+    const testBody = match[3]?.trim();
+    if (!testBody) {
+      match = testBlockRegex.exec(script);
+      continue;
+    }
 
     // 1. Status Code
     // lz.expect(lz.response.status).to.equal(Number("200"));
@@ -154,11 +180,16 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.status\s*\)\.to\.(equal|not\.equal)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/,
     );
     if (statusMatch) {
+      const value = statusMatch[3];
+      if (value === undefined) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
       rules.push({
         id: crypto.randomUUID(),
         target: "status_code",
         operator: statusMatch[1] === "equal" ? "equals" : "not_equals",
-        value: statusMatch[3],
+        value,
       });
     }
 
@@ -168,11 +199,16 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.time\s*\)\.to\.be\.(above|below)\s*\(\s*Number\s*\(\s*(['"])(.*?)\2\s*\)\s*\);?/,
     );
     if (timeMatch) {
+      const value = timeMatch[3];
+      if (value === undefined) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
       rules.push({
         id: crypto.randomUUID(),
         target: "response_time",
         operator: timeMatch[1] === "above" ? "greater_than" : "less_than",
-        value: timeMatch[3],
+        value,
       });
     }
 
@@ -182,10 +218,15 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.headers\.has\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.be\.(true|false);?/,
     );
     if (headerExistsMatch) {
+      const property = headerExistsMatch[2];
+      if (!property) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
       rules.push({
         id: crypto.randomUUID(),
         target: "header",
-        property: headerExistsMatch[2],
+        property,
         operator: headerExistsMatch[3] === "true" ? "exists" : "not_exists",
       });
     }
@@ -195,12 +236,18 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       /(?:pm|lz)\.expect\s*\(\s*(?:pm|lz)\.response\.headers\.get\s*\(\s*(['"])(.*?)\1\s*\)\s*\)\.to\.(equal|include)\s*\(\s*(['"])(.*?)\4\s*\);?/,
     );
     if (headerValueMatch) {
+      const property = headerValueMatch[2];
+      const value = headerValueMatch[5];
+      if (!property || value === undefined) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
       rules.push({
         id: crypto.randomUUID(),
         target: "header",
-        property: headerValueMatch[2],
+        property,
         operator: headerValueMatch[3] === "equal" ? "equals" : "contains",
-        value: headerValueMatch[5],
+        value,
       });
     }
 
@@ -215,11 +262,18 @@ export function parseTestScript(script: string | undefined): TestRule[] {
         include: "contains",
         "not.include": "not_contains",
       };
+      const opKey = bodyMatch[1];
+      const operator = opKey ? opMap[opKey] : undefined;
+      const value = bodyMatch[3];
+      if (!operator || value === undefined) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
       rules.push({
         id: crypto.randomUUID(),
         target: "body_contains",
-        operator: opMap[bodyMatch[1]],
-        value: bodyMatch[3],
+        operator,
+        value,
       });
     }
 
@@ -238,12 +292,19 @@ export function parseTestScript(script: string | undefined): TestRule[] {
       else if (op === "be.above") operator = "greater_than";
       else if (op === "be.below") operator = "less_than";
 
+      const property = jsonPropMatch[3];
+      const value = jsonPropMatch[8];
+      if (!property || value === undefined) {
+        match = testBlockRegex.exec(script);
+        continue;
+      }
+
       rules.push({
         id: crypto.randomUUID(),
         target: "json_property",
-        property: jsonPropMatch[3],
-        operator: operator,
-        value: jsonPropMatch[8],
+        property,
+        operator,
+        value,
       });
     }
 

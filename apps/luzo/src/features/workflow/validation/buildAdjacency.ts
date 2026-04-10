@@ -15,10 +15,13 @@ export function buildAdjacency(workflow: WorkflowDefinition): GraphAdjacency {
   }
 
   for (const edge of workflow.edges) {
-    adjacency[edge.target] ??= [];
-    reverseAdjacency[edge.source] ??= [];
-    adjacency[edge.target].push(edge.source);
-    reverseAdjacency[edge.source].push(edge.target);
+    const incoming = adjacency[edge.target] ?? [];
+    incoming.push(edge.source);
+    adjacency[edge.target] = incoming;
+
+    const outgoing = reverseAdjacency[edge.source] ?? [];
+    outgoing.push(edge.target);
+    reverseAdjacency[edge.source] = outgoing;
   }
 
   for (const nodeId of Object.keys(adjacency)) {

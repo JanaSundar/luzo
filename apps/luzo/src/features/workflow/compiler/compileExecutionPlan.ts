@@ -1,16 +1,25 @@
 import type { CompilePlanInput, CompilePlanOutput } from "@/types/worker-results";
-import type { CompiledPipelinePlan, CompiledPipelineNode, RuntimeRoute } from "@/types/workflow";
-import { buildAliasesFromNodeIds } from "@/features/pipeline/step-aliases";
+import type { CompiledPipelinePlan, CompiledPipelineNode } from "@/types/workflow";
+import { buildAliasesFromWorkflowNodes } from "@/features/pipeline/step-aliases";
+import { createCompiledPlanNode, groupOutgoingEdges } from "./compileExecutionPlanNodes";
 import { validateWorkflowDag } from "../validation/validateWorkflowDag";
-import { expandSubflows } from "./expandSubflows";
 
 export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput {
-  const expanded = expandSubflows(input);
+  const expanded = {
+    workflow: input.workflow,
+    registry: input.registry,
+    warnings: [] as CompilePlanOutput["warnings"],
+    aliasRefsByNodeId: {} as Record<string, string[]>,
+    originsByNodeId: {} as Record<string, never>,
+  };
   const validation = validateWorkflowDag(expanded.workflow);
   const warnings = [...expanded.warnings, ...validation.errors];
   const nodeMap = new Map(expanded.workflow.nodes.map((node) => [node.id, node]));
   const outgoingByNode = groupOutgoingEdges(expanded.workflow.edges);
-  const aliases = buildAliasesFromNodeIds(validation.order);
+  const orderedNodes = validation.order
+    .map((nodeId) => nodeMap.get(nodeId))
+    .filter((node): node is NonNullable<typeof node> => Boolean(node));
+  const aliases = buildAliasesFromWorkflowNodes(orderedNodes, expanded.registry);
   const aliasesWithExports = aliases.map((alias) => ({
     ...alias,
     refs: Array.from(new Set([...(expanded.aliasRefsByNodeId[alias.stepId] ?? []), ...alias.refs])),
@@ -127,13 +136,37 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
       }
     }
 
-    if (node.kind === "subflow") {
-      warnings.push({
-        stepId: node.id,
-        field: "subflow",
-        message: `Subflow node "${node.id}" must be expanded before execution`,
-        severity: "error",
-      });
+    if (node.kind === "switch") {
+      const config = node.config?.kind === "switch" ? node.config : null;
+      const outgoing = outgoingByNode.get(node.id) ?? [];
+      const caseEdges = outgoing.filter((edge) => edge.semantics !== "control");
+
+      if (!config || (config.cases ?? []).length === 0) {
+        warnings.push({
+          stepId: node.id,
+          field: "cases",
+          message: `Switch node "${node.id}" has no cases defined`,
+          severity: "error",
+        });
+      }
+
+      if (caseEdges.length === 0) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Switch node "${node.id}" has no outgoing case edges`,
+          severity: "error",
+        });
+      }
+
+      if (expanded.workflow.entryNodeIds.includes(node.id)) {
+        warnings.push({
+          stepId: node.id,
+          field: "routing",
+          message: `Switch node "${node.id}" cannot be an entry node`,
+          severity: "error",
+        });
+      }
     }
   }
 
@@ -146,49 +179,15 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
   );
 
   const nodes: CompiledPipelineNode[] = validation.order.map((nodeId, orderIndex) => {
-    const workflowNode = nodeMap.get(nodeId);
-    const outgoing = outgoingByNode.get(nodeId) ?? [];
-    const runtimeRoutes: RuntimeRoute[] = outgoing.map((edge) => ({
-      semantics: edge.semantics,
-      targetId: edge.target,
-    }));
-    const downstreamIds = runtimeRoutes.map((route) => route.targetId);
-    const routeTargets = {
-      control: runtimeRoutes
-        .filter((route) => route.semantics === "control")
-        .map((route) => route.targetId),
-      success: runtimeRoutes
-        .filter((route) => route.semantics === "success")
-        .map((route) => route.targetId),
-      failure: runtimeRoutes
-        .filter((route) => route.semantics === "failure")
-        .map((route) => route.targetId),
-      true: runtimeRoutes
-        .filter((route) => route.semantics === "true")
-        .map((route) => route.targetId),
-      false: runtimeRoutes
-        .filter((route) => route.semantics === "false")
-        .map((route) => route.targetId),
-    };
-    return {
+    return createCompiledPlanNode({
       nodeId,
-      kind: workflowNode?.kind ?? "request",
       orderIndex,
+      outgoing: outgoingByNode.get(nodeId) ?? [],
       stageIndex: stageByNodeId.get(nodeId) ?? 0,
+      workflowNode: nodeMap.get(nodeId),
       dependencyIds: validation.adjacency[nodeId] ?? [],
-      activationIds: validation.adjacency[nodeId] ?? [],
-      downstreamIds,
       entry: entryNodeIds.includes(nodeId),
-      requestRef: workflowNode?.requestRef,
-      conditionConfig:
-        workflowNode?.kind === "condition" && workflowNode.config?.kind === "condition"
-          ? workflowNode.config
-          : undefined,
-      routes: routeTargets,
-      runtimeRoutes,
-      branch: inferBranch(workflowNode?.kind, outgoing),
-      origin: expanded.originsByNodeId[nodeId],
-    };
+    });
   });
 
   const plan: CompiledPipelinePlan = {
@@ -210,37 +209,5 @@ export function compileExecutionPlan(input: CompilePlanInput): CompilePlanOutput
     warnings,
     expandedWorkflow: expanded.workflow,
     expandedRegistry: expanded.registry,
-    expandedOrigins: expanded.originsByNodeId,
   };
-}
-
-function inferBranch(
-  kind: CompiledPipelineNode["kind"] | undefined,
-  outgoing: Array<{ semantics: string }>,
-) {
-  if (kind === "condition") {
-    const hasTrue = outgoing.some((edge) => edge.semantics === "true");
-    const hasFalse = outgoing.some((edge) => edge.semantics === "false");
-    if (hasTrue && hasFalse) return { mode: "all" as const };
-    if (hasTrue) return { mode: "true" as const };
-    if (hasFalse) return { mode: "false" as const };
-    return { mode: "all" as const };
-  }
-  if (kind === "request" && outgoing.some((edge) => edge.semantics === "failure")) {
-    return { mode: "failure" as const };
-  }
-  if (kind === "request" && outgoing.some((edge) => edge.semantics === "success")) {
-    return { mode: "success" as const };
-  }
-  return undefined;
-}
-
-function groupOutgoingEdges(edges: CompilePlanInput["workflow"]["edges"]) {
-  const grouped = new Map<string, typeof edges>();
-  for (const edge of edges) {
-    const current = grouped.get(edge.source) ?? [];
-    current.push(edge);
-    grouped.set(edge.source, current);
-  }
-  return grouped;
 }

@@ -11,7 +11,7 @@ export interface BlockRenderAPI {
 
 export interface BlockDefinition {
   type: FlowNode["type"] | (string & {});
-  handles: Handle[];
+  handles: Handle[] | ((node: FlowNode) => Handle[]);
   minWidth?: number;
   renderCard?: (node: FlowNode, api: BlockRenderAPI) => BlockRenderResult;
   renderInspector?: (node: FlowNode, api: BlockRenderAPI) => BlockRenderResult;

@@ -2,8 +2,9 @@
 
 import type { ReactNode } from "react";
 import type {
+  DelayNode,
   DisplayNode,
-  EvaluateNode,
+  EndNode,
   GroupNode,
   ListNode,
   StartNode,
@@ -19,8 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { VariableSuggestion } from "@/types/pipeline-debug";
-import { ExpressionInput } from "./ExpressionInput";
+import { FlowInspectorCard, InspectorField, InspectorHint } from "./InspectorChrome";
 
 export function StartInspector({
   api,
@@ -36,61 +36,6 @@ export function StartInspector({
         value={node.data.label ?? "Start"}
         onChange={(event) => api.onUpdate(node.id, { label: event.target.value })}
       />
-    </InspectorSection>
-  );
-}
-
-export function EvaluateInspector({
-  api,
-  node,
-  suggestions = [],
-}: {
-  api: { onUpdate: (nodeId: string, patch: Record<string, unknown>) => void };
-  node: EvaluateNode;
-  suggestions?: VariableSuggestion[];
-}) {
-  const expressionSuggestions = suggestions.map((suggestion) =>
-    suggestion.type === "env"
-      ? {
-          ...suggestion,
-          label: `${suggestion.label} via env`,
-          path: `env.${suggestion.path}`,
-        }
-      : suggestion,
-  );
-
-  return (
-    <InspectorSection eyebrow="Logic" title="Evaluate block">
-      <Input
-        aria-label="Evaluate label"
-        value={node.data.label ?? ""}
-        onChange={(event) => api.onUpdate(node.id, { label: event.target.value })}
-      />
-      <Select
-        value={node.data.conditionType}
-        onValueChange={(conditionType) => api.onUpdate(node.id, { conditionType })}
-      >
-        <SelectTrigger aria-label="Condition type">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="if">If</SelectItem>
-          <SelectItem value="switch">Switch</SelectItem>
-          <SelectItem value="foreach">For each</SelectItem>
-        </SelectContent>
-      </Select>
-      <ExpressionInput
-        ariaLabel="Expression"
-        placeholder="req1.response.body.users[0]?.id === 2"
-        suggestions={expressionSuggestions}
-        value={node.data.expression ?? ""}
-        onChange={(expression) => api.onUpdate(node.id, { expression })}
-      />
-      <p className="text-xs leading-5 text-muted-foreground">
-        Type request aliases like{" "}
-        <span className="font-mono text-foreground">req1.response.body.id</span> and pick fields
-        from autocomplete instead of memorizing response paths.
-      </p>
     </InspectorSection>
   );
 }
@@ -200,6 +145,63 @@ export function GroupInspector({
         value={node.data.color ?? "#dbeafe"}
         onChange={(event) => api.onUpdate(node.id, { color: event.target.value })}
       />
+    </InspectorSection>
+  );
+}
+
+export function DelayInspector({
+  api,
+  node,
+}: {
+  api: { onUpdate: (nodeId: string, patch: Record<string, unknown>) => void };
+  node: DelayNode;
+}) {
+  const durationMs = node.data.durationMs ?? 1000;
+
+  return (
+    <FlowInspectorCard eyebrow="Flow control" title="Delay block" summary={`${durationMs}ms`}>
+      <Input
+        aria-label="Delay label"
+        value={node.data.label ?? ""}
+        onChange={(event) => api.onUpdate(node.id, { label: event.target.value })}
+      />
+      <InspectorField label="Duration" hint="Milliseconds">
+        <Input
+          aria-label="Duration (ms)"
+          type="number"
+          min={0}
+          step={100}
+          value={String(durationMs)}
+          onChange={(event) =>
+            api.onUpdate(node.id, { durationMs: Math.max(0, Number(event.target.value) || 0) })
+          }
+        />
+      </InspectorField>
+      <InspectorHint>
+        Pauses execution for the specified duration (milliseconds) before continuing to the next
+        node.
+      </InspectorHint>
+    </FlowInspectorCard>
+  );
+}
+
+export function EndInspector({
+  api,
+  node,
+}: {
+  api: { onUpdate: (nodeId: string, patch: Record<string, unknown>) => void };
+  node: EndNode;
+}) {
+  return (
+    <InspectorSection eyebrow="Terminal" title="End block">
+      <Input
+        aria-label="End label"
+        value={node.data.label ?? "End"}
+        onChange={(event) => api.onUpdate(node.id, { label: event.target.value })}
+      />
+      <p className="text-xs leading-5 text-muted-foreground">
+        Marks the end of a flow path. No-op at runtime — purely a visual terminator.
+      </p>
     </InspectorSection>
   );
 }

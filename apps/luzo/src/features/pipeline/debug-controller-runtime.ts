@@ -1,7 +1,6 @@
 "use client";
 
 import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
-import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
 import type { Pipeline } from "@/types";
 import type {
@@ -48,12 +47,10 @@ export function runLoop(state: ControllerState): Promise<void> {
 
 export async function compilePlan(pipeline: Pipeline) {
   const bundle = buildWorkflowBundleFromPipeline(pipeline);
-  const subflowDefinitions = usePipelineStore.getState().subflowDefinitions;
   return graphWorkerClient.callLatest<Result<CompilePlanOutput>>("debug-plan", async (api) =>
     api.compileExecutionPlan({
       workflow: bundle.workflow,
       registry: bundle.registry,
-      subflowDefinitions,
     }),
   );
 }

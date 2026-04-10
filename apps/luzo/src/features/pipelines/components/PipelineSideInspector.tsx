@@ -20,7 +20,6 @@ import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
 import { cn } from "@/utils";
-import { PipelineSubflowInspector } from "./PipelineSubflowInspector";
 import { PipelineInspectorEditorSections } from "./PipelineInspectorEditorSections";
 import {
   PipelineInspectorLineageSection,
@@ -46,14 +45,7 @@ export function PipelineSideInspector({
   onClose,
   className,
 }: PipelineSideInspectorProps) {
-  const {
-    pipelines,
-    replaceFlowDocument,
-    updateStep,
-    updateSubflowNode,
-    updateSubflowRequest,
-    subflowDefinitions,
-  } = usePipelineStore();
+  const { pipelines, replaceFlowDocument, updateStep } = usePipelineStore();
   const pipeline = useMemo(
     () => pipelines.find((p) => p.id === pipelineId),
     [pipelines, pipelineId],
@@ -63,16 +55,6 @@ export function PipelineSideInspector({
     [pipeline, stepId],
   );
   const step = useMemo(() => pipeline?.steps.find((s) => s.id === stepId), [pipeline, stepId]);
-  const subflowDefinition = useMemo(() => {
-    if (selectedNode?.config?.kind !== "subflow") return null;
-    const config = selectedNode.config;
-    return (
-      subflowDefinitions.find(
-        (definition) =>
-          definition.id === config.subflowId && definition.version === config.subflowVersion,
-      ) ?? null
-    );
-  }, [selectedNode, subflowDefinitions]);
 
   const activeEnvironment = useEnvironmentStore((s) =>
     s.environments.find((e) => e.id === s.activeEnvironmentId),
@@ -128,55 +110,6 @@ export function PipelineSideInspector({
   );
 
   if (!selectedNode) return null;
-  if (selectedNode.kind === "subflow" && selectedNode.config?.kind === "subflow") {
-    const subflowConfig = selectedNode.config;
-    return (
-      <aside
-        className={cn(
-          "flex h-full flex-col border-l border-border/20 bg-slate-50/90 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] backdrop-blur-3xl transition-all duration-300 ease-in-out dark:bg-[#090C14]/80",
-          className,
-        )}
-      >
-        <div className="flex h-[80px] shrink-0 items-center justify-between border-b border-border/40 px-10">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60">
-              Subflow Inspector
-            </span>
-            <h3 className="max-w-[320px] truncate text-lg font-bold tracking-tight text-foreground">
-              {selectedNode.config.label || subflowDefinition?.name || "Untitled Subflow"}
-            </h3>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-10 w-10 rounded-full bg-muted/20 transition-all hover:bg-muted/50 hover:rotate-90"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col p-10">
-          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-5">
-            <PipelineSubflowInspector
-              config={subflowConfig}
-              definition={subflowDefinition ?? undefined}
-              suggestions={suggestions}
-              onChange={(nextConfig) => updateSubflowNode(pipelineId, stepId, nextConfig)}
-              onRequestChange={(requestId, nextRequest) =>
-                updateSubflowRequest(
-                  subflowConfig.subflowId,
-                  subflowConfig.subflowVersion,
-                  requestId,
-                  nextRequest,
-                )
-              }
-            />
-          </div>
-        </div>
-      </aside>
-    );
-  }
 
   if (!step) return null;
 

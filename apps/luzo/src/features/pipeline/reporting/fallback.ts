@@ -28,9 +28,11 @@ export function buildFallbackStructuredReport(
 
   if (slowEndpoints.length > 0) {
     const slowest = [...slowEndpoints].sort((a, b) => (b.latencyMs ?? 0) - (a.latencyMs ?? 0))[0];
-    baseInsights.push(
-      `${slowEndpoints.length} request(s) exceeded 1000ms. Slowest: ${slowest.stepName} at ${slowest.latencyMs}ms.`,
-    );
+    if (slowest) {
+      baseInsights.push(
+        `${slowEndpoints.length} request(s) exceeded 1000ms. Slowest: ${slowest.stepName} at ${slowest.latencyMs}ms.`,
+      );
+    }
   }
 
   if (failedEndpoints.length > 0) {

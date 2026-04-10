@@ -24,7 +24,7 @@ export function RequestSectionEditor({
 }: RequestSectionEditorProps) {
   return (
     <section className="group rounded-[1.5rem] px-2 py-2 transition-colors hover:bg-muted/10">
-      <div className="flex items-center gap-3 px-3 pb-3">
+      <div className="flex items-center gap-3 px-3 pb-2">
         <div className="flex h-8 items-center opacity-55 transition-opacity group-hover:opacity-100">
           {dragHandle}
         </div>

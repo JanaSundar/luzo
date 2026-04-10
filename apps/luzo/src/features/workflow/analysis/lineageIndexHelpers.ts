@@ -87,6 +87,16 @@ export function buildImpacts({
 
   return Array.from(grouped.entries()).map(([key, groupedEdges]) => {
     const [sourceStepId, sourcePath] = key.split(":");
+    if (!sourceStepId || !sourcePath) {
+      return {
+        sourceStepId: "unknown",
+        sourcePath: "unknown",
+        dependentStepIds: [],
+        transitiveDependentStepIds: [],
+        dependentFields: [],
+        severity: "warning" as const,
+      };
+    }
     const dependentStepIds = Array.from(
       new Set(groupedEdges.map((edge) => edge.consumerStepId)),
     ).sort();
@@ -130,15 +140,17 @@ export function buildRiskByStep({
   );
 
   edges.forEach((edge) => {
-    summary[edge.consumerStepId] ??= emptyRiskSummary();
-    summary[edge.consumerStepId].incomingCount += 1;
-    if (edge.resolutionStatus !== "resolved") summary[edge.consumerStepId].unresolvedCount += 1;
-    if (edge.riskFlags.length > 0) summary[edge.consumerStepId].riskyCount += 1;
+    const consumerSummary = summary[edge.consumerStepId] ?? emptyRiskSummary();
+    consumerSummary.incomingCount += 1;
+    if (edge.resolutionStatus !== "resolved") consumerSummary.unresolvedCount += 1;
+    if (edge.riskFlags.length > 0) consumerSummary.riskyCount += 1;
+    summary[edge.consumerStepId] = consumerSummary;
 
     if (!edge.sourceStepId) return;
-    summary[edge.sourceStepId] ??= emptyRiskSummary();
-    summary[edge.sourceStepId].outgoingCount += 1;
-    if (edge.riskFlags.length > 0) summary[edge.sourceStepId].riskyCount += 1;
+    const sourceSummary = summary[edge.sourceStepId] ?? emptyRiskSummary();
+    sourceSummary.outgoingCount += 1;
+    if (edge.riskFlags.length > 0) sourceSummary.riskyCount += 1;
+    summary[edge.sourceStepId] = sourceSummary;
   });
 
   return summary;

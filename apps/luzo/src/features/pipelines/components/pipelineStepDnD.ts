@@ -13,6 +13,7 @@ export function reorderStepIds(ids: string[], fromIndex: number, toIndex: number
   }
   const next = [...ids];
   const [moved] = next.splice(fromIndex, 1);
+  if (moved === undefined) return ids;
   next.splice(toIndex, 0, moved);
   return next;
 }

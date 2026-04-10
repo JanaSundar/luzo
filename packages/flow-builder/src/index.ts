@@ -1,4 +1,5 @@
 export { FlowBuilder } from "./FlowBuilder";
+export { FirstPartyNodeCard } from "./nodes/FirstPartyNodeCard";
 export { createBlockRegistry } from "./registry";
 export { canCreateConnection } from "./utils/connectionValidation";
 export { resolveNodeCollisions } from "./utils/nodeCollisions";

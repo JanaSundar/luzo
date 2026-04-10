@@ -77,10 +77,8 @@ export function ensurePipelineFlowDocument(pipeline: Pipeline): FlowDocument {
     })
     .filter((edge): edge is FlowEdgeRecord => edge !== null);
 
-  const hasSubflows = passthroughNodes.some((node) => node.kind === "subflow");
-
   const derivedImplicitEdges = buildRequestDependencyEdges(pipeline.steps, {
-    includePositionalAliases: !hasSubflows,
+    includePositionalAliases: true,
   })
     .map((edge) => {
       const sourceId = requestIdToNodeId.get(edge.source);
@@ -117,7 +115,7 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   const unsupportedKinds = Array.from(
     new Set(
       flow.nodes
-        .filter((node) => !["start", "request", "condition", "subflow"].includes(node.kind))
+        .filter((node) => !["start", "request", "condition", "delay", "end"].includes(node.kind))
         .map((node) => node.kind),
     ),
   );
@@ -125,18 +123,18 @@ export function getPipelineExecutionSupport(pipeline: Pipeline) {
   if (unsupportedKinds.length > 0) {
     return {
       supported: false,
-      reason: `Execution is available for request, condition, and subflow pipelines right now. Remove ${unsupportedKinds.join(", ")} node${unsupportedKinds.length === 1 ? "" : "s"} to run or debug.`,
+      reason: `This pipeline contains unsupported node${unsupportedKinds.length === 1 ? "" : "s"} (${unsupportedKinds.join(", ")}). Remove ${unsupportedKinds.length === 1 ? "it" : "them"} to run or debug.`,
       unsupportedKinds,
     };
   }
 
   const executableNodes = flow.nodes.filter(
-    (node) => node.kind === "request" || node.kind === "condition" || node.kind === "subflow",
+    (node) => node.kind === "request" || node.kind === "condition",
   );
   if (executableNodes.length === 0) {
     return {
       supported: false,
-      reason: "Add at least one request, condition, or subflow node before running this pipeline.",
+      reason: "Add at least one request or condition node before running this pipeline.",
       unsupportedKinds: [],
     };
   }

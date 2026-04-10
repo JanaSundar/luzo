@@ -110,7 +110,9 @@ function decodeBasicHeader(value: string): AuthConfig | null {
   if (!match || typeof atob !== "function") return null;
 
   try {
-    const decoded = atob(match[1]);
+    const encodedValue = match[1];
+    if (!encodedValue) return null;
+    const decoded = atob(encodedValue);
     const separator = decoded.indexOf(":");
     if (separator === -1) return null;
 
@@ -146,10 +148,12 @@ function inferAuth(headers: Record<string, string>, basicCredentials?: string): 
   const [headerKey, value] = authorizationEntry;
   const bearerMatch = value.match(/^Bearer\s+(.+)$/i);
   if (bearerMatch) {
+    const token = bearerMatch[1];
+    if (!token) return { type: "none" };
     delete headers[headerKey];
     return {
       type: "bearer",
-      bearer: { token: bearerMatch[1] },
+      bearer: { token },
     };
   }
 
@@ -284,7 +288,8 @@ export function importCurlToRequest(curlCommand: string): ApiRequest {
   }
 
   const tokens = tokenizeCurl(trimmed);
-  if (tokens.length === 0 || tokens[0].toLowerCase() !== "curl") {
+  const firstToken = tokens[0];
+  if (tokens.length === 0 || firstToken?.toLowerCase() !== "curl") {
     throw new Error("Paste a valid cURL command to import.");
   }
 

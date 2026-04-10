@@ -42,7 +42,10 @@ function filterHeaders(
     const lowerKey = key.toLowerCase();
     const actualKey = Object.keys(headers).find((k) => k.toLowerCase() === lowerKey);
     if (actualKey) {
-      filtered[actualKey] = redactValue(actualKey, headers[actualKey]);
+      const headerValue = headers[actualKey];
+      if (headerValue !== undefined) {
+        filtered[actualKey] = redactValue(actualKey, headerValue);
+      }
     }
   }
   return filtered;

@@ -2,10 +2,15 @@ import type { EnvironmentVariable } from "@/types";
 import type { VariableSuggestion } from "@/types/pipeline-debug";
 
 const SENSITIVE_VARIABLE_PATTERN =
-  /^(password|token|secret|api[_-]?key|bearer|credential|private[_-]?key|access[_-]?key|secret[_-]?key|auth|authorization)$/i;
+  /(?:^|[_-])(password|token|secret|api[_-]?key|credential|private[_-]?key|access[_-]?key|secret[_-]?key)(?:[_-]|$)/i;
+const STRICT_SENSITIVE_VARIABLE_PATTERN = /^(bearer|auth|authorization)$/i;
 
 export function isSensitiveVariableKey(key: string): boolean {
-  return SENSITIVE_VARIABLE_PATTERN.test(key.trim());
+  const normalizedKey = key.trim();
+  return (
+    SENSITIVE_VARIABLE_PATTERN.test(normalizedKey) ||
+    STRICT_SENSITIVE_VARIABLE_PATTERN.test(normalizedKey)
+  );
 }
 
 export function stringifyVariableValue(value: unknown): string {

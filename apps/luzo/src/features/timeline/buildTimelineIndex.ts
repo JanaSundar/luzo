@@ -36,29 +36,39 @@ export function buildTimelineIndex(input: BuildTimelineIndexInput): TimelineInde
 
   for (const event of orderedEvents) {
     byId[event.eventId] = event;
-    byStepId[event.stepId] ??= [];
-    byStepId[event.stepId].push(event.eventId);
-    byNodeId[event.targetStepId ?? event.stepId] ??= [];
-    byNodeId[event.targetStepId ?? event.stepId].push(event.eventId);
-    byStatus[event.status].push(event.eventId);
+    const stepEvents = byStepId[event.stepId] ?? [];
+    stepEvents.push(event.eventId);
+    byStepId[event.stepId] = stepEvents;
+
+    const nodeId = event.targetStepId ?? event.stepId;
+    const nodeEvents = byNodeId[nodeId] ?? [];
+    nodeEvents.push(event.eventId);
+    byNodeId[nodeId] = nodeEvents;
+
+    const statusEvents = byStatus[event.status];
+    byStatus[event.status] = [...statusEvents, event.eventId];
 
     if (event.branchId) {
-      byBranchId[event.branchId] ??= [];
-      byBranchId[event.branchId].push(event.eventId);
+      const branchEvents = byBranchId[event.branchId] ?? [];
+      branchEvents.push(event.eventId);
+      byBranchId[event.branchId] = branchEvents;
     }
 
     const attemptKey = `${event.stepId}:${event.retryCount}`;
-    byAttempt[attemptKey] ??= [];
-    byAttempt[attemptKey].push(event.eventId);
+    const attemptEvents = byAttempt[attemptKey] ?? [];
+    attemptEvents.push(event.eventId);
+    byAttempt[attemptKey] = attemptEvents;
 
     if (event.outcome) {
-      byOutcome[event.outcome] ??= [];
-      byOutcome[event.outcome].push(event.eventId);
+      const outcomeEvents = byOutcome[event.outcome] ?? [];
+      outcomeEvents.push(event.eventId);
+      byOutcome[event.outcome] = outcomeEvents;
     }
 
     if (event.lineagePath) {
-      byLineagePath[event.lineagePath] ??= [];
-      byLineagePath[event.lineagePath].push(event.eventId);
+      const lineageEvents = byLineagePath[event.lineagePath] ?? [];
+      lineageEvents.push(event.eventId);
+      byLineagePath[event.lineagePath] = lineageEvents;
     }
 
     min = min == null ? event.timestamp : Math.min(min, event.timestamp);

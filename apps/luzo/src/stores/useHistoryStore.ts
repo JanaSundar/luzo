@@ -28,6 +28,7 @@ export const useHistoryStore = create<HistoryState>()(
 
           if (dupIndex !== -1) {
             const prev = state.history[dupIndex];
+            if (!prev) return;
             const updated: SavedRequest = {
               ...prev,
               updatedAt: now,

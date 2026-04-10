@@ -16,7 +16,6 @@ const api: AnalysisWorkerApi = {
         input.currentStepId,
         input.envVars,
         input.executionContext,
-        input.subflowDefinitions,
       ),
     );
   },

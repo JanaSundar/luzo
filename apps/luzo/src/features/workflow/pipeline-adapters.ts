@@ -150,15 +150,17 @@ export function buildExecutionPipelineFromCompileOutput(
     .map((nodeId) => compiled.plan.nodes.find((node) => node.nodeId === nodeId))
     .filter((node): node is NonNullable<typeof node> => Boolean(node))
     .filter((node) => node.kind === "request" && Boolean(node.requestRef))
-    .map((node) => {
+    .flatMap((node) => {
       const request = expandedRegistry.requests[node.requestRef ?? ""];
-      return {
-        ...request,
-        id: node.nodeId,
-        name: request?.name ?? node.nodeId,
-        requestSource: { mode: "detached" as const },
-        subflowSource: node.origin,
-      } satisfies PipelineStep;
+      if (!request) return [];
+      return [
+        {
+          ...request,
+          id: node.nodeId,
+          name: request.name ?? node.nodeId,
+          requestSource: { mode: "detached" as const },
+        } satisfies PipelineStep,
+      ];
     });
 
   return {

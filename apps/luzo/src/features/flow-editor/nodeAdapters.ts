@@ -23,10 +23,26 @@ export function toFlowNode(block: FlowBlock, selected = false): FlowNode {
           url: block.data.url,
         },
       };
-    case "evaluate":
+    case "if":
       return {
         id: block.id,
-        type: "evaluate",
+        type: "if",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "delay":
+      return {
+        id: block.id,
+        type: "delay",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "end":
+      return {
+        id: block.id,
+        type: "end",
         position: block.position,
         selected,
         data: block.data,
@@ -59,6 +75,56 @@ export function toFlowNode(block: FlowBlock, selected = false): FlowNode {
       return { id: block.id, type: "text", position: block.position, selected, data: block.data };
     case "group":
       return { id: block.id, type: "group", position: block.position, selected, data: block.data };
+    case "forEach":
+      return {
+        id: block.id,
+        type: "forEach",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "transform":
+      return {
+        id: block.id,
+        type: "transform",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "log":
+      return { id: block.id, type: "log", position: block.position, selected, data: block.data };
+    case "assert":
+      return {
+        id: block.id,
+        type: "assert",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "webhookWait":
+      return {
+        id: block.id,
+        type: "webhookWait",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "poll":
+      return {
+        id: block.id,
+        type: "poll",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
+    case "switch":
+      return {
+        id: block.id,
+        type: "switch",
+        position: block.position,
+        selected,
+        data: block.data,
+      };
   }
 }
 

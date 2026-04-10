@@ -113,7 +113,7 @@ export function EditDialog({ section, onSectionChange, onSave, onClose }: EditDi
             onChange={(e) =>
               onSectionChange(section ? { ...section, content: e.target.value } : null)
             }
-            className="field-sizing-fixed min-h-[320px] max-h-[60dvh] resize-none overflow-y-auto font-mono text-sm"
+            className="field-sizing-fixed min-h-[180px] max-h-[60dvh] resize-none overflow-y-auto font-mono text-sm"
             rows={14}
             placeholder="Enter markdown content..."
           />

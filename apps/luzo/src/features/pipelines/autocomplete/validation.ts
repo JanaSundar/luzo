@@ -18,7 +18,8 @@ export function progressiveValidate(
   const matches = [...template.matchAll(VARIABLE_REGEX)];
 
   for (const match of matches) {
-    const path = match[1].trim();
+    const path = match[1]?.trim();
+    if (!path) continue;
     if (path.indexOf(".") === -1) continue;
 
     const matchedAlias = resolveStepAlias(path, aliases);

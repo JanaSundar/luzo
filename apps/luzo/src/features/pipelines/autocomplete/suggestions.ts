@@ -4,14 +4,12 @@ import { createVariableSuggestion } from "@/utils/variableMetadata";
 import { flattenObject, getByPath } from "@/features/pipeline/variable-resolver";
 import { toCompilePlanInput } from "@/features/workflow/pipeline-adapters";
 import { compileExecutionPlan } from "@/features/workflow/compiler/compileExecutionPlan";
-import type { SubflowDefinition } from "@/types/workflow";
 
 export function getAutocompleteSuggestions(
   pipeline: Pipeline | undefined,
   currentStepId: string,
   envVars: Record<string, string> = {},
   executionContext: Record<string, unknown> = {},
-  subflowDefinitions: SubflowDefinition[] = [],
 ): VariableSuggestion[] {
   const suggestions: VariableSuggestion[] = [];
 
@@ -28,49 +26,98 @@ export function getAutocompleteSuggestions(
   });
 
   if (!pipeline) return suggestions;
-  const compiled = compileExecutionPlan({
-    ...toCompilePlanInput(pipeline),
-    subflowDefinitions,
-  });
+  const compiled = compileExecutionPlan(toCompilePlanInput(pipeline));
   const effectiveNodeId = resolveEffectiveNodeId(currentStepId, compiled.plan.nodes);
   if (effectiveNodeId === null) return suggestions;
   const ancestorIds = getAncestorNodeIds(effectiveNodeId, compiled.plan.adjacency);
   const seenPaths = new Set<string>();
+
+  // Build a kind lookup so we can emit skeleton paths for nodes with no runtime data yet.
+  const nodeKindById = new Map<string, string>(
+    (compiled.expandedWorkflow?.nodes ?? []).map((n: { id: string; kind: string }) => [
+      n.id,
+      n.kind,
+    ]),
+  );
 
   for (const alias of compiled.aliases) {
     if (!ancestorIds.has(alias.stepId)) continue;
     const displayRef = pickDisplayRef(alias.refs);
     if (!displayRef) continue;
     const runtimeRef = alias.refs.find((ref) => executionContext[ref] !== undefined) ?? displayRef;
-    const statusPath = `${displayRef}.response.status`;
-    if (seenPaths.has(statusPath)) continue;
-    seenPaths.add(statusPath);
-
-    suggestions.push(
-      createVariableSuggestion({
-        path: statusPath,
-        label: `${displayRef} → Status Code`,
-        resolvedValue: getByPath(executionContext, `${runtimeRef}.response.status`),
-        stepId: alias.stepId,
-        type: "status",
-      }),
-    );
-
     const stepContext = executionContext[runtimeRef] as Record<string, unknown> | undefined;
+
+    if (!stepContext || typeof stepContext !== "object") {
+      // No runtime data yet — emit skeleton paths so {{ autocomplete works before first run.
+      const kind = nodeKindById.get(alias.stepId);
+      if (kind === "request") {
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path: `${displayRef}.response.status`,
+          label: `${displayRef} → Status Code`,
+          resolvedValue: undefined,
+          stepId: alias.stepId,
+          type: "status",
+        });
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path: `${displayRef}.response.body`,
+          label: `${displayRef} → Body`,
+          resolvedValue: undefined,
+          stepId: alias.stepId,
+          type: "body",
+        });
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path: `${displayRef}.response.headers`,
+          label: `${displayRef} → Headers`,
+          resolvedValue: undefined,
+          stepId: alias.stepId,
+          type: "header",
+        });
+      } else if (kind === "forEach") {
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path: `${displayRef}.results`,
+          label: `${displayRef} → Results`,
+          resolvedValue: undefined,
+          stepId: alias.stepId,
+          type: "meta",
+        });
+      } else if (kind === "transform") {
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path: `${displayRef}.output`,
+          label: `${displayRef} → Output`,
+          resolvedValue: undefined,
+          stepId: alias.stepId,
+          type: "meta",
+        });
+      }
+      continue;
+    }
+
     if (!stepContext?.response || typeof stepContext.response !== "object") {
-      pushUniqueSuggestion(suggestions, seenPaths, {
-        path: `${displayRef}.response.headers`,
-        label: `${displayRef} → Response Headers`,
-        stepId: alias.stepId,
-        type: "header",
-      });
-      pushUniqueSuggestion(suggestions, seenPaths, {
-        path: `${displayRef}.response.body`,
-        label: `${displayRef} → Response Body`,
-        stepId: alias.stepId,
-        type: "body",
+      flattenObject(stepContext, displayRef, 6).forEach(({ path, value }) => {
+        const shortLabel = path.replace(`${displayRef}.`, "");
+        pushUniqueSuggestion(suggestions, seenPaths, {
+          path,
+          label: `${displayRef} → ${shortLabel}`,
+          resolvedValue: value,
+          stepId: alias.stepId,
+          type: "meta",
+        });
       });
       continue;
+    }
+
+    const statusPath = `${displayRef}.response.status`;
+    if (!seenPaths.has(statusPath)) {
+      seenPaths.add(statusPath);
+      suggestions.push(
+        createVariableSuggestion({
+          path: statusPath,
+          label: `${displayRef} → Status Code`,
+          resolvedValue: getByPath(executionContext, `${runtimeRef}.response.status`),
+          stepId: alias.stepId,
+          type: "status",
+        }),
+      );
     }
 
     const response = stepContext.response as Record<string, unknown>;
@@ -106,14 +153,10 @@ export function getAutocompleteSuggestions(
 
 function resolveEffectiveNodeId(
   currentStepId: string,
-  nodes: Array<{ nodeId: string; orderIndex: number; origin?: { originNodeId?: string } }>,
+  nodes: Array<{ nodeId: string; orderIndex: number }>,
 ): string | null {
   const directMatch = nodes.find((node) => node.nodeId === currentStepId);
-  if (directMatch) return directMatch.nodeId;
-  const subflowMatch = nodes
-    .filter((node) => node.origin?.originNodeId === currentStepId)
-    .sort((left, right) => left.orderIndex - right.orderIndex)[0];
-  return subflowMatch?.nodeId ?? null;
+  return directMatch?.nodeId ?? null;
 }
 
 function getAncestorNodeIds(nodeId: string, adjacency: Record<string, string[]>): Set<string> {
@@ -150,7 +193,7 @@ function looksLikeUuid(value: string) {
 
 function looksLikeExpandedNodeRef(value: string) {
   const [left, right] = value.split("::");
-  return Boolean(right && looksLikeUuid(left) && looksLikeUuid(right));
+  return Boolean(left && right && looksLikeUuid(left) && looksLikeUuid(right));
 }
 
 function isJavaScriptIdentifier(value: string) {

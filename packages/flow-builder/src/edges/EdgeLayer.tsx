@@ -10,7 +10,7 @@ import type {
 
 import { useEditorStore } from "../store/editorStore";
 import { getDisplayPosition, getNodeSize } from "../store/selectors";
-import { getHandlePosition } from "../utils/handles";
+import { getHandlePosition, resolveHandles } from "../utils/handles";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { EdgePath } from "./EdgePath";
 
@@ -77,8 +77,8 @@ export function EdgeLayer({
         const sourceNode = nodeMap.get(edge.source);
         const targetNode = nodeMap.get(edge.target);
         if (!sourceNode || !targetNode) return null;
-        const sourceHandles = blockRegistry[sourceNode.type]?.handles ?? [];
-        const targetHandles = blockRegistry[targetNode.type]?.handles ?? [];
+        const sourceHandles = resolveHandles(blockRegistry[sourceNode.type], sourceNode);
+        const targetHandles = resolveHandles(blockRegistry[targetNode.type], targetNode);
 
         const sourceHandle =
           sourceHandles.find((handle: Handle) => handle.id === (edge.sourceHandle ?? "output")) ??
@@ -122,6 +122,7 @@ export function EdgeLayer({
                 payload: { edgeId: edge.id },
               });
             }}
+            onDelete={() => onEdgesChange([{ type: "remove", id: edge.id }])}
           />
         );
       })}

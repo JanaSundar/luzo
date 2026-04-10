@@ -12,20 +12,81 @@ function createNode(overrides: Partial<CompiledPipelineNode>): CompiledPipelineN
     activationIds: [],
     downstreamIds: [],
     entry: false,
-    routes: {
-      control: [],
-      success: [],
-      failure: [],
-      true: [],
-      false: [],
-    },
+    routes: { control: [], success: [], failure: [], true: [], false: [] },
     runtimeRoutes: [],
     ...overrides,
   };
 }
 
+function createState(planNodeMap: Map<string, CompiledPipelineNode>) {
+  const activatedDeps = new Map<string, Set<string>>();
+  const completed = new Set<string>();
+  const skipped = new Set<string>();
+  const readyQueue: string[] = [];
+  const queued = new Set<string>();
+  const conditionResults = new Map<string, boolean>();
+
+  return { activatedDeps, completed, conditionResults, planNodeMap, queued, readyQueue, skipped };
+}
+
 describe("generator executor branch handling", () => {
-  it("allows join nodes to run when the opposite condition branch subtree was skipped", () => {
+  it("queues only the true branch and skips the false subtree", () => {
+    const planNodeMap = new Map<string, CompiledPipelineNode>([
+      [
+        "cond",
+        createNode({
+          nodeId: "cond",
+          kind: "condition",
+          routes: {
+            control: [],
+            success: [],
+            failure: [],
+            true: ["true-step"],
+            false: ["false-step"],
+          },
+          downstreamIds: ["true-step", "false-step"],
+        }),
+      ],
+      ["true-step", createNode({ nodeId: "true-step", dependencyIds: ["cond"] })],
+      [
+        "false-step",
+        createNode({
+          nodeId: "false-step",
+          dependencyIds: ["cond"],
+          routes: { control: ["false-child"], success: [], failure: [], true: [], false: [] },
+          downstreamIds: ["false-child"],
+        }),
+      ],
+      ["false-child", createNode({ nodeId: "false-child", dependencyIds: ["false-step"] })],
+    ]);
+    const state = createState(planNodeMap);
+
+    processCompletion(
+      { type: "condition_evaluated", snapshot: {} as never, result: true, runtimeVariables: {} },
+      "cond",
+      planNodeMap,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+      state.conditionResults,
+    );
+    promoteReadyNodes(
+      planNodeMap,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+    );
+
+    expect(state.readyQueue).toEqual(["true-step"]);
+    expect(state.skipped.has("false-step")).toBe(true);
+    expect(state.skipped.has("false-child")).toBe(true);
+  });
+
+  it("queues only the false branch when the condition fails", () => {
     const planNodeMap = new Map<string, CompiledPipelineNode>([
       [
         "cond",
@@ -47,90 +108,41 @@ describe("generator executor branch handling", () => {
         createNode({
           nodeId: "true-step",
           dependencyIds: ["cond"],
-          routes: { control: ["join-step"], success: [], failure: [], true: [], false: [] },
-          downstreamIds: ["join-step"],
+          routes: { control: ["true-child"], success: [], failure: [], true: [], false: [] },
+          downstreamIds: ["true-child"],
         }),
       ],
-      [
-        "false-step",
-        createNode({
-          nodeId: "false-step",
-          dependencyIds: ["cond"],
-          routes: { control: ["false-child"], success: [], failure: [], true: [], false: [] },
-          downstreamIds: ["false-child"],
-        }),
-      ],
-      [
-        "false-child",
-        createNode({
-          nodeId: "false-child",
-          dependencyIds: ["false-step"],
-          routes: { control: ["join-step"], success: [], failure: [], true: [], false: [] },
-          downstreamIds: ["join-step"],
-        }),
-      ],
-      [
-        "join-step",
-        createNode({
-          nodeId: "join-step",
-          dependencyIds: ["true-step", "false-child"],
-        }),
-      ],
+      ["true-child", createNode({ nodeId: "true-child", dependencyIds: ["true-step"] })],
+      ["false-step", createNode({ nodeId: "false-step", dependencyIds: ["cond"] })],
     ]);
-
-    const activatedDeps = new Map<string, Set<string>>();
-    const completed = new Set<string>();
-    const skipped = new Set<string>();
-    const readyQueue: string[] = [];
-    const queued = new Set<string>();
-    const conditionResults = new Map<string, boolean>();
+    const state = createState(planNodeMap);
 
     processCompletion(
-      {
-        type: "condition_evaluated",
-        snapshot: {} as never,
-        result: true,
-        runtimeVariables: {},
-      },
+      { type: "condition_evaluated", snapshot: {} as never, result: false, runtimeVariables: {} },
       "cond",
       planNodeMap,
-      activatedDeps,
-      completed,
-      skipped,
-      readyQueue,
-      queued,
-      conditionResults,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+      state.conditionResults,
     );
-    promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
-
-    expect(readyQueue).toEqual(["true-step"]);
-    expect(skipped.has("false-step")).toBe(true);
-    expect(skipped.has("false-child")).toBe(true);
-
-    readyQueue.length = 0;
-    queued.clear();
-
-    processCompletion(
-      {
-        type: "step_completed",
-        snapshot: { stepId: "true-step" } as never,
-        runtimeVariables: {},
-      },
-      "true-step",
+    promoteReadyNodes(
       planNodeMap,
-      activatedDeps,
-      completed,
-      skipped,
-      readyQueue,
-      queued,
-      conditionResults,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
     );
-    promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
 
-    expect(readyQueue).toEqual(["join-step"]);
+    expect(state.readyQueue).toEqual(["false-step"]);
+    expect(state.skipped.has("true-step")).toBe(true);
+    expect(state.skipped.has("true-child")).toBe(true);
   });
 
-  it("allows join nodes to run when the opposite request branch subtree was skipped", () => {
+  it("queues only the failure route and skips the success subtree", () => {
     const planNodeMap = new Map<string, CompiledPipelineNode>([
       [
         "request-root",
@@ -155,121 +167,92 @@ describe("generator executor branch handling", () => {
           downstreamIds: ["success-child"],
         }),
       ],
+      ["success-child", createNode({ nodeId: "success-child", dependencyIds: ["success-step"] })],
+      ["failure-step", createNode({ nodeId: "failure-step", dependencyIds: ["request-root"] })],
+    ]);
+    const state = createState(planNodeMap);
+
+    processCompletion(
+      { type: "step_failed", snapshot: { stepId: "request-root" } as never, runtimeVariables: {} },
+      "request-root",
+      planNodeMap,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+      state.conditionResults,
+    );
+    promoteReadyNodes(
+      planNodeMap,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+    );
+
+    expect(state.readyQueue).toEqual(["failure-step"]);
+    expect(state.skipped.has("success-step")).toBe(true);
+    expect(state.skipped.has("success-child")).toBe(true);
+  });
+
+  it("queues only the success route and skips the failure subtree", () => {
+    const planNodeMap = new Map<string, CompiledPipelineNode>([
       [
-        "success-child",
+        "request-root",
         createNode({
-          nodeId: "success-child",
-          dependencyIds: ["success-step"],
-          routes: { control: ["join-step"], success: [], failure: [], true: [], false: [] },
-          downstreamIds: ["join-step"],
+          nodeId: "request-root",
+          routes: {
+            control: [],
+            success: ["success-step"],
+            failure: ["failure-step"],
+            true: [],
+            false: [],
+          },
+          downstreamIds: ["success-step", "failure-step"],
         }),
       ],
+      ["success-step", createNode({ nodeId: "success-step", dependencyIds: ["request-root"] })],
       [
         "failure-step",
         createNode({
           nodeId: "failure-step",
           dependencyIds: ["request-root"],
-          routes: { control: ["join-step"], success: [], failure: [], true: [], false: [] },
-          downstreamIds: ["join-step"],
+          routes: { control: ["failure-child"], success: [], failure: [], true: [], false: [] },
+          downstreamIds: ["failure-child"],
         }),
       ],
-      [
-        "join-step",
-        createNode({
-          nodeId: "join-step",
-          dependencyIds: ["success-child", "failure-step"],
-        }),
-      ],
+      ["failure-child", createNode({ nodeId: "failure-child", dependencyIds: ["failure-step"] })],
     ]);
-
-    const activatedDeps = new Map<string, Set<string>>();
-    const completed = new Set<string>();
-    const skipped = new Set<string>();
-    const readyQueue: string[] = [];
-    const queued = new Set<string>();
-    const conditionResults = new Map<string, boolean>();
+    const state = createState(planNodeMap);
 
     processCompletion(
       {
-        type: "step_failed",
+        type: "step_completed",
         snapshot: { stepId: "request-root" } as never,
         runtimeVariables: {},
       },
       "request-root",
       planNodeMap,
-      activatedDeps,
-      completed,
-      skipped,
-      readyQueue,
-      queued,
-      conditionResults,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
+      state.conditionResults,
     );
-    promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
-
-    expect(readyQueue).toEqual(["failure-step"]);
-    expect(skipped.has("success-step")).toBe(true);
-    expect(skipped.has("success-child")).toBe(true);
-
-    readyQueue.length = 0;
-    queued.clear();
-
-    processCompletion(
-      {
-        type: "step_completed",
-        snapshot: { stepId: "failure-step" } as never,
-        runtimeVariables: {},
-      },
-      "failure-step",
+    promoteReadyNodes(
       planNodeMap,
-      activatedDeps,
-      completed,
-      skipped,
-      readyQueue,
-      queued,
-      conditionResults,
+      state.activatedDeps,
+      state.completed,
+      state.skipped,
+      state.readyQueue,
+      state.queued,
     );
-    promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
 
-    expect(readyQueue).toEqual(["join-step"]);
-  });
-
-  it("still waits for all active dependencies on non-branch joins", () => {
-    const planNodeMap = new Map<string, CompiledPipelineNode>([
-      ["step-a", createNode({ nodeId: "step-a", downstreamIds: ["join-step"] })],
-      ["step-b", createNode({ nodeId: "step-b", downstreamIds: ["join-step"] })],
-      [
-        "join-step",
-        createNode({
-          nodeId: "join-step",
-          dependencyIds: ["step-a", "step-b"],
-        }),
-      ],
-    ]);
-
-    const activatedDeps = new Map<string, Set<string>>();
-    const completed = new Set<string>();
-    const skipped = new Set<string>();
-    const readyQueue: string[] = [];
-    const queued = new Set<string>();
-    const conditionResults = new Map<string, boolean>();
-
-    processCompletion(
-      {
-        type: "step_completed",
-        snapshot: { stepId: "step-a" } as never,
-        runtimeVariables: {},
-      },
-      "step-a",
-      planNodeMap,
-      activatedDeps,
-      completed,
-      skipped,
-      readyQueue,
-      queued,
-      conditionResults,
-    );
-    promoteReadyNodes(planNodeMap, activatedDeps, completed, skipped, readyQueue, queued);
-
-    expect(readyQueue).toEqual([]);
+    expect(state.readyQueue).toEqual(["success-step"]);
+    expect(state.skipped.has("failure-step")).toBe(true);
+    expect(state.skipped.has("failure-child")).toBe(true);
   });
 });

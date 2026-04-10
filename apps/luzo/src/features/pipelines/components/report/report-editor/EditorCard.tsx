@@ -117,9 +117,9 @@ export function EditorCard({
       attributes: {
         class:
           mode === "list"
-            ? "report-editor-content report-editor-list min-h-[180px] px-5 py-4 text-[15px] leading-8 text-foreground focus:outline-none"
+            ? "report-editor-content report-editor-list px-5 py-3 text-[15px] leading-8 text-foreground focus:outline-none"
             : cn(
-                "report-editor-content min-h-[180px] px-5 py-4 text-[15px] leading-8 text-foreground focus:outline-none",
+                "report-editor-content px-5 py-3 text-[15px] leading-8 text-foreground focus:outline-none",
                 titleStyle ?? "font-medium",
               ),
       },
@@ -205,10 +205,10 @@ export function EditorCard({
         <EditorContent
           editor={editor}
           className={cn(
-            "min-h-[180px] [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:focus:outline-none",
+            "[&_.ProseMirror]:focus:outline-none",
             "[&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0 [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground/55 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
             "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:space-y-2 [&_.ProseMirror_ul]:pl-6",
-            "[&_.ProseMirror_li_p]:my-0 [&_.ProseMirror_p]:my-0 [&_.ProseMirror_p+p]:mt-4",
+            "[&_.ProseMirror_li_p]:my-0 [&_.ProseMirror_p]:my-0 [&_.ProseMirror_p+p]:mt-2",
           )}
         />
 

@@ -38,7 +38,6 @@ interface StepCardProps {
   onUpdate: (updates: Partial<PipelineStep>) => void;
   onRunFromHere: () => void;
   onRunFromHereFresh: () => void;
-  onCreateSubflow: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   reorderable?: boolean;
@@ -54,7 +53,6 @@ export function StepCard({
   onUpdate,
   onRunFromHere,
   onRunFromHereFresh,
-  onCreateSubflow,
   onDuplicate,
   onDelete,
   reorderable = true,
@@ -195,7 +193,6 @@ export function StepCard({
           <StepCardMenu
             onRunFromHere={onRunFromHere}
             onRunFromHereFresh={onRunFromHereFresh}
-            onCreateSubflow={onCreateSubflow}
             onDuplicate={onDuplicate}
             onDelete={onDelete}
           />

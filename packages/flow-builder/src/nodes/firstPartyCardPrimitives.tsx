@@ -14,17 +14,24 @@ export function CardLayout({
   title: string;
 }) {
   return (
-    <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
+    <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
       <div
         style={{
           alignItems: "flex-start",
           display: "grid",
-          gap: 8,
-          gridTemplateColumns: "4px minmax(0, 1fr)",
+          gap: 10,
+          gridTemplateColumns: "6px minmax(0, 1fr)",
           minWidth: 0,
         }}
       >
-        <div style={{ background: accent, borderRadius: 999, minHeight: 46 }} />
+        <div
+          style={{
+            background: `linear-gradient(180deg, ${accent}, color-mix(in srgb, ${accent} 50%, transparent))`,
+            borderRadius: 999,
+            boxShadow: `0 0 0 1px color-mix(in srgb, ${accent} 24%, transparent)`,
+            minHeight: 58,
+          }}
+        />
         <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
           <div
             style={{
@@ -61,6 +68,23 @@ export function RowSummary({ items }: { items: string[] }) {
   );
 }
 
+export function SplitSummary({ leading, trailing }: { leading: ReactNode; trailing: ReactNode }) {
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        display: "flex",
+        gap: 12,
+        justifyContent: "space-between",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>{leading}</div>
+      <div style={{ minWidth: 0 }}>{trailing}</div>
+    </div>
+  );
+}
+
 export function PreviewBox({ children, mono }: { children: ReactNode; mono?: boolean }) {
   return (
     <div
@@ -68,7 +92,7 @@ export function PreviewBox({ children, mono }: { children: ReactNode; mono?: boo
         background: "var(--fb-node-section-bg, rgba(148, 163, 184, 0.08))",
         border: "1px solid var(--fb-node-section-border, rgba(148, 163, 184, 0.18))",
         borderRadius: 14,
-        color: "var(--fb-text-secondary, #475569)",
+        color: "var(--fb-text-primary, #0f172a)",
         fontFamily: mono
           ? "var(--fb-font-mono, ui-monospace, monospace)"
           : "var(--fb-font-sans, system-ui, sans-serif)",
@@ -84,6 +108,36 @@ export function PreviewBox({ children, mono }: { children: ReactNode; mono?: boo
 
 export function HintText({ children }: { children: ReactNode }) {
   return <div style={{ color: "var(--fb-text-secondary, #475569)", fontSize: 12 }}>{children}</div>;
+}
+
+export function RouteBadge({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "danger" | "neutral" | "success";
+}) {
+  const styles = {
+    danger: { background: "rgba(239, 68, 68, 0.12)", borderColor: "rgba(239, 68, 68, 0.24)" },
+    neutral: { background: "rgba(148, 163, 184, 0.12)", borderColor: "rgba(148, 163, 184, 0.24)" },
+    success: { background: "rgba(34, 197, 94, 0.12)", borderColor: "rgba(34, 197, 94, 0.24)" },
+  }[tone];
+
+  return (
+    <span
+      style={{
+        ...chipStyle,
+        background: styles.background,
+        borderColor: styles.borderColor,
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 export function Badge({ children }: { children: ReactNode }) {

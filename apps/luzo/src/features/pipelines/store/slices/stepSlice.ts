@@ -41,7 +41,7 @@ export const createStepSlice: PipelineSliceCreator<StepSlice> = (set) => ({
   updateStep: (pipelineId, stepId, partial) =>
     set((state) => {
       const step = findPipelineStep(state.pipelines, pipelineId, stepId);
-      if (!step) return;
+      if (!step?.step) return;
       Object.assign(step.step, partial);
       const flow = ensurePipelineFlowDocument(step.pipeline);
       const requestNode = flow.nodes.find(
@@ -98,7 +98,7 @@ export const createStepSlice: PipelineSliceCreator<StepSlice> = (set) => ({
   duplicateStep: (pipelineId, stepId) =>
     set((state) => {
       const step = findPipelineStep(state.pipelines, pipelineId, stepId);
-      if (!step) return;
+      if (!step?.step) return;
       const stepCopy: PipelineStep = {
         ...step.step,
         id: crypto.randomUUID(),

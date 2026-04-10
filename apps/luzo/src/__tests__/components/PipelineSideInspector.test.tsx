@@ -67,10 +67,8 @@ const pipelineStoreState = {
       },
     },
   ],
-  subflowDefinitions: [],
   replaceFlowDocument: vi.fn(),
   updateStep: vi.fn(),
-  updateSubflowNode: vi.fn(),
 };
 
 const environmentState = {

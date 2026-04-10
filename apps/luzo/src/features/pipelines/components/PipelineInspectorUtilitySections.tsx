@@ -177,8 +177,9 @@ export function PipelineInspectorLineageSection({
   stepNameById,
 }: PipelineInspectorLineageSectionProps) {
   const incomingByField = incoming.reduce<Record<string, VariableReferenceEdge[]>>((acc, edge) => {
-    acc[edge.consumerField] ??= [];
-    acc[edge.consumerField].push(edge);
+    const bucket = acc[edge.consumerField] ?? [];
+    bucket.push(edge);
+    acc[edge.consumerField] = bucket;
     return acc;
   }, {});
 

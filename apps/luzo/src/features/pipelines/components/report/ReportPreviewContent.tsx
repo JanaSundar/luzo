@@ -24,7 +24,7 @@ export function ReportPreviewContent({
   const orderedSections = normalizeSectionOrder(report.sectionOrder);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-5">
       <ReportLayoutContainer>
         <ReportHeader title={report.title}>
           <ReportStat label="Success Rate" value={`${report.metrics.successRate}%`} />
@@ -33,7 +33,7 @@ export function ReportPreviewContent({
           <ReportStat label="Failures" value={`${report.metrics.failedSteps}`} />
         </ReportHeader>
 
-        <div className="space-y-12">
+        <div className="space-y-4">
           {orderedSections.map((sectionKey) => (
             <PreviewSection key={sectionKey} report={report} sectionKey={sectionKey} />
           ))}
@@ -43,7 +43,7 @@ export function ReportPreviewContent({
           </ReportSection>
         </div>
 
-        <footer className="mt-12 flex items-center justify-between border-t pt-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+        <footer className="mt-6 flex items-center justify-between border-t pt-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
           <span>Generated on {new Date(generatedAt).toLocaleString()}</span>
         </footer>
       </ReportLayoutContainer>

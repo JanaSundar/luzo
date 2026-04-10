@@ -179,4 +179,77 @@ describe("execution plan compilation", () => {
       }),
     ]);
   });
+
+  it("coins a transformN runtime ref for transform nodes", () => {
+    const result = compileExecutionPlan({
+      workflow: {
+        kind: "workflow-definition",
+        version: 1,
+        id: "wf-transform",
+        name: "Transform Workflow",
+        createdAt: "2026-03-27T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+        requestRegistryId: "registry-1",
+        entryNodeIds: ["req1"],
+        nodes: [
+          { id: "req1", kind: "request", requestRef: "req1" },
+          {
+            id: "transform-1",
+            kind: "transform",
+            config: {
+              kind: "transform",
+              label: "User Shape",
+              script: "{ id: req1.response.body.id }",
+            },
+          },
+        ],
+        edges: [
+          { id: "req1-transform-1", source: "req1", target: "transform-1", semantics: "control" },
+        ],
+      },
+      registry: createRegistry(),
+    });
+
+    const transformAlias = result.aliases.find((alias) => alias.stepId === "transform-1");
+    expect(transformAlias?.alias).toBe("transform1");
+    expect(transformAlias?.refs).toEqual(
+      expect.arrayContaining(["transform1", "req2", "transform-1", "user_shape"]),
+    );
+  });
+
+  it("coins a webhookN runtime ref for webhook wait nodes", () => {
+    const result = compileExecutionPlan({
+      workflow: {
+        kind: "workflow-definition",
+        version: 1,
+        id: "wf-webhook",
+        name: "Webhook Workflow",
+        createdAt: "2026-03-27T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+        requestRegistryId: "registry-1",
+        entryNodeIds: ["req1"],
+        nodes: [
+          { id: "req1", kind: "request", requestRef: "req1" },
+          {
+            id: "wait-1",
+            kind: "webhookWait",
+            config: {
+              kind: "webhookWait",
+              label: "Order Callback",
+              timeoutMs: 30_000,
+              correlationKey: "order.id",
+            },
+          },
+        ],
+        edges: [{ id: "req1-wait-1", source: "req1", target: "wait-1", semantics: "control" }],
+      },
+      registry: createRegistry(),
+    });
+
+    const webhookAlias = result.aliases.find((alias) => alias.stepId === "wait-1");
+    expect(webhookAlias?.alias).toBe("webhook1");
+    expect(webhookAlias?.refs).toEqual(
+      expect.arrayContaining(["webhook1", "req2", "wait-1", "order_callback"]),
+    );
+  });
 });

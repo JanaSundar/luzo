@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { CollectionPipelineDialog } from "@/components/pipelines/collection-generator/CollectionPipelineDialog";
 import { TemplateBrowserDialog } from "@/features/templates/components/TemplateBrowserDialog";
 import type { Pipeline } from "@/types";
-import { SubflowLibraryDialog } from "./SubflowLibraryDialog";
 
 export function PipelineBuilderHeader({
-  pipelineId,
+  pipelineId: _pipelineId,
   name,
   requestedCollectionId,
   onAddRequest,
@@ -51,7 +50,6 @@ export function PipelineBuilderHeader({
             </>
           }
         />
-        <SubflowLibraryDialog pipelineId={pipelineId} />
         <CollectionPipelineDialog
           initialCollectionId={requestedCollectionId}
           onCloseRequestReset={onClearRequestedCollection}

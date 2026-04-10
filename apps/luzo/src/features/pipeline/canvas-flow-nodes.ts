@@ -29,15 +29,8 @@ export function createDefaultNodeConfig(kind: WorkflowNodeKind): FlowNodeConfig 
       return { kind, label: "Delay", durationMs: 1000 };
     case "transform":
       return { kind, label: "Transform", script: "" };
-    case "subflow":
-      return {
-        kind,
-        label: "Subflow",
-        subflowId: "",
-        subflowVersion: 1,
-        inputBindings: {},
-        outputAliases: {},
-      };
+    case "switch":
+      return { kind, label: "Switch", cases: [] };
     case "end":
       return { kind, label: "End" };
     case "request":
