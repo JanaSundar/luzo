@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
 import type { ConditionNodeConfig } from "@/types/workflow";
 
+function getRuleCountLabel(ruleCount: number) {
+  switch (ruleCount) {
+    case 0:
+      return "No rules configured";
+    case 1:
+      return "1 rule";
+    default:
+      return `${ruleCount} rules`;
+  }
+}
+
 export function ConditionCard({
   nodeId: _nodeId,
   config,
@@ -47,13 +58,7 @@ export function ConditionCard({
           <p className="truncate text-sm font-semibold text-foreground">
             {config.label || "Condition"}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {ruleCount === 0
-              ? "No rules configured"
-              : ruleCount === 1
-                ? "1 rule"
-                : `${ruleCount} rules`}
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{getRuleCountLabel(ruleCount)}</p>
         </div>
       </div>
 

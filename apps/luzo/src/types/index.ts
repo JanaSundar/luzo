@@ -203,7 +203,7 @@ export interface Collection {
   updatedAt: string;
 }
 
-export type PipelineView = "builder" | "stream" | "ai-config" | "report";
+export type PipelineView = "builder" | "ai-config" | "report";
 export type NarrativeTone = "technical" | "executive" | "compliance";
 
 export interface AINarrativeConfig {

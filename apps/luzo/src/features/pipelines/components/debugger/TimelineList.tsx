@@ -71,7 +71,7 @@ export function TimelineList({
   const handleSelect = useCallback((eventId: string) => onSelectEvent(eventId), [onSelectEvent]);
 
   return (
-    <div className="lg:col-span-3 border-r flex flex-col min-h-0">
+    <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r lg:col-span-3">
       {/* Header */}
       <div className="border-b bg-muted/10 p-3">
         <div className="flex items-center justify-between gap-2">

@@ -19,7 +19,6 @@ export function usePipelinePageController() {
   );
   const setExecuting = usePipelineStore((state) => state.setExecuting);
   const setExecutionResult = usePipelineStore((state) => state.setExecutionResult);
-  const setView = usePipelineStore((state) => state.setView);
 
   const snapshots = usePipelineExecutionStore((state) => state.snapshots);
   const status = usePipelineExecutionStore((state) => state.status);
@@ -93,7 +92,6 @@ export function usePipelinePageController() {
     getActiveEnvironmentVariables,
     setExecuting,
     setExecutionResult,
-    setView,
     clearReport,
     setSelectedSignals,
   });

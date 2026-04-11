@@ -23,6 +23,18 @@ import {
   TestSuiteStats,
 } from "@/components/common/TestResults";
 
+function getRawBodyTypography(fontScale: "sm" | "md" | "lg") {
+  switch (fontScale) {
+    case "sm":
+      return "text-[11px] leading-5";
+    case "lg":
+      return "text-[13px] leading-7";
+    case "md":
+    default:
+      return "text-xs leading-6";
+  }
+}
+
 export function ResponseContent({
   response,
   bodyView,
@@ -107,11 +119,7 @@ export function ResponseContent({
           <pre
             className={cn(
               "h-full overflow-auto bg-background p-4 font-mono whitespace-pre-wrap break-words [overflow-wrap:anywhere]",
-              fontScale === "sm"
-                ? "text-[11px] leading-5"
-                : fontScale === "lg"
-                  ? "text-[13px] leading-7"
-                  : "text-xs leading-6",
+              getRawBodyTypography(fontScale),
             )}
           >
             {response.body}

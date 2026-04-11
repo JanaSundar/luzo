@@ -20,6 +20,18 @@ interface UsePipelineReportActionsInput {
   pipelines: Pipeline[];
 }
 
+function getExportSuccessMessage(format: ExportFormat) {
+  switch (format) {
+    case "pdf":
+      return "PDF downloaded";
+    case "json":
+      return "JSON downloaded";
+    case "markdown":
+    default:
+      return "Markdown downloaded";
+  }
+}
+
 export function usePipelineReportActions({
   activePipeline,
   activePipelineId,
@@ -118,13 +130,7 @@ export function usePipelineReportActions({
           },
           format,
         );
-        toast.success(
-          format === "pdf"
-            ? "PDF downloaded"
-            : format === "json"
-              ? "JSON downloaded"
-              : "Markdown downloaded",
-        );
+        toast.success(getExportSuccessMessage(format));
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : `${format.toUpperCase()} export failed`,

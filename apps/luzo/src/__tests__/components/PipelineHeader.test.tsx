@@ -7,21 +7,6 @@ import { render } from "@/utils/test-utils";
 describe("PipelineHeader", () => {
   beforeEach(() => {
     usePipelineStore.setState({
-      pipelines: [],
-      activePipelineId: null,
-      currentView: "builder",
-      selectedNodeIds: {},
-      executing: false,
-      executionResult: null,
-    });
-  });
-
-  it("uses onRetry instead of onRun for the stream retry button", () => {
-    const onRetry = vi.fn();
-    const onRun = vi.fn();
-
-    usePipelineStore.setState((state) => ({
-      ...state,
       pipelines: [
         {
           id: "pipeline-1",
@@ -33,27 +18,40 @@ describe("PipelineHeader", () => {
         },
       ],
       activePipelineId: "pipeline-1",
-      currentView: "stream",
-    }));
+      currentView: "builder",
+      selectedNodeIds: {},
+      executing: false,
+      executionResult: null,
+    });
+  });
+
+  it("removes the response stream tab and exposes builder timeline controls", () => {
+    const onToggleExecutionDrawer = vi.fn();
+    const onAutoOpenTimelineChange = vi.fn();
 
     render(
       <PipelineHeader
         activePipelineName="Pipeline 1"
-        currentView="stream"
+        currentView="builder"
         isExecuting={false}
         activePipelineId="pipeline-1"
-        snapshotsCount={1}
         onSetView={vi.fn()}
-        onRun={onRun}
+        onRun={vi.fn()}
         onDebug={vi.fn()}
         onStop={vi.fn()}
-        onRetry={onRetry}
+        onToggleExecutionDrawer={onToggleExecutionDrawer}
+        onAutoOpenTimelineChange={onAutoOpenTimelineChange}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(screen.queryByRole("button", { name: /response stream/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /timeline/i })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /auto-open timeline/i })).toBeInTheDocument();
 
-    expect(onRetry).toHaveBeenCalledTimes(1);
-    expect(onRun).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /timeline/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /auto-open timeline/i }));
+
+    expect(onToggleExecutionDrawer).toHaveBeenCalledTimes(1);
+    expect(onAutoOpenTimelineChange).toHaveBeenCalledWith(false);
   });
 });

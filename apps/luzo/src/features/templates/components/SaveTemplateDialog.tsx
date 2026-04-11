@@ -20,8 +20,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) {
-  const [open, setOpen] = useState(false);
+interface SaveTemplateDialogProps {
+  pipeline: Pipeline | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function SaveTemplateDialog({
+  pipeline,
+  open: controlledOpen,
+  onOpenChange,
+}: SaveTemplateDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Custom");
@@ -40,8 +50,13 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
     [dbReady, name, pipeline],
   );
 
+  const open = controlledOpen ?? uncontrolledOpen;
+
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    if (controlledOpen === undefined) {
+      setUncontrolledOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
     if (nextOpen && pipeline) {
       setName(`${pipeline.name} Template`);
       setDescription(pipeline.description ?? "");
@@ -73,7 +88,7 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
 
     try {
       await mutation.mutateAsync(template);
-      setOpen(false);
+      handleOpenChange(false);
       toast.success("Template saved to your connected database");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to save template");
@@ -82,20 +97,22 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-8 font-bold"
-            disabled={!dbReady || !pipeline}
-          />
-        }
-      >
-        <BookmarkPlus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Save as Template</span>
-      </DialogTrigger>
+      {controlledOpen === undefined ? (
+        <DialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 font-bold"
+              disabled={!dbReady || !pipeline}
+            />
+          }
+        >
+          <BookmarkPlus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Save as Template</span>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="flex h-[min(80dvh,640px)] max-w-xl flex-col overflow-hidden p-0">
         <DialogHeader>
           <div className="border-b border-border/50 bg-muted/20 px-6 py-5">
@@ -168,7 +185,7 @@ export function SaveTemplateDialog({ pipeline }: { pipeline: Pipeline | null }) 
           </div>
         </div>
         <DialogFooter className="m-1 shrink-0">
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button type="button" onClick={handleSave} disabled={!canSave || mutation.isPending}>

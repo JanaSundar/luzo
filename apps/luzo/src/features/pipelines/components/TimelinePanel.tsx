@@ -88,7 +88,7 @@ export function TimelinePanel() {
   if (panelState === "loading") return <TimelineLoading />;
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xl border bg-background shadow-sm lg:grid-cols-12">
+    <div className="grid h-full min-h-0 min-w-0 grid-cols-1 overflow-hidden rounded-xl border bg-background shadow-sm lg:grid-cols-12">
       <TimelineList
         events={sortedEvents}
         selectedEventId={selectedEventId}
@@ -100,7 +100,7 @@ export function TimelinePanel() {
         onSelectEvent={handleSelectEvent}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col border-t lg:col-span-9 lg:border-t-0 lg:border-l">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t lg:col-span-9 lg:border-t-0 lg:border-l">
         {panelState === "error" && !selectedEvent ? (
           <TimelineError message={errorMessage} />
         ) : (

@@ -12,6 +12,28 @@ interface AsyncStepResult {
   runtimeVariables: Record<string, unknown>;
 }
 
+function getPollingFailureSummary(reason: string) {
+  switch (reason) {
+    case "failure_condition":
+      return "Polling stopped on failure condition";
+    case "timeout":
+      return "Polling timed out";
+    default:
+      return "Polling exhausted max attempts";
+  }
+}
+
+function getPollingFailureMessage(reason: string) {
+  switch (reason) {
+    case "failure_condition":
+      return "Polling failure condition matched";
+    case "timeout":
+      return "Polling timed out";
+    default:
+      return "Polling max attempts exceeded";
+  }
+}
+
 export function runPollingWithRetry(params: {
   executionId: string;
   step: PipelineStep;
@@ -162,24 +184,13 @@ export function runPollingWithRetry(params: {
         status: "failed",
         attemptNumber: lastAttemptNumber,
         sequenceNumber: snapshot.stepIndex + 0.999,
-        summary:
-          reason === "failure_condition"
-            ? "Polling stopped on failure condition"
-            : reason === "timeout"
-              ? "Polling timed out"
-              : "Polling exhausted max attempts",
+        summary: getPollingFailureSummary(reason),
         terminal: reason,
         outcome: "failed",
       });
       thrownError =
         error instanceof Error
-          ? new Error(
-              reason === "failure_condition"
-                ? "Polling failure condition matched"
-                : reason === "timeout"
-                  ? "Polling timed out"
-                  : "Polling max attempts exceeded",
-            )
+          ? new Error(getPollingFailureMessage(reason))
           : new Error("Polling failed");
     })
     .finally(() => {

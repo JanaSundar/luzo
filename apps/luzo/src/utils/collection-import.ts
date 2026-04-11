@@ -98,23 +98,33 @@ function toApiRequestFromPostman(request: Record<string, unknown>): ApiRequest {
   const rawBody = asString(body?.raw);
   const urlEncodedBody = toUrlEncodedString(asArray(body?.urlencoded));
   const mode = asString(body?.mode);
+  let requestBody: string | null;
+  let bodyType: ApiRequest["bodyType"];
+
+  switch (mode) {
+    case "raw":
+      requestBody = formatJsonBody(rawBody);
+      bodyType =
+        rawBody?.trim().startsWith("{") || rawBody?.trim().startsWith("[") ? "json" : "raw";
+      break;
+    case "urlencoded":
+      requestBody = urlEncodedBody;
+      bodyType = "x-www-form-urlencoded";
+      break;
+    default:
+      requestBody = null;
+      bodyType = formDataFields.length > 0 ? "form-data" : "none";
+      break;
+  }
+
   return {
     ...EMPTY_REQUEST,
     method: normalizeMethod(asString(request.method)),
     url: url.url,
     headers: headerPairs,
     params: url.params,
-    body: mode === "raw" ? formatJsonBody(rawBody) : mode === "urlencoded" ? urlEncodedBody : null,
-    bodyType:
-      mode === "raw"
-        ? rawBody?.trim().startsWith("{") || rawBody?.trim().startsWith("[")
-          ? "json"
-          : "raw"
-        : mode === "urlencoded"
-          ? "x-www-form-urlencoded"
-          : formDataFields.length > 0
-            ? "form-data"
-            : "none",
+    body: requestBody,
+    bodyType,
     formDataFields,
   };
 }
