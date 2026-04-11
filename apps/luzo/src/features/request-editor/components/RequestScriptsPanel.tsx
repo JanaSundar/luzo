@@ -24,6 +24,18 @@ import {
 } from "@/utils/script-examples";
 import type { PipelineStep, PostRequestRule, PreRequestRule, TestRule } from "@/types";
 
+function getScriptTabLabel(tab: "pre-request" | "post-request" | "tests") {
+  switch (tab) {
+    case "pre-request":
+      return "Pre-request";
+    case "post-request":
+      return "Post-request";
+    case "tests":
+    default:
+      return "Tests";
+  }
+}
+
 interface RequestScriptsPanelProps {
   preRequestEditorType: "visual" | "raw";
   postRequestEditorType: "visual" | "raw";
@@ -74,11 +86,7 @@ export function RequestScriptsPanel({
                 "h-8 shrink-0 whitespace-nowrap px-3",
               )}
             >
-              {t === "pre-request"
-                ? "Pre-request"
-                : t === "post-request"
-                  ? "Post-request"
-                  : "Tests"}
+              {getScriptTabLabel(t)}
             </button>
           );
         })}

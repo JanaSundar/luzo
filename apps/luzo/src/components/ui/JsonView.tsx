@@ -50,6 +50,18 @@ const LINE_HEIGHTS = {
   lg: 28,
 };
 
+function getFontMetrics(fontScale: "sm" | "md" | "lg") {
+  switch (fontScale) {
+    case "sm":
+      return { fontSize: "11px", lineHeight: "1.25rem" };
+    case "lg":
+      return { fontSize: "13px", lineHeight: "1.75rem" };
+    case "md":
+    default:
+      return { fontSize: "12px", lineHeight: "1.5rem" };
+  }
+}
+
 export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView(
   { text, searchQuery = "", onMatchChange, className, fontScale = "md", format = true },
   ref,
@@ -171,6 +183,7 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
   const matchedLines = useMemo(() => new Set(matches.map((match) => match.lineNumber)), [matches]);
   const activeMatch = matches[currentIndex] ?? null;
   const activeLineNumber = activeMatch?.lineNumber ?? null;
+  const fontMetrics = getFontMetrics(fontScale);
 
   useEffect(() => {
     const unsubscribe = scrollMotionValue.on("change", (value) => {
@@ -300,8 +313,8 @@ export const JsonView = forwardRef<JsonViewRef, JsonViewProps>(function JsonView
         ref={parentRef}
         className="h-full overflow-auto pb-3 pt-4 no-scrollbar"
         style={{
-          fontSize: fontScale === "sm" ? "11px" : fontScale === "lg" ? "13px" : "12px",
-          lineHeight: fontScale === "sm" ? "1.25rem" : fontScale === "lg" ? "1.75rem" : "1.5rem",
+          fontSize: fontMetrics.fontSize,
+          lineHeight: fontMetrics.lineHeight,
         }}
       >
         <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>

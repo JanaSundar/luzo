@@ -6,6 +6,18 @@ import { Input } from "@/components/ui/input";
 import { ResponseStats } from "@/components/playground/ResponseStats";
 import { cn } from "@/utils";
 
+function getFontScaleLabel(scale: "sm" | "md" | "lg") {
+  switch (scale) {
+    case "sm":
+      return "A";
+    case "md":
+      return "A+";
+    case "lg":
+    default:
+      return "A++";
+  }
+}
+
 export function ResponseToolbar({
   status,
   statusText,
@@ -55,7 +67,7 @@ export function ResponseToolbar({
               )}
               aria-label={`Set response font to ${scale}`}
             >
-              {scale === "sm" ? "A" : scale === "md" ? "A+" : "A++"}
+              {getFontScaleLabel(scale)}
             </button>
           ))}
         </div>

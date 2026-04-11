@@ -6,6 +6,21 @@ import { maskSensitiveValue } from "@/features/pipeline/sensitivity";
 import { cn } from "@/utils";
 import type { ContextVariable, SignalGroup } from "@/types/pipeline-debug";
 
+function getMethodColorClass(method: string) {
+  switch (method) {
+    case "GET":
+      return "text-emerald-500";
+    case "POST":
+      return "text-blue-500";
+    case "PUT":
+      return "text-amber-500";
+    case "DELETE":
+      return "text-red-500";
+    default:
+      return "text-foreground";
+  }
+}
+
 export function SignalGroupPanel({
   group,
   expanded,
@@ -38,15 +53,7 @@ export function SignalGroupPanel({
         <span
           className={cn(
             "shrink-0 font-mono text-[10px] font-bold",
-            group.method === "GET"
-              ? "text-emerald-500"
-              : group.method === "POST"
-                ? "text-blue-500"
-                : group.method === "PUT"
-                  ? "text-amber-500"
-                  : group.method === "DELETE"
-                    ? "text-red-500"
-                    : "text-foreground",
+            getMethodColorClass(group.method),
           )}
         >
           {group.method}

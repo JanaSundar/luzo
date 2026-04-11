@@ -34,6 +34,18 @@ function findNextEnabledIndex<T extends string>(
   return startIndex;
 }
 
+function getColumnsClassName(columns: 1 | 2 | 4) {
+  switch (columns) {
+    case 1:
+      return "grid-cols-1";
+    case 4:
+      return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4";
+    case 2:
+    default:
+      return "grid-cols-1 sm:grid-cols-2";
+  }
+}
+
 export function BentoTabs<T extends string>({
   items,
   activeItem,
@@ -48,15 +60,7 @@ export function BentoTabs<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cn(
-        "grid gap-2.5",
-        columns === 1
-          ? "grid-cols-1"
-          : columns === 4
-            ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
-            : "grid-cols-1 sm:grid-cols-2",
-        className,
-      )}
+      className={cn("grid gap-2.5", getColumnsClassName(columns), className)}
     >
       {items.map((item, index) => {
         const active = item.id === activeItem;

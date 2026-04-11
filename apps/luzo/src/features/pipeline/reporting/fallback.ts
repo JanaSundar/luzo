@@ -6,6 +6,23 @@ import type {
 } from "@/types/pipeline-debug";
 import { buildHealthSummary, toEndpointMetrics } from "./shared";
 
+function formatEndpointAnalysis(endpoint: ReturnType<typeof toEndpointMetrics>[number]) {
+  switch (endpoint.outcome) {
+    case "error":
+      return `${endpoint.stepName} (${endpoint.method} ${endpoint.url}) returned ${endpoint.statusCode ?? "an error"} in ${endpoint.latencyMs ?? 0}ms. ${
+        endpoint.error ? `Error: ${endpoint.error}` : "Status code indicates failure."
+      }`;
+    case "warning":
+      return `${endpoint.stepName} succeeded (${endpoint.statusCode}) but latency was elevated at ${
+        endpoint.latencyMs ?? 0
+      }ms — exceeds 1000ms threshold.`;
+    default:
+      return `${endpoint.stepName} completed successfully (${endpoint.statusCode}) in ${
+        endpoint.latencyMs ?? 0
+      }ms with ${endpoint.sizeBytes ?? 0} bytes.`;
+  }
+}
+
 export function buildFallbackStructuredReport(
   context: ReducedContext,
   config: AIReportConfig,
@@ -106,12 +123,7 @@ export function buildFallbackStructuredReport(
     insights: baseInsights,
     requests: endpointMetrics.map((endpoint) => ({
       name: endpoint.stepName,
-      analysis:
-        endpoint.outcome === "error"
-          ? `${endpoint.stepName} (${endpoint.method} ${endpoint.url}) returned ${endpoint.statusCode ?? "an error"} in ${endpoint.latencyMs ?? 0}ms. ${endpoint.error ? `Error: ${endpoint.error}` : "Status code indicates failure."}`
-          : endpoint.outcome === "warning"
-            ? `${endpoint.stepName} succeeded (${endpoint.statusCode}) but latency was elevated at ${endpoint.latencyMs ?? 0}ms — exceeds 1000ms threshold.`
-            : `${endpoint.stepName} completed successfully (${endpoint.statusCode}) in ${endpoint.latencyMs ?? 0}ms with ${endpoint.sizeBytes ?? 0} bytes.`,
+      analysis: formatEndpointAnalysis(endpoint),
     })),
     risks: baseRisks,
     recommendations: baseRecommendations,

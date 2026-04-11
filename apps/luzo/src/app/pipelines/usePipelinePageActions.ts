@@ -6,7 +6,7 @@ import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
 import type { DebugController } from "@/features/pipeline/debug-controller";
 import { planPartialPipelineRun } from "@/features/pipeline/partial-run";
 import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
-import type { Pipeline, PipelineExecutionResult, PipelineView } from "@/types";
+import type { Pipeline, PipelineExecutionResult } from "@/types";
 import type { ArtifactInput } from "@/features/pipeline/partial-run";
 
 interface ActionArgs {
@@ -19,7 +19,6 @@ interface ActionArgs {
   getActiveEnvironmentVariables: () => Record<string, string>;
   setExecuting: (executing: boolean) => void;
   setExecutionResult: (result: PipelineExecutionResult | null) => void;
-  setView: (view: PipelineView) => void;
   clearReport: (pipelineId: string) => void;
   setSelectedSignals: (signals: string[]) => void;
 }
@@ -34,7 +33,6 @@ export function usePipelinePageActions({
   getActiveEnvironmentVariables,
   setExecuting,
   setExecutionResult,
-  setView,
   clearReport,
   setSelectedSignals,
 }: ActionArgs) {
@@ -46,7 +44,6 @@ export function usePipelinePageActions({
       return false;
     }
     setExecutionResult(null);
-    setView("stream");
     resetExecution();
     if (activePipelineId) {
       clearReport(activePipelineId);
@@ -60,7 +57,6 @@ export function usePipelinePageActions({
     resetExecution,
     setExecutionResult,
     setSelectedSignals,
-    setView,
   ]);
 
   const handleRun = useCallback(async () => {

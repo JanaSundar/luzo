@@ -19,6 +19,8 @@ interface PipelineLayoutProps {
   onRun?: () => void;
   onDebug?: () => void;
   onStop?: () => void;
+  onStep?: () => void;
+  onResume?: () => void;
   onRetry?: () => void;
   onSaveToDb?: () => void;
   onGenerateReport?: (force?: boolean) => void;
@@ -31,6 +33,8 @@ export function PipelineLayout({
   onRun,
   onDebug,
   onStop,
+  onStep,
+  onResume,
   onRetry,
   onSaveToDb,
   onGenerateReport,
@@ -197,6 +201,8 @@ export function PipelineLayout({
         onRun={onRun || (() => {})}
         onDebug={onDebug || (() => {})}
         onStop={onStop || (() => {})}
+        onStep={onStep}
+        onResume={onResume}
         onRetry={onRetry}
         onSaveToDb={onSaveToDb}
         onGenerateReport={onGenerateReport}

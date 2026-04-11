@@ -28,7 +28,11 @@ import type {
   TransformBlock,
   WebhookWaitBlock,
 } from "./types";
-import { createDefaultFlowDocument, SUPPORTED_NODE_KINDS } from "./flow-document-shared";
+import {
+  createDefaultFlowDocument,
+  START_POSITION,
+  SUPPORTED_NODE_KINDS,
+} from "./flow-document-shared";
 
 export function ensureFlowDocument(
   workflow: WorkflowFlowDocument | undefined,
@@ -61,7 +65,7 @@ function toEditorBlock(
   node: WorkflowFlowDocument["nodes"][number],
   stepsById: Map<string, PipelineStep>,
 ): FlowBlock[] {
-  const position = node.geometry.position;
+  const position = resolveNodePosition(node);
 
   if (node.kind === "start") {
     return [
@@ -99,6 +103,32 @@ function toEditorBlock(
   if (!step) return [];
 
   return [{ id: node.id, type: "request", position, data: stripStep(step) } satisfies RequestBlock];
+}
+
+function resolveNodePosition(node: WorkflowFlowDocument["nodes"][number]) {
+  const geometryPosition = node.geometry?.position;
+  const geometryX = geometryPosition?.x;
+  const geometryY = geometryPosition?.y;
+  if (isFiniteNumber(geometryX) && isFiniteNumber(geometryY)) {
+    return { x: geometryX, y: geometryY };
+  }
+
+  const legacyPosition = node.position;
+  const legacyX = legacyPosition?.x;
+  const legacyY = legacyPosition?.y;
+  if (isFiniteNumber(legacyX) && isFiniteNumber(legacyY)) {
+    return { x: legacyX, y: legacyY };
+  }
+
+  if (node.kind === "start") {
+    return { ...START_POSITION };
+  }
+
+  return { x: 280, y: 160 };
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function mapConfiguredBlock(
@@ -222,15 +252,22 @@ function mapConfiguredBlock(
 }
 
 function toEditorConnection(edge: FlowEdgeRecord): FlowConnection {
-  const sourceHandleId =
-    edge.sourceHandle === "failure"
-      ? "fail"
-      : (edge.sourceHandle ??
-        (edge.semantics === "control"
-          ? "output"
-          : edge.semantics === "failure"
-            ? "fail"
-            : edge.semantics));
+  let sourceHandleId = edge.sourceHandle;
+  if (sourceHandleId === "failure") {
+    sourceHandleId = "fail";
+  } else if (!sourceHandleId) {
+    switch (edge.semantics) {
+      case "control":
+        sourceHandleId = "output";
+        break;
+      case "failure":
+        sourceHandleId = "fail";
+        break;
+      default:
+        sourceHandleId = edge.semantics;
+        break;
+    }
+  }
 
   return {
     id: edge.id,

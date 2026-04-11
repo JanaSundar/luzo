@@ -6,7 +6,7 @@ Luzo is a developer and QA-centric API workflow builder for designing, running, 
 
 Luzo treats API calls as steps in a larger execution graph. It gives you a place to chain requests, pass data between them, inspect execution as it happens, and debug failures without losing the state of the workflow.
 
-Recent additions include variable lineage visibility across the builder and debugger, inline dependency diagnostics in request editing, and runtime lineage inspection inside the execution timeline.
+Recent additions include variable lineage visibility across the builder and debugger, inline dependency diagnostics in request editing, runtime lineage inspection inside the execution timeline, and a pipeline execution drawer with quick access to the AI configurator on run completion.
 
 ---
 

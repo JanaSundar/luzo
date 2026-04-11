@@ -24,18 +24,6 @@ const FlowEditorPage = dynamic(
   },
 );
 
-const DebuggerShell = dynamic(
-  () => import("@/features/pipelines/components/DebuggerShell").then((mod) => mod.DebuggerShell),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center">
-        <LoadingSpinner size="lg" variant="dots" />
-      </div>
-    ),
-  },
-);
-
 const AIConfigurator = dynamic(
   () => import("@/features/pipelines/components/AIConfigurator").then((mod) => mod.AIConfigurator),
   {
@@ -81,9 +69,9 @@ function PipelinesPageContent() {
     handleRun,
     handleDebug,
     handleStop,
-    handleRetry,
     handleStep,
     handleResume,
+    handleRetry,
     handleGenerateReport,
     handleExportReport,
   } = usePipelinePageController();
@@ -158,6 +146,8 @@ function PipelinesPageContent() {
       onRun={handleRun}
       onDebug={handleDebug}
       onStop={handleStop}
+      onStep={handleStep}
+      onResume={handleResume}
       onRetry={handleRetry}
       onSaveToDb={() => void savePipelineToDb(activePipeline)}
       onGenerateReport={handleGenerateReport}
@@ -168,15 +158,6 @@ function PipelinesPageContent() {
         <FlowEditorPage
           onClearRequestedCollection={clearRequestedCollection}
           requestedCollectionId={requestedCollectionId}
-        />
-      )}
-      {currentView === "stream" && (
-        <DebuggerShell
-          onStep={handleStep}
-          onResume={handleResume}
-          onRetry={handleRetry}
-          onStop={handleStop}
-          onRunAuto={handleRun}
         />
       )}
       {currentView === "ai-config" && <AIConfigurator />}

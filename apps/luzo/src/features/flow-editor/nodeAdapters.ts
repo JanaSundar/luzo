@@ -129,6 +129,19 @@ export function toFlowNode(block: FlowBlock, selected = false): FlowNode {
 }
 
 export function toFlowEdge(connection: FlowConnection, selected = false): FlowEdge {
+  let type: FlowEdge["type"];
+  switch (connection.kind) {
+    case "variable":
+      type = "variable";
+      break;
+    case "conditional":
+      type = "conditional";
+      break;
+    default:
+      type = "default";
+      break;
+  }
+
   return {
     id: connection.id,
     source: connection.sourceBlockId,
@@ -136,11 +149,6 @@ export function toFlowEdge(connection: FlowConnection, selected = false): FlowEd
     target: connection.targetBlockId,
     targetHandle: connection.targetHandleId,
     selected,
-    type:
-      connection.kind === "variable"
-        ? "variable"
-        : connection.kind === "conditional"
-          ? "conditional"
-          : "default",
+    type,
   };
 }

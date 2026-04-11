@@ -3,6 +3,41 @@
 import { cn } from "@/utils";
 import type { ReportEndpointMetric } from "@/types/pipeline-debug";
 
+function getMethodBadgeClass(method: string) {
+  switch (method) {
+    case "GET":
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+    case "POST":
+      return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+    case "DELETE":
+      return "bg-rose-500/10 text-rose-600 border-rose-500/20";
+    default:
+      return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+  }
+}
+
+function getOutcomeBadgeClass(outcome: ReportEndpointMetric["outcome"]) {
+  switch (outcome) {
+    case "success":
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+    case "warning":
+      return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+    default:
+      return "bg-rose-500/10 text-rose-600 border-rose-500/20";
+  }
+}
+
+function getLatencyClass(latencyMs: number) {
+  switch (true) {
+    case latencyMs > 1000:
+      return "text-rose-600";
+    case latencyMs > 500:
+      return "text-amber-600";
+    default:
+      return "text-foreground";
+  }
+}
+
 interface ReportPerformanceTableProps {
   results: ReportEndpointMetric[];
 }
@@ -60,13 +95,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                       <span
                         className={cn(
                           "text-[10px] font-black uppercase tracking-widest w-12 text-center px-1.5 py-1 rounded-md shrink-0 border",
-                          r.method === "GET"
-                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                            : r.method === "POST"
-                              ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                              : r.method === "DELETE"
-                                ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                                : "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                          getMethodBadgeClass(r.method),
                         )}
                       >
                         {r.method}
@@ -80,11 +109,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                     <span
                       className={cn(
                         "inline-flex items-center justify-center min-w-[50px] h-8 rounded-xl text-xs font-black border",
-                        r.outcome === "success"
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                          : r.outcome === "warning"
-                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                            : "bg-rose-500/10 text-rose-600 border-rose-500/20",
+                        getOutcomeBadgeClass(r.outcome),
                       )}
                     >
                       {r.statusCode ?? "---"}
@@ -94,11 +119,7 @@ export function ReportPerformanceTable({ results }: ReportPerformanceTableProps)
                     <span
                       className={cn(
                         "text-lg font-black tabular-nums tracking-tight",
-                        isHighLatency
-                          ? "text-rose-600"
-                          : (r.latencyMs ?? 0) > 500
-                            ? "text-amber-600"
-                            : "text-foreground",
+                        getLatencyClass(r.latencyMs ?? 0),
                       )}
                     >
                       {r.latencyMs ?? 0}

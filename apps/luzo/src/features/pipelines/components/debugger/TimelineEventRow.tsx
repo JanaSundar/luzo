@@ -36,6 +36,31 @@ const ICON_MAP: Record<StatusIcon, React.ReactNode> = {
   loader: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
 };
 
+function getTimelineEventTitle(event: TimelineEvent, displayStepName: string) {
+  switch (event.eventKind) {
+    case "route_selected":
+      return `${displayStepName} routed ${event.routeSemantics ?? "forward"}`;
+    case "condition_evaluated":
+      return `${displayStepName} → ${event.routeSemantics ?? "evaluated"}`;
+    case "step_skipped":
+      return `${displayStepName} skipped`;
+    case "poll_attempt":
+      return `${displayStepName} polling attempt ${event.attemptNumber ?? 1}`;
+    case "poll_wait":
+      return `${displayStepName} waiting to retry`;
+    case "poll_terminal":
+      return `${displayStepName} polling finished`;
+    case "webhook_wait":
+      return `${displayStepName} waiting for webhook`;
+    case "webhook_matched":
+      return `${displayStepName} webhook matched`;
+    case "webhook_timeout":
+      return `${displayStepName} webhook timed out`;
+    default:
+      return displayStepName;
+  }
+}
+
 // ─── Component ──────────────────────────────────────────────────────
 interface TimelineEventRowProps {
   event: TimelineEvent;
@@ -65,26 +90,7 @@ export const TimelineEventRow = memo(function TimelineEventRow({
     stepNameById,
   });
   const visual = getStatusVisual(event.status);
-  const title =
-    event.eventKind === "route_selected"
-      ? `${displayStepName} routed ${event.routeSemantics ?? "forward"}`
-      : event.eventKind === "condition_evaluated"
-        ? `${displayStepName} → ${event.routeSemantics ?? "evaluated"}`
-        : event.eventKind === "step_skipped"
-          ? `${displayStepName} skipped`
-          : event.eventKind === "poll_attempt"
-            ? `${displayStepName} polling attempt ${event.attemptNumber ?? 1}`
-            : event.eventKind === "poll_wait"
-              ? `${displayStepName} waiting to retry`
-              : event.eventKind === "poll_terminal"
-                ? `${displayStepName} polling finished`
-                : event.eventKind === "webhook_wait"
-                  ? `${displayStepName} waiting for webhook`
-                  : event.eventKind === "webhook_matched"
-                    ? `${displayStepName} webhook matched`
-                    : event.eventKind === "webhook_timeout"
-                      ? `${displayStepName} webhook timed out`
-                      : displayStepName;
+  const title = getTimelineEventTitle(event, displayStepName);
   const relativeStart =
     event.startedAt != null && baselineTimestamp != null
       ? `+${Math.max(0, event.startedAt - baselineTimestamp)}ms`

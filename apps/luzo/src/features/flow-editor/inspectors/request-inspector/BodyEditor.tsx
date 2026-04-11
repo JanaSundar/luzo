@@ -28,6 +28,18 @@ function createFormDataField(): FormDataField {
   return { enabled: true, key: "", type: "text", value: "" };
 }
 
+function getBodyPlaceholder(bodyType: (typeof BODY_TYPES)[number]["value"]) {
+  switch (bodyType) {
+    case "json":
+      return '{\n  "key": "value"\n}';
+    case "x-www-form-urlencoded":
+      return "name=luzo&mode=debug";
+    case "raw":
+    default:
+      return "Raw request body";
+  }
+}
+
 export function BodyEditor({
   body,
   bodyLocked,
@@ -101,13 +113,7 @@ export function BodyEditor({
           <TemplateTextarea
             id="request-body-editor"
             disabled={disabled}
-            placeholder={
-              bodyType === "json"
-                ? '{\n  "key": "value"\n}'
-                : bodyType === "x-www-form-urlencoded"
-                  ? "name=luzo&mode=debug"
-                  : "Raw request body"
-            }
+            placeholder={getBodyPlaceholder(bodyType)}
             suggestions={suggestions}
             textareaClassName="min-h-[220px] rounded-none border-x-0 border-t-0 border-b border-border bg-transparent px-0 font-mono text-sm shadow-none focus-visible:border-foreground/30 focus-visible:bg-transparent"
             value={body ?? ""}

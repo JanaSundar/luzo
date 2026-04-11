@@ -82,14 +82,21 @@ function exportToOpenApi(source: ExportableCollection): string {
 }
 
 function mapBody(item: ExportableRequest) {
-  const contentType =
-    item.bodyType === "json"
-      ? "application/json"
-      : item.bodyType === "x-www-form-urlencoded"
-        ? "application/x-www-form-urlencoded"
-        : item.bodyType === "form-data"
-          ? "multipart/form-data"
-          : "text/plain";
+  let contentType: string;
+  switch (item.bodyType) {
+    case "json":
+      contentType = "application/json";
+      break;
+    case "x-www-form-urlencoded":
+      contentType = "application/x-www-form-urlencoded";
+      break;
+    case "form-data":
+      contentType = "multipart/form-data";
+      break;
+    default:
+      contentType = "text/plain";
+      break;
+  }
 
   return {
     content: {
