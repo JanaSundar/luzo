@@ -18,7 +18,7 @@ const pipelineRecord = {
 };
 
 const AUTO_OPEN_TIMELINE_KEY = "luzo:pipeline:auto-open-timeline";
-const EXECUTION_DRAWER_SIZE_KEY = "luzo:pipeline:execution-drawer-size";
+const EXECUTION_DRAWER_SIZE_KEY = "luzo:pipeline:execution-drawer-size:v2";
 
 function renderSubject(overrides?: Partial<ComponentProps<typeof PipelineLayoutContent>>) {
   const props: ComponentProps<typeof PipelineLayoutContent> = {
@@ -98,6 +98,22 @@ describe("PipelineLayoutContent", () => {
 
     expect(onRun).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/run a pipeline to see the execution timeline/i)).toBeInTheDocument();
+  });
+
+  it("expands the execution drawer to full size when run is triggered", async () => {
+    const user = userEvent.setup();
+
+    window.localStorage.setItem(EXECUTION_DRAWER_SIZE_KEY, "24");
+
+    renderSubject();
+
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    const drawerShell = screen
+      .getByLabelText(/resize execution timeline drawer/i)
+      .closest("section")?.parentElement;
+
+    expect(drawerShell).toHaveStyle({ height: "96%" });
   });
 
   it("keeps the drawer closed when auto-open is disabled, but still allows manual open", async () => {
