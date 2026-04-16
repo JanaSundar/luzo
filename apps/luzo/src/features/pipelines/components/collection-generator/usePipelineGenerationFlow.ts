@@ -12,6 +12,7 @@ import {
   setDraftGrouping,
 } from "@/features/collection-to-pipeline/draft-edits";
 import { loadCollectionGenerationSource } from "@/features/collection-to-pipeline/normalize-source";
+import { applyGeneratedPipeline } from "@/features/workflow-starter/apply-generated-pipeline";
 import { useCollectionsQuery } from "@/features/collections/useCollections";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import type { PipelineGenerationDraft, PreviewGrouping } from "@/types";
@@ -22,6 +23,7 @@ export function usePipelineGenerationFlow(requestedCollectionId?: string | null)
     (state) => state.pipelines.find((pipeline) => pipeline.id === state.activePipelineId) ?? null,
   );
   const insertPipeline = usePipelineStore((state) => state.insertPipeline);
+  const setSelectedNodeId = usePipelineStore((state) => state.setSelectedNodeId);
   const setView = usePipelineStore((state) => state.setView);
   const updatePipeline = usePipelineStore((state) => state.updatePipeline);
   const [draft, setDraft] = useState<PipelineGenerationDraft | null>(null);
@@ -52,7 +54,7 @@ export function usePipelineGenerationFlow(requestedCollectionId?: string | null)
       const collection = collections.find(
         (entry) => entry.id === (collectionId ?? selectedCollectionId),
       );
-      if (!collection) return;
+      if (!collection) return null;
       setIsAnalyzing(true);
       setError(null);
       try {
@@ -61,8 +63,10 @@ export function usePipelineGenerationFlow(requestedCollectionId?: string | null)
         );
         setDraft(nextDraft);
         setName(`${collection.name} Pipeline`);
+        return nextDraft;
       } catch (nextError) {
         setError(nextError instanceof Error ? nextError.message : "Unable to analyze collection.");
+        return null;
       } finally {
         setIsAnalyzing(false);
       }
@@ -76,9 +80,11 @@ export function usePipelineGenerationFlow(requestedCollectionId?: string | null)
     try {
       const nextDraft = analyzeCollectionToDraft(tryLoadUploadedSource(text, fileName));
       setDraft(nextDraft);
-      setName(`${nextDraft.source.collectionName} Pipeline`);
+      setName(`${nextDraft.source.label} Pipeline`);
+      return nextDraft;
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Unable to analyze uploaded JSON.");
+      return null;
     } finally {
       setIsAnalyzing(false);
     }
@@ -87,25 +93,26 @@ export function usePipelineGenerationFlow(requestedCollectionId?: string | null)
   const createPipeline = useCallback(() => {
     if (!draft) return;
     const pipeline = compileDraftToPipeline(draft, name);
-    if (
-      activePipeline &&
-      activePipeline.steps.length === 0 &&
-      !activePipeline.description?.trim()
-    ) {
-      updatePipeline(activePipeline.id, {
-        description: pipeline.description,
-        generationMetadata: pipeline.generationMetadata,
-        name: pipeline.name,
-        narrativeConfig: pipeline.narrativeConfig,
-        steps: pipeline.steps,
-      });
-    } else {
-      insertPipeline(pipeline);
-    }
-    setView("builder");
+    applyGeneratedPipeline({
+      activePipeline,
+      generatedPipeline: pipeline,
+      insertPipeline,
+      setSelectedNodeId,
+      setView,
+      updatePipeline,
+    });
     toast.success("Pipeline created from collection");
     close();
-  }, [activePipeline, close, draft, insertPipeline, name, setView, updatePipeline]);
+  }, [
+    activePipeline,
+    close,
+    draft,
+    insertPipeline,
+    name,
+    setSelectedNodeId,
+    setView,
+    updatePipeline,
+  ]);
 
   return {
     analyzeCollection,

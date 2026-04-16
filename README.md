@@ -6,7 +6,7 @@ Luzo is a developer and QA-centric API workflow builder for designing, running, 
 
 Luzo treats API calls as steps in a larger execution graph. It gives you a place to chain requests, pass data between them, inspect execution as it happens, and debug failures without losing the state of the workflow.
 
-Recent additions include variable lineage visibility across the builder and debugger, inline dependency diagnostics in request editing, runtime lineage inspection inside the execution timeline, and a pipeline execution drawer with quick access to the AI configurator on run completion.
+Recent additions include variable lineage visibility across the builder and debugger, inline dependency diagnostics in request editing, start-here execution from any request node, pinned baseline run diffs inside the timeline, and a slimmer collection-to-pipeline creation flow.
 
 ---
 
@@ -97,6 +97,18 @@ Debug with a timeline instead of a flat log.
 - Reveal sensitive lineage values on demand in the debugger instead of exposing them by default
 - Resume debugging with persisted execution artifacts and timeline state
 - Retry from the Response Stream page using the run's original mode, including debug-originated runs
+- Pin a known-good run as a baseline and compare the latest execution against it
+- Detect regressions across status, latency, response shape, and assertion outcomes
+- Filter timeline changes to focus on regressions or changed steps only
+
+### Flexible execution
+
+Run the whole workflow when you want, or jump directly to the point you need.
+
+- Start execution from any request step in the builder or visual flow editor
+- Reuse compatible upstream context from the latest run when starting mid-flow
+- Run fresh from a request when upstream data is not required
+- Keep partial runs in the same debugger and timeline experience as full executions
 
 ### Dependency visibility
 
@@ -113,7 +125,7 @@ Turn saved requests into runnable workflows.
 
 - Import from Postman JSON, Luzo collections, or stored collections
 - Infer step names, dependencies, unresolved variables, and execution order
-- Preview and adjust the generated flow before opening it in the builder
+- Preview and adjust the generated flow in a minimal review step before opening it in the builder
 - Export pipelines and collections to Postman Collection v2.1 or OpenAPI 3.0
 
 ### Deterministic debug controller

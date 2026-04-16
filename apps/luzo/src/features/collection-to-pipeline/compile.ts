@@ -3,7 +3,7 @@ import type { Pipeline, PipelineGenerationDraft } from "@/types";
 
 export function compileDraftToPipeline(
   draft: PipelineGenerationDraft,
-  name = `${draft.source.collectionName} Pipeline`,
+  name = `${draft.source.label} Pipeline`,
 ): Pipeline {
   const pipeline = createPipelineRecord(name.trim() || "Generated Pipeline");
   const warnings = draft.steps.flatMap((step) => step.warnings).length;
@@ -13,7 +13,7 @@ export function compileDraftToPipeline(
 
   return {
     ...pipeline,
-    description: `Generated from ${draft.source.collectionName}`,
+    description: `Generated from ${draft.source.label}`,
     generationMetadata: {
       generatedAt: new Date().toISOString(),
       source: draft.source,

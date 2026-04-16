@@ -31,6 +31,8 @@ export function createLuzoBlockRegistry(
   options?: {
     getNodeSuggestions?: (nodeId: string) => VariableSuggestion[];
     getNodeRuntimeRef?: (nodeId: string) => string | null;
+    onRunFresh?: (nodeId: string) => void | Promise<void>;
+    onStartHere?: (nodeId: string) => void | Promise<void>;
     pipeline?: Pipeline | null;
   },
 ) {
@@ -38,7 +40,10 @@ export function createLuzoBlockRegistry(
 
   return createBlockRegistry([
     startBlockDef,
-    createRequestBlockDef(blockMap, getSuggestions),
+    createRequestBlockDef(blockMap, getSuggestions, {
+      onRunFresh: options?.onRunFresh,
+      onStartHere: options?.onStartHere,
+    }),
     createIfBlockDef(getSuggestions),
     createAiBlockDef(options?.pipeline ?? null),
     delayBlockDef,

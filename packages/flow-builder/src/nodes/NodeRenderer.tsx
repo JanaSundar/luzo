@@ -39,7 +39,7 @@ export function NodeRenderer({
         overflow: "hidden",
       }}
     >
-      {builtInContent ?? customContent ?? <div style={{ opacity: 0.7 }}>No renderer</div>}
+      {customContent ?? builtInContent ?? <div style={{ opacity: 0.7 }}>No renderer</div>}
     </div>
   );
 }

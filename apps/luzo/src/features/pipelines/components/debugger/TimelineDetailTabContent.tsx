@@ -1,6 +1,7 @@
 "use client";
 
 import { METHOD_COLORS } from "@/utils/http";
+import type { StepRunDiff } from "@/types/pipeline-debug";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import {
@@ -254,4 +255,70 @@ export function LineageTab({ rows }: { rows: TimelineLineageRow[] }) {
 function sizeLabel(body: string | null | undefined) {
   if (!body) return "0b";
   return formatBytes(new TextEncoder().encode(body).length);
+}
+
+export function DiffTab({ stepDiff }: { stepDiff: StepRunDiff | null }) {
+  if (!stepDiff) {
+    return <p className="text-xs italic text-muted-foreground">No baseline diff available.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <PayloadSummaryCard
+        title="Baseline diff"
+        items={[
+          { label: "Severity", value: stepDiff.severity },
+          {
+            label: "Matched baseline",
+            value: stepDiff.isMatched ? "Yes" : "No",
+          },
+          {
+            label: "Latency delta",
+            value:
+              stepDiff.latencyDeltaMs != null
+                ? `${stepDiff.latencyDeltaMs > 0 ? "+" : ""}${stepDiff.latencyDeltaMs}ms`
+                : "n/a",
+          },
+          { label: "Changes", value: String(stepDiff.changes.length) },
+        ]}
+      />
+      {stepDiff.changes.length === 0 ? (
+        <div className="rounded-lg border bg-muted/10 px-3 py-2 text-sm text-muted-foreground">
+          This request matches the pinned baseline.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {stepDiff.changes.map((change) => (
+            <div
+              key={`${change.kind}:${change.message}`}
+              className="rounded-lg border border-border/50 bg-background px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{change.message}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {change.severity}
+                </span>
+              </div>
+              {change.before !== undefined || change.after !== undefined ? (
+                <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                  <div className="rounded-md border border-border/40 bg-muted/10 px-2 py-1.5">
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.14em]">
+                      Baseline
+                    </span>
+                    <span>{String(change.before ?? "n/a")}</span>
+                  </div>
+                  <div className="rounded-md border border-border/40 bg-muted/10 px-2 py-1.5">
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.14em]">
+                      Current
+                    </span>
+                    <span>{String(change.after ?? "n/a")}</span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

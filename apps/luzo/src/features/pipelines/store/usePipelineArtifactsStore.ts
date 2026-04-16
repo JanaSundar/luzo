@@ -4,6 +4,7 @@ import type { CheckpointArtifact } from "@/features/pipeline/pipeline-persistenc
 import { createIndexedDbStorage } from "@/services/storage/zustand-indexeddb";
 import type {
   AIReportCache,
+  PinnedBaselineArtifact,
   PersistedDebuggerArtifact,
   PersistedExecutionArtifact,
   PersistedPipelineArtifacts,
@@ -11,25 +12,30 @@ import type {
 
 interface PipelineArtifactsState {
   executionByPipelineId: Record<string, PersistedExecutionArtifact>;
+  baselineByPipelineId: Record<string, PinnedBaselineArtifact>;
   reportsByPipelineId: Record<string, AIReportCache>;
   debuggerByPipelineId: Record<string, PersistedDebuggerArtifact>;
   saveExecutionArtifact: (
     pipelineId: string,
     artifact: PersistedExecutionArtifact | CheckpointArtifact,
   ) => void;
+  saveBaselineArtifact: (pipelineId: string, artifact: PinnedBaselineArtifact) => void;
   saveReportArtifact: (pipelineId: string, report: AIReportCache) => void;
   saveDebuggerArtifact: (pipelineId: string, debuggerArtifact: PersistedDebuggerArtifact) => void;
+  clearBaselineArtifact: (pipelineId: string) => void;
   deleteReportArtifact: (pipelineId: string) => void;
   deleteArtifacts: (pipelineId: string) => void;
   deleteArtifactsBatch: (pipelineIds: string[]) => void;
   getExecutionArtifact: (
     pipelineId: string | null,
   ) => (PersistedExecutionArtifact | CheckpointArtifact) | null;
+  getBaselineArtifact: (pipelineId: string | null) => PinnedBaselineArtifact | null;
   getReportArtifact: (pipelineId: string | null) => AIReportCache | null;
 }
 
 const INITIAL_STATE: PersistedPipelineArtifacts = {
   executionByPipelineId: {},
+  baselineByPipelineId: {},
   reportsByPipelineId: {},
   debuggerByPipelineId: {},
 };
@@ -47,6 +53,11 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
           },
         })),
 
+      saveBaselineArtifact: (pipelineId, artifact) =>
+        set((state) => ({
+          baselineByPipelineId: { ...state.baselineByPipelineId, [pipelineId]: artifact },
+        })),
+
       saveReportArtifact: (pipelineId, report) =>
         set((state) => ({
           reportsByPipelineId: { ...state.reportsByPipelineId, [pipelineId]: report },
@@ -57,6 +68,11 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
           debuggerByPipelineId: { ...state.debuggerByPipelineId, [pipelineId]: debuggerArtifact },
         })),
 
+      clearBaselineArtifact: (pipelineId) =>
+        set((state) => ({
+          baselineByPipelineId: omit(state.baselineByPipelineId, pipelineId),
+        })),
+
       deleteReportArtifact: (pipelineId) =>
         set((state) => ({
           reportsByPipelineId: omit(state.reportsByPipelineId, pipelineId),
@@ -65,6 +81,7 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
       deleteArtifacts: (pipelineId) =>
         set((state) => ({
           executionByPipelineId: omit(state.executionByPipelineId, pipelineId),
+          baselineByPipelineId: omit(state.baselineByPipelineId, pipelineId),
           reportsByPipelineId: omit(state.reportsByPipelineId, pipelineId),
           debuggerByPipelineId: omit(state.debuggerByPipelineId, pipelineId),
         })),
@@ -72,12 +89,16 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
       deleteArtifactsBatch: (pipelineIds) =>
         set((state) => ({
           executionByPipelineId: omitMany(state.executionByPipelineId, pipelineIds),
+          baselineByPipelineId: omitMany(state.baselineByPipelineId, pipelineIds),
           reportsByPipelineId: omitMany(state.reportsByPipelineId, pipelineIds),
           debuggerByPipelineId: omitMany(state.debuggerByPipelineId, pipelineIds),
         })),
 
       getExecutionArtifact: (pipelineId) =>
         pipelineId ? (get().executionByPipelineId[pipelineId] ?? null) : null,
+
+      getBaselineArtifact: (pipelineId) =>
+        pipelineId ? (get().baselineByPipelineId[pipelineId] ?? null) : null,
 
       getReportArtifact: (pipelineId) =>
         pipelineId ? (get().reportsByPipelineId[pipelineId] ?? null) : null,
@@ -87,6 +108,7 @@ export const usePipelineArtifactsStore = create<PipelineArtifactsState>()(
       storage: createJSONStorage(() => createIndexedDbStorage({ dbName: "luzo-state" })),
       partialize: (state) => ({
         executionByPipelineId: state.executionByPipelineId,
+        baselineByPipelineId: state.baselineByPipelineId,
         reportsByPipelineId: state.reportsByPipelineId,
         debuggerByPipelineId: state.debuggerByPipelineId,
       }),

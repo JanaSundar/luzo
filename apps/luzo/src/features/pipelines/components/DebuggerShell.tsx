@@ -9,6 +9,7 @@ import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import { usePipelineStore } from "@/stores/usePipelineStore";
 import { useTimelineStore } from "@/stores/useTimelineStore";
 import { DebugControlsBar } from "./DebugControlsBar";
+import { PipelineRunDiffBanner } from "./debugger/PipelineRunDiffBanner";
 import { TimelineEmpty } from "./debugger/TimelineEmptyState";
 import { ResumePrompt } from "./ResumePrompt";
 import { TimelinePanel } from "./TimelinePanel";
@@ -94,6 +95,8 @@ export function DebuggerShell({
         onStop={onStop}
         onRunAuto={onRunAuto}
       />
+
+      <PipelineRunDiffBanner status={status} />
 
       {status === "paused" && <UnresolvedVariablesPanel />}
 

@@ -1,5 +1,6 @@
 import type { Pipeline, TemplateDefinition } from "@/types";
 import { ensurePipelineFlowDocument } from "@/features/pipeline/canvas-flow";
+import { createTemplateGenerationSource } from "@/features/workflow-starter/source-metadata";
 import { interpolateVariables } from "@/utils/variables";
 
 export function instantiateTemplate(
@@ -16,6 +17,21 @@ export function instantiateTemplate(
   }));
   const nextPipeline = {
     ...interpolated,
+    generationMetadata: {
+      generatedAt: new Date().toISOString(),
+      source: createTemplateGenerationSource(template),
+      stepMappings: nextSteps.map((step, index) => ({
+        grouping: "sequential" as const,
+        sourceRequestId: step.id,
+        stageIndex: index + 1,
+        stepId: step.id,
+      })),
+      summary: {
+        dependencyCount: 0,
+        unresolvedCount: 0,
+        warningCount: 0,
+      },
+    },
     id: pipelineId,
     name: interpolated.name,
     steps: nextSteps,

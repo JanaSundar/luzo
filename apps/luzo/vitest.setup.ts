@@ -19,6 +19,21 @@ class MockWorker {
 }
 
 vi.stubGlobal("Worker", MockWorker);
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    disconnect() {}
+    unobserve() {}
+  },
+);
+
+if (!HTMLElement.prototype.getAnimations) {
+  Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+    configurable: true,
+    value: () => [],
+  });
+}
 
 vi.mock("@/workers/client/json-client", () => ({
   jsonWorkerClient: {

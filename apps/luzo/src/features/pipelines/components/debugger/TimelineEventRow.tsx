@@ -14,6 +14,7 @@ import {
 import { memo } from "react";
 import { cn } from "@/utils";
 import { METHOD_COLORS } from "@/utils/http";
+import type { StepRunDiff } from "@/types/pipeline-debug";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { formatBytes, formatDuration } from "@/features/pipeline/timeline/format-utils";
 import {
@@ -64,6 +65,7 @@ function getTimelineEventTitle(event: TimelineEvent, displayStepName: string) {
 // ─── Component ──────────────────────────────────────────────────────
 interface TimelineEventRowProps {
   event: TimelineEvent;
+  stepDiff: StepRunDiff | null;
   baselineTimestamp: number | null;
   maxDurationMs: number;
   isSelected: boolean;
@@ -73,6 +75,7 @@ interface TimelineEventRowProps {
 
 export const TimelineEventRow = memo(function TimelineEventRow({
   event,
+  stepDiff,
   baselineTimestamp,
   maxDurationMs,
   isSelected,
@@ -217,6 +220,21 @@ export const TimelineEventRow = memo(function TimelineEventRow({
               ×{event.retryCount}
             </span>
           )}
+          {stepDiff && stepDiff.severity !== "unchanged" ? (
+            <span
+              className={cn(
+                "rounded-md border px-1.5 py-0.5 font-mono text-[9px]",
+                stepDiff.severity === "regression" &&
+                  "border-destructive/20 bg-destructive/10 text-destructive",
+                stepDiff.severity === "changed" &&
+                  "border-amber-500/20 bg-amber-500/10 text-amber-700",
+                stepDiff.severity === "improved" &&
+                  "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+              )}
+            >
+              {stepDiff.severity.toUpperCase()}
+            </span>
+          ) : null}
         </div>
       </div>
 

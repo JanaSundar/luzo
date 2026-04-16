@@ -1,6 +1,6 @@
 "use client";
 
-import { Braces, Plus, Search } from "lucide-react";
+import { Braces, Play, PlayCircle, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/utils";
 import type { FlowNode } from "@luzo/flow-types";
@@ -46,9 +46,14 @@ export const FLOW_EDITOR_SUGGESTION_SOURCES = [
 
 export function FlowEditorPage({
   onClearRequestedCollection,
+  onRunFromStep,
   requestedCollectionId,
 }: {
   onClearRequestedCollection?: () => void;
+  onRunFromStep?: (
+    stepId: string,
+    mode: "partial-fresh" | "partial-previous",
+  ) => void | Promise<void>;
   requestedCollectionId?: string | null;
 }) {
   const activePipelineId = usePipelineStore((state) => state.activePipelineId);
@@ -107,9 +112,11 @@ export function FlowEditorPage({
       createLuzoBlockRegistry(blockMap, {
         getNodeSuggestions,
         getNodeRuntimeRef: (nodeId) => nodeRuntimeRefById.get(nodeId) ?? null,
+        onRunFresh: (nodeId) => onRunFromStep?.(nodeId, "partial-fresh"),
+        onStartHere: (nodeId) => onRunFromStep?.(nodeId, "partial-previous"),
         pipeline,
       }),
-    [blockMap, getNodeSuggestions, nodeRuntimeRefById, pipeline],
+    [blockMap, getNodeSuggestions, nodeRuntimeRefById, onRunFromStep, pipeline],
   );
 
   if (!pipeline) return null;
@@ -189,6 +196,16 @@ export function FlowEditorPage({
             <FlowNodeMenu
               node={node}
               close={close}
+              onRunFresh={
+                node.type === "request"
+                  ? () => onRunFromStep?.(node.id, "partial-fresh")
+                  : undefined
+              }
+              onStartHere={
+                node.type === "request"
+                  ? () => onRunFromStep?.(node.id, "partial-previous")
+                  : undefined
+              }
               onDuplicate={node.type !== "start" ? () => duplicateNode(node.id) : undefined}
               onDelete={() => {
                 onNodesChange([{ type: "remove", id: node.id }]);
@@ -368,22 +385,52 @@ function SuggestionPanel({
   );
 }
 
-function FlowNodeMenu({
+export function FlowNodeMenu({
   close,
   node,
   onDelete,
   onDuplicate,
+  onRunFresh,
+  onStartHere,
 }: {
   close: () => void;
   node: FlowNode;
   onDelete: () => void;
   onDuplicate?: () => void;
+  onRunFresh?: () => void | Promise<void>;
+  onStartHere?: () => void | Promise<void>;
 }) {
   return (
     <div className="grid min-w-[160px] gap-0.5 p-1">
       <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {node.type}
       </div>
+      {onStartHere ? (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-muted"
+          onClick={() => {
+            void onStartHere();
+            close();
+          }}
+        >
+          <Play className="h-3.5 w-3.5" />
+          Start Here
+        </button>
+      ) : null}
+      {onRunFresh ? (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-muted"
+          onClick={() => {
+            void onRunFresh();
+            close();
+          }}
+        >
+          <PlayCircle className="h-3.5 w-3.5" />
+          Run Fresh
+        </button>
+      ) : null}
       {onDuplicate ? (
         <button
           type="button"
@@ -398,7 +445,7 @@ function FlowNodeMenu({
       ) : null}
       <button
         type="button"
-        className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-destructive transition hover:bg-destructive/10"
+        className="w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-muted"
         onClick={onDelete}
       >
         Delete

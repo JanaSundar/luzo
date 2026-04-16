@@ -38,7 +38,10 @@ export function PipelineLayoutEmptyState() {
       <div className="rounded-full bg-muted/30 p-4">
         <Plus className="h-8 w-8 opacity-20" />
       </div>
-      <p className="text-sm">Select or create a pipeline to get started</p>
+      <div className="space-y-1 text-center">
+        <p className="text-sm font-medium text-foreground">Create your first pipeline</p>
+        <p className="text-sm">Use the sidebar, templates, or collection import to get started.</p>
+      </div>
     </div>
   );
 }

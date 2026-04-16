@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { useSettingsStore } from "@/stores/useSettingsStore";
@@ -58,7 +57,6 @@ function PipelinesPageContent() {
   const pipelines = usePipelineStore((state) => state.pipelines);
   const activePipelineId = usePipelineStore((state) => state.activePipelineId);
   const currentView = usePipelineStore((state) => state.currentView);
-  const addPipeline = usePipelineStore((state) => state.addPipeline);
   const mergeMissingPipelines = usePipelineStore((state) => state.mergeMissingPipelines);
   const { dbStatus, dbSchemaReady, dbUrl } = useSettingsStore();
   const requestedCollectionId = searchParams.get("generateFromCollection");
@@ -68,6 +66,7 @@ function PipelinesPageContent() {
   const {
     handleRun,
     handleDebug,
+    handleRunFromStep,
     handleStop,
     handleStep,
     handleResume,
@@ -86,12 +85,6 @@ function PipelinesPageContent() {
     }
     return unsubscribe;
   }, []);
-
-  useEffect(() => {
-    if (hydrated && pipelines.length === 0) {
-      addPipeline("API Pipeline");
-    }
-  }, [addPipeline, hydrated, pipelines.length]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -142,27 +135,30 @@ function PipelinesPageContent() {
   };
 
   return (
-    <PipelineLayout
-      onRun={handleRun}
-      onDebug={handleDebug}
-      onStop={handleStop}
-      onStep={handleStep}
-      onResume={handleResume}
-      onRetry={handleRetry}
-      onSaveToDb={() => void savePipelineToDb(activePipeline)}
-      onGenerateReport={handleGenerateReport}
-      onExportReport={handleExportReport}
-      isSavingToDb={isSaving}
-    >
-      {currentView === "builder" && (
-        <FlowEditorPage
-          onClearRequestedCollection={clearRequestedCollection}
-          requestedCollectionId={requestedCollectionId}
-        />
-      )}
-      {currentView === "ai-config" && <AIConfigurator />}
-      {currentView === "report" && <ReportPreview />}
-    </PipelineLayout>
+    <>
+      <PipelineLayout
+        onRun={handleRun}
+        onDebug={handleDebug}
+        onStop={handleStop}
+        onStep={handleStep}
+        onResume={handleResume}
+        onRetry={handleRetry}
+        onSaveToDb={() => void savePipelineToDb(activePipeline)}
+        onGenerateReport={handleGenerateReport}
+        onExportReport={handleExportReport}
+        isSavingToDb={isSaving}
+      >
+        {currentView === "builder" && (
+          <FlowEditorPage
+            onClearRequestedCollection={clearRequestedCollection}
+            onRunFromStep={handleRunFromStep}
+            requestedCollectionId={requestedCollectionId}
+          />
+        )}
+        {currentView === "ai-config" && <AIConfigurator />}
+        {currentView === "report" && <ReportPreview />}
+      </PipelineLayout>
+    </>
   );
 }
 

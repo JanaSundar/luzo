@@ -6,6 +6,7 @@ import { getPipelineExecutionSupport } from "@/features/pipeline/canvas-flow";
 import type { DebugController } from "@/features/pipeline/debug-controller";
 import { planPartialPipelineRun } from "@/features/pipeline/partial-run";
 import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
+import { usePipelineExecutionStore } from "@/stores/usePipelineExecutionStore";
 import type { Pipeline, PipelineExecutionResult } from "@/types";
 import type { ArtifactInput } from "@/features/pipeline/partial-run";
 
@@ -61,6 +62,12 @@ export function usePipelinePageActions({
 
   const handleRun = useCallback(async () => {
     if (!activePipeline || !prepareRun()) return;
+    usePipelineExecutionStore.getState().setRunContext({
+      partialMode: "full",
+      reusedAliases: [],
+      staleContextWarning: null,
+      startStepId: null,
+    });
     setExecuting(true);
     const result = await controller.start(activePipeline, getActiveEnvironmentVariables(), {
       executionMode: "auto",
@@ -71,6 +78,12 @@ export function usePipelinePageActions({
 
   const handleDebug = useCallback(async () => {
     if (!activePipeline || !prepareRun()) return;
+    usePipelineExecutionStore.getState().setRunContext({
+      partialMode: "full",
+      reusedAliases: [],
+      staleContextWarning: null,
+      startStepId: null,
+    });
     const result = await controller.start(activePipeline, getActiveEnvironmentVariables(), {
       executionMode: "debug",
     });
@@ -98,6 +111,12 @@ export function usePipelinePageActions({
         return;
       }
       if (!prepareRun()) return;
+      usePipelineExecutionStore.getState().setRunContext({
+        partialMode: plan.options.partialMode ?? "full",
+        reusedAliases: plan.options.reusedAliases ?? [],
+        staleContextWarning: plan.options.staleContextWarning ?? null,
+        startStepId: plan.options.startStepId ?? null,
+      });
       setExecuting(true);
       const result = await controller.start(activePipeline, getActiveEnvironmentVariables(), {
         ...plan.options,

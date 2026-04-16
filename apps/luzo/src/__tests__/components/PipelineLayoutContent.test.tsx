@@ -106,7 +106,8 @@ describe("PipelineLayoutContent", () => {
 
     renderSubject({ onRun });
 
-    await user.click(screen.getByRole("switch", { name: /auto-open timeline/i }));
+    await user.click(screen.getByRole("button", { name: /more actions/i }));
+    await user.click(screen.getByRole("menuitemcheckbox", { name: /auto-open timeline/i }));
     await user.click(screen.getByRole("button", { name: /^run$/i }));
 
     expect(onRun).toHaveBeenCalledTimes(1);
@@ -114,7 +115,8 @@ describe("PipelineLayoutContent", () => {
       screen.queryByText(/run a pipeline to see the execution timeline/i),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: /timeline/i }).at(-1)!);
+    await user.click(screen.getByRole("button", { name: /more actions/i }));
+    await user.click(screen.getByRole("menuitem", { name: /show timeline/i }));
 
     expect(screen.getByText(/run a pipeline to see the execution timeline/i)).toBeInTheDocument();
   });
@@ -125,13 +127,15 @@ describe("PipelineLayoutContent", () => {
     const secondRun = vi.fn();
     const firstRender = renderSubject({ onRun: firstRun });
 
-    await user.click(screen.getByRole("switch", { name: /auto-open timeline/i }));
+    await user.click(screen.getByRole("button", { name: /more actions/i }));
+    await user.click(screen.getByRole("menuitemcheckbox", { name: /auto-open timeline/i }));
     firstRender.unmount();
 
     renderSubject({ onRun: secondRun });
+    await user.click(screen.getByRole("button", { name: /more actions/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("switch", { name: /auto-open timeline/i })).toHaveAttribute(
+      expect(screen.getByRole("menuitemcheckbox", { name: /auto-open timeline/i })).toHaveAttribute(
         "aria-checked",
         "false",
       );

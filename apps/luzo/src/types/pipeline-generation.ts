@@ -1,15 +1,28 @@
 import type { ApiRequest, PipelineStep } from ".";
 import type { ValidationError } from "./pipeline-runtime";
 
-export type GenerationSourceType = "stored_collection" | "postman_json" | "luzo_json";
+export type GenerationSourceType =
+  | "stored_collection"
+  | "postman_json"
+  | "luzo_json"
+  | "prompt"
+  | "builtin_template"
+  | "saved_template"
+  | "curl";
 export type DependencyConfidence = "explicit" | "high" | "low";
 export type PreviewGrouping = "sequential" | "parallel";
 
 export interface GenerationSourceMetadata {
+  label: string;
   collectionId?: string;
-  collectionName: string;
+  collectionName?: string;
   fileName?: string;
+  promptSummary?: string;
   sourceType: GenerationSourceType;
+  templateId?: string;
+  templateName?: string;
+  templateSourceType?: "builtin" | "user";
+  requestCountHint?: number;
 }
 
 export interface NormalizedCollectionRequest {

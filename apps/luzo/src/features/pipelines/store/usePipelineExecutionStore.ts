@@ -8,6 +8,7 @@ import {
   cloneSnapshots,
 } from "@/features/pipeline/pipeline-snapshot-utils";
 import type {
+  PartialExecutionMode,
   ControllerSnapshot,
   ExecutionMode,
   PipelineExecutionEvent,
@@ -27,6 +28,10 @@ interface ExecutionState {
   startedAt: number | null;
   completedAt: number | null;
   hasPersistedExecution: boolean;
+  partialMode: PartialExecutionMode;
+  startStepId: string | null;
+  reusedAliases: string[];
+  staleContextWarning: string | null;
 
   // Actions
   reset: () => void;
@@ -42,6 +47,12 @@ interface ExecutionState {
   setError: (error: string | null) => void;
   setExecutionMeta: (meta: { executionId: string; totalSteps: number; startedAt: number }) => void;
   setHasPersistedExecution: (has: boolean) => void;
+  setRunContext: (context: {
+    partialMode: PartialExecutionMode;
+    reusedAliases: string[];
+    staleContextWarning: string | null;
+    startStepId: string | null;
+  }) => void;
   applyControllerSnapshot: (snap: ControllerSnapshot) => void;
   applyExecutionEvent: (event: PipelineExecutionEvent) => void;
 }
@@ -59,6 +70,10 @@ const INITIAL_STATE = {
   startedAt: null,
   completedAt: null,
   hasPersistedExecution: false,
+  partialMode: "full" as const,
+  startStepId: null,
+  reusedAliases: [],
+  staleContextWarning: null,
 };
 
 export const usePipelineExecutionStore = create<ExecutionState>()(
@@ -139,6 +154,14 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
         state.hasPersistedExecution = has;
       }),
 
+    setRunContext: (context) =>
+      set((state) => {
+        state.partialMode = context.partialMode;
+        state.startStepId = context.startStepId;
+        state.reusedAliases = [...context.reusedAliases];
+        state.staleContextWarning = context.staleContextWarning;
+      }),
+
     applyExecutionEvent: (event) =>
       set((state) => {
         switch (event.type) {
@@ -216,12 +239,7 @@ export const usePipelineExecutionStore = create<ExecutionState>()(
             return;
 
           default:
-            if (process.env.NODE_ENV === "development") {
-              console.warn(
-                "[ExecutionStore] Unhandled execution event type:",
-                (event as { type: string }).type,
-              );
-            }
+            return;
         }
       }),
 

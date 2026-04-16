@@ -28,6 +28,7 @@ export function loadCollectionGenerationSource(
       source: {
         collectionId: source.collection.id,
         collectionName: source.collection.name,
+        label: source.collection.name,
         sourceType: source.sourceType ?? "stored_collection",
       },
       warnings: [],
@@ -55,6 +56,7 @@ function normalizePostmanText(text: string, fileName?: string): NormalizedCollec
     source: {
       collectionName: imported.name,
       fileName,
+      label: imported.name,
       sourceType: "postman_json",
     },
     warnings: imported.requests.length > 0 ? [] : ["No requests found in uploaded Postman JSON."],
@@ -92,6 +94,7 @@ function normalizeLuzoText(text: string, fileName?: string): NormalizedCollectio
     source: {
       collectionName: parsed.name,
       fileName,
+      label: parsed.name,
       sourceType: "luzo_json",
     },
     warnings,

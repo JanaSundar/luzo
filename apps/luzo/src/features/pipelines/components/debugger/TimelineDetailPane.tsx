@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { METHOD_COLORS } from "@/utils/http";
 import { cn } from "@/utils";
+import type { PipelineRunDiff } from "@/types/pipeline-debug";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { formatBytes, formatDuration } from "@/features/pipeline/timeline/format-utils";
 import { getStatusVisual } from "@/features/pipeline/timeline/status-config";
@@ -12,6 +13,7 @@ import { usePipelineLineage } from "@/features/pipelines/hooks/usePipelineLineag
 import { buildPipelineStepNameMap, resolveTimelineDisplayName } from "./timelineDisplayNames";
 import { buildLineageRows } from "./timelineLineageUtils";
 import {
+  DiffTab,
   ErrorTab,
   LineageTab,
   OverviewTab,
@@ -19,9 +21,15 @@ import {
   ResponseTab,
 } from "./TimelineDetailTabContent";
 
-type DetailTab = "overview" | "request" | "response" | "lineage" | "error";
+type DetailTab = "overview" | "request" | "response" | "lineage" | "diff" | "error";
 
-export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
+export function TimelineDetailPane({
+  diff,
+  event,
+}: {
+  diff: PipelineRunDiff | null;
+  event: TimelineEvent | null;
+}) {
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const { pipelines, activePipelineId } = usePipelineStore();
   const pipeline = useMemo(
@@ -48,6 +56,7 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
     () => buildLineageRows({ event, snapshot, analysis: lineageAnalysis }),
     [event, snapshot, lineageAnalysis],
   );
+  const stepDiff = event?.stepId ? (diff?.stepsById[event.stepId] ?? null) : null;
 
   useEffect(() => {
     setActiveTab("overview");
@@ -68,6 +77,7 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
     stepNameById,
   });
   const tabs = getTabs({
+    hasDiff: Boolean(stepDiff),
     hasError: Boolean(event.errorSnapshot),
     isCondition: event.eventKind === "condition_evaluated",
   });
@@ -125,6 +135,7 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
         {activeTab === "request" ? <RequestTab event={event} /> : null}
         {activeTab === "response" ? <ResponseTab event={event} /> : null}
         {activeTab === "lineage" ? <LineageTab rows={lineageRows} /> : null}
+        {activeTab === "diff" ? <DiffTab stepDiff={stepDiff} /> : null}
         {activeTab === "error" ? <ErrorTab event={event} /> : null}
       </div>
     </div>
@@ -132,9 +143,11 @@ export function TimelineDetailPane({ event }: { event: TimelineEvent | null }) {
 }
 
 function getTabs({
+  hasDiff,
   hasError,
   isCondition,
 }: {
+  hasDiff: boolean;
   hasError: boolean;
   isCondition: boolean;
 }): DetailTab[] {
@@ -143,6 +156,7 @@ function getTabs({
     tabs.push("request", "response");
   }
   tabs.push("lineage");
+  if (hasDiff) tabs.push("diff");
   if (hasError) tabs.push("error");
   return tabs;
 }
