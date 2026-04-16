@@ -72,7 +72,7 @@ export function PipelineExecutionDrawer({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="border-primary/20 bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:border-black/10 dark:hover:bg-white/90 font-bold"
+                className="border-primary/20 bg-foreground text-background hover:bg-foreground/90 hover:text-background dark:border-black/10 dark:bg-white dark:text-black dark:hover:bg-white/90 dark:hover:text-black font-bold"
                 onClick={() => setView("ai-config")}
               >
                 <Sparkles className="h-3.5 w-3.5" />
