@@ -99,6 +99,11 @@ export function PipelineLayoutContent({
   const [executionDrawerSize, setExecutionDrawerSize] = useState(DEFAULT_DRAWER_SIZE);
   const [isExecutionDrawerOpen, setIsExecutionDrawerOpen] = useState(false);
 
+  const expandExecutionDrawerToMax = useCallback(() => {
+    setExecutionDrawerSize(MAX_DRAWER_SIZE);
+    setIsExecutionDrawerOpen(true);
+  }, []);
+
   useEffect(() => {
     const storage = getBrowserStorage();
     if (!storage) return;
@@ -160,11 +165,11 @@ export function PipelineLayoutContent({
     const previousWasActive = previousStatus === "running" || previousStatus === "paused";
 
     if (currentView === "builder" && autoOpenTimeline && nextIsActive && !previousWasActive) {
-      setIsExecutionDrawerOpen(true);
+      expandExecutionDrawerToMax();
     }
 
     previousExecutionStatusRef.current = executionStatus;
-  }, [autoOpenTimeline, currentView, executionStatus]);
+  }, [autoOpenTimeline, currentView, executionStatus, expandExecutionDrawerToMax]);
 
   const hasExecutionHistory =
     snapshotsCount > 0 ||
@@ -177,17 +182,17 @@ export function PipelineLayoutContent({
 
   const runWithDrawer = useCallback(() => {
     if (currentView === "builder" && autoOpenTimeline) {
-      setIsExecutionDrawerOpen(true);
+      expandExecutionDrawerToMax();
     }
     onRun();
-  }, [autoOpenTimeline, currentView, onRun]);
+  }, [autoOpenTimeline, currentView, onRun, expandExecutionDrawerToMax]);
 
   const debugWithDrawer = useCallback(() => {
     if (currentView === "builder" && autoOpenTimeline) {
-      setIsExecutionDrawerOpen(true);
+      expandExecutionDrawerToMax();
     }
     onDebug();
-  }, [autoOpenTimeline, currentView, onDebug]);
+  }, [autoOpenTimeline, currentView, onDebug, expandExecutionDrawerToMax]);
 
   const startDrawerResize = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
