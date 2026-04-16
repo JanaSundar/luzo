@@ -2,6 +2,7 @@ import type { Pipeline, PipelineExecutionResult } from "@/types";
 import type {
   DebugRuntimeState,
   PersistedExecutionArtifact,
+  ScriptResult,
   StepAlias,
   StepSnapshot,
 } from "@/types/pipeline-debug";
@@ -178,11 +179,32 @@ function buildSnapshotFromArtifactStep(
     status: step.status,
     reducedResponse: step.reducedResponse,
     fullHeaders: step.reducedResponse?.headers,
+    preRequestResult:
+      step.preRequestPassed != null
+        ? toPersistedScriptResult(step.preRequestPassed, "Pre-request script failed")
+        : undefined,
+    postRequestResult:
+      step.postRequestPassed != null
+        ? toPersistedScriptResult(step.postRequestPassed, "Post-request script failed")
+        : undefined,
+    testResult:
+      step.testsPassed != null
+        ? toPersistedScriptResult(step.testsPassed, "Tests failed")
+        : undefined,
     variables: runtimeVariables,
     error: step.error,
     startedAt: null,
     completedAt: null,
     streamStatus: "done",
     streamChunks: [],
+  };
+}
+
+function toPersistedScriptResult(passed: boolean, failureMessage: string): ScriptResult {
+  return {
+    status: passed ? "success" : "error",
+    logs: [],
+    error: passed ? null : failureMessage,
+    durationMs: 0,
   };
 }

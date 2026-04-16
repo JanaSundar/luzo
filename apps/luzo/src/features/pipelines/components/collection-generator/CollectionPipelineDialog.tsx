@@ -1,6 +1,6 @@
 "use client";
 
-import { Combine, Loader2, Workflow } from "lucide-react";
+import { Combine, Loader2 } from "lucide-react";
 import type { ReactElement } from "react";
 import { useEffect } from "react";
 import { CollectionPipelineInspector } from "@/components/pipelines/collection-generator/CollectionPipelineInspector";
@@ -11,13 +11,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useCollectionsQuery } from "@/features/collections/useCollections";
 
@@ -96,51 +94,33 @@ export function CollectionPipelineDialog({
           )
         }
       />
-      <DialogContent className="flex max-h-[88dvh] flex-col sm:max-w-6xl">
-        <DialogHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em]"
-            >
-              Smart import
-            </Badge>
-          </div>
+      <DialogContent className="flex max-h-[88dvh] flex-col p-0 sm:max-w-4xl">
+        <DialogHeader className="border-b border-border/50 px-6 py-5">
           <DialogTitle>Pipeline from Collection</DialogTitle>
-          <DialogDescription>
-            Pick a collection, review the inferred flow, then create a runnable pipeline.
-          </DialogDescription>
         </DialogHeader>
 
-        <CollectionPipelineSourcePanel
-          collections={collections}
-          error={error}
-          isAnalyzing={isAnalyzing}
-          onAnalyzeCollection={analyzeCollection}
-          onAnalyzeUpload={analyzeUpload}
-          selectedCollectionId={selectedCollectionId}
-          setSelectedCollectionId={setSelectedCollectionId}
-        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-5">
+          <CollectionPipelineSourcePanel
+            collections={collections}
+            error={error}
+            isAnalyzing={isAnalyzing}
+            onAnalyzeCollection={analyzeCollection}
+            onAnalyzeUpload={analyzeUpload}
+            selectedCollectionId={selectedCollectionId}
+            setSelectedCollectionId={setSelectedCollectionId}
+          />
 
-        {draft ? (
-          <div className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[1.6fr_1fr]">
-            <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-muted/10 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Workflow className="h-4 w-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-semibold">Draft pipeline</p>
-                    <p className="text-xs text-muted-foreground">
-                      Rename steps, remove noise, and adjust the flow before saving.
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="shrink-0">
+          {draft ? (
+            <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="max-w-md"
+                />
+                <p className="shrink-0 text-xs text-muted-foreground">
                   {draft.steps.length} step{draft.steps.length === 1 ? "" : "s"}
-                </Badge>
-              </div>
-              <div className="mb-3">
-                <Input value={name} onChange={(event) => setName(event.target.value)} />
+                </p>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <CollectionPipelineStepList
@@ -151,18 +131,16 @@ export function CollectionPipelineDialog({
                   setStepName={setStepName}
                 />
               </div>
-            </div>
-            <div className="min-h-0 overflow-y-auto pr-1">
               <CollectionPipelineInspector draft={draft} ignoreDependency={ignoreDependency} />
             </div>
-          </div>
-        ) : isAnalyzing ? (
-          <div className="flex min-h-[220px] items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          </div>
-        ) : null}
+          ) : isAnalyzing ? (
+            <div className="flex min-h-[220px] items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : null}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t border-border/50 px-6 py-4">
           <Button type="button" variant="outline" onClick={handleClose}>
             Cancel
           </Button>

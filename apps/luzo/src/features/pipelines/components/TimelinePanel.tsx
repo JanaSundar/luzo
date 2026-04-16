@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
+import { buildPipelineRunDiff } from "@/features/pipeline/run-diff";
+import { usePipelineArtifactsStore } from "@/stores/usePipelineArtifactsStore";
 import {
   derivePanelState,
   selectActiveEvent,
@@ -25,6 +27,12 @@ export function TimelinePanel() {
   const pipeline = usePipelineStore((s) =>
     s.activePipelineId ? s.pipelines.find((p) => p.id === s.activePipelineId) : null,
   );
+  const baseline = usePipelineArtifactsStore((s) =>
+    pipeline ? s.getBaselineArtifact(pipeline.id) : null,
+  );
+  const currentArtifact = usePipelineArtifactsStore((s) =>
+    pipeline ? s.getExecutionArtifact(pipeline.id) : null,
+  );
 
   const syncFromExecution = useTimelineStore((s) => s.syncFromExecution);
   const selectEvent = useTimelineStore((s) => s.selectEvent);
@@ -37,6 +45,10 @@ export function TimelinePanel() {
 
   const syncGeneration = useTimelineStore((s) => s.syncGeneration);
   const storeState = useTimelineStore.getState();
+  const diff = useMemo(() => {
+    if (!currentArtifact || !baseline) return null;
+    return buildPipelineRunDiff(currentArtifact, baseline);
+  }, [baseline, currentArtifact]);
 
   const sortedEvents = useMemo(
     () => selectSortedEvents(storeState),
@@ -91,6 +103,7 @@ export function TimelinePanel() {
     <div className="grid h-full min-h-0 min-w-0 grid-cols-1 overflow-hidden rounded-xl border bg-background shadow-sm lg:grid-cols-12">
       <TimelineList
         events={sortedEvents}
+        diffByStepId={diff?.stepsById ?? null}
         selectedEventId={selectedEventId}
         activeEventId={activeEvent?.eventId ?? null}
         isPaused={executionStatus === "paused"}
@@ -104,7 +117,7 @@ export function TimelinePanel() {
         {panelState === "error" && !selectedEvent ? (
           <TimelineError message={errorMessage} />
         ) : (
-          <TimelineDetailPane event={selectedEvent} />
+          <TimelineDetailPane diff={diff} event={selectedEvent} />
         )}
       </div>
     </div>

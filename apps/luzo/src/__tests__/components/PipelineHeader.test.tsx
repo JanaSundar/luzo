@@ -45,11 +45,15 @@ describe("PipelineHeader", () => {
     );
 
     expect(screen.queryByRole("button", { name: /response stream/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /timeline/i })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: /auto-open timeline/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    expect(screen.getByRole("menuitem", { name: /show timeline/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: /auto-open timeline/i }),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /timeline/i }));
-    fireEvent.click(screen.getByRole("switch", { name: /auto-open timeline/i }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /auto-open timeline/i }));
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /show timeline/i }));
 
     expect(onToggleExecutionDrawer).toHaveBeenCalledTimes(1);
     expect(onAutoOpenTimelineChange).toHaveBeenCalledWith(false);

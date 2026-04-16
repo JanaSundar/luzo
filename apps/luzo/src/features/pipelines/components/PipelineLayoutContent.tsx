@@ -24,6 +24,21 @@ const DEFAULT_DRAWER_SIZE = 56;
 const MIN_DRAWER_SIZE = 24;
 const MAX_DRAWER_SIZE = 96;
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  const candidate = window.localStorage;
+  if (
+    !candidate ||
+    typeof candidate.getItem !== "function" ||
+    typeof candidate.setItem !== "function"
+  ) {
+    return null;
+  }
+
+  return candidate;
+}
+
 interface PipelineLayoutContentProps {
   activePipelineId: string | null;
   activePipelineName: string | null;
@@ -85,14 +100,15 @@ export function PipelineLayoutContent({
   const [isExecutionDrawerOpen, setIsExecutionDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const storage = getBrowserStorage();
+    if (!storage) return;
 
-    const storedAutoOpen = window.localStorage.getItem(AUTO_OPEN_TIMELINE_KEY);
+    const storedAutoOpen = storage.getItem(AUTO_OPEN_TIMELINE_KEY);
     if (storedAutoOpen === "false") {
       setAutoOpenTimeline(false);
     }
 
-    const storedDrawerSize = Number(window.localStorage.getItem(EXECUTION_DRAWER_SIZE_KEY));
+    const storedDrawerSize = Number(storage.getItem(EXECUTION_DRAWER_SIZE_KEY));
     if (Number.isFinite(storedDrawerSize)) {
       setExecutionDrawerSize(
         Math.min(MAX_DRAWER_SIZE, Math.max(MIN_DRAWER_SIZE, storedDrawerSize)),
@@ -103,13 +119,15 @@ export function PipelineLayoutContent({
   }, []);
 
   useEffect(() => {
-    if (!preferencesHydrated || typeof window === "undefined") return;
-    window.localStorage.setItem(AUTO_OPEN_TIMELINE_KEY, String(autoOpenTimeline));
+    const storage = getBrowserStorage();
+    if (!preferencesHydrated || !storage) return;
+    storage.setItem(AUTO_OPEN_TIMELINE_KEY, String(autoOpenTimeline));
   }, [autoOpenTimeline, preferencesHydrated]);
 
   useEffect(() => {
-    if (!preferencesHydrated || typeof window === "undefined") return;
-    window.localStorage.setItem(EXECUTION_DRAWER_SIZE_KEY, String(executionDrawerSize));
+    const storage = getBrowserStorage();
+    if (!preferencesHydrated || !storage) return;
+    storage.setItem(EXECUTION_DRAWER_SIZE_KEY, String(executionDrawerSize));
   }, [executionDrawerSize, preferencesHydrated]);
 
   useEffect(() => {

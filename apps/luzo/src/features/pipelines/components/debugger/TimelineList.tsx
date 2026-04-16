@@ -3,10 +3,18 @@
 import { Circle, Pause } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/utils";
+import type { StepRunDiff } from "@/types/pipeline-debug";
 import type { TimelineEvent } from "@/types/timeline-event";
 import { TimelineEventRow } from "./TimelineEventRow";
 
-type TimelineFilter = "all" | "failed" | "executed" | "skipped" | "decisions";
+type TimelineFilter =
+  | "all"
+  | "failed"
+  | "executed"
+  | "skipped"
+  | "decisions"
+  | "changed"
+  | "regressions";
 
 const FILTER_LABELS: Record<TimelineFilter, string> = {
   all: "All",
@@ -14,9 +22,20 @@ const FILTER_LABELS: Record<TimelineFilter, string> = {
   executed: "Executed",
   skipped: "Skipped",
   decisions: "Decisions",
+  changed: "Changed",
+  regressions: "Regressions",
 };
 
-function matchesFilter(event: TimelineEvent, filter: TimelineFilter): boolean {
+function matchesFilter(
+  event: TimelineEvent,
+  filter: TimelineFilter,
+  stepDiffByStepId: Record<string, StepRunDiff> | null,
+): boolean {
+  if (filter === "changed")
+    return (stepDiffByStepId?.[event.stepId]?.severity ?? "unchanged") !== "unchanged";
+  if (filter === "regressions") {
+    return stepDiffByStepId?.[event.stepId]?.severity === "regression";
+  }
   if (filter === "failed") return event.status === "failed";
   if (filter === "executed") return event.outcome === "executed";
   if (filter === "skipped") return event.status === "skipped";
@@ -28,6 +47,7 @@ function matchesFilter(event: TimelineEvent, filter: TimelineFilter): boolean {
 // ─── Component ──────────────────────────────────────────────────────
 interface TimelineListProps {
   events: TimelineEvent[];
+  diffByStepId: Record<string, StepRunDiff> | null;
   selectedEventId: string | null;
   activeEventId: string | null;
   isPaused: boolean;
@@ -39,6 +59,7 @@ interface TimelineListProps {
 
 export function TimelineList({
   events,
+  diffByStepId,
   selectedEventId,
   activeEventId,
   isPaused,
@@ -51,8 +72,8 @@ export function TimelineList({
   const [filter, setFilter] = useState<TimelineFilter>("all");
 
   const filteredEvents = useMemo(
-    () => events.filter((event) => matchesFilter(event, filter)),
-    [events, filter],
+    () => events.filter((event) => matchesFilter(event, filter, diffByStepId)),
+    [diffByStepId, events, filter],
   );
   const maxDurationMs = useMemo(
     () => Math.max(...filteredEvents.map((event) => event.durationMs ?? 0), 0),
@@ -84,7 +105,9 @@ export function TimelineList({
         </div>
 
         <div className="mt-2 flex items-center gap-1 overflow-x-auto pb-1">
-          {(["all", "failed", "executed", "skipped", "decisions"] as const).map((value) => (
+          {(
+            ["all", "failed", "executed", "skipped", "decisions", "changed", "regressions"] as const
+          ).map((value) => (
             <button
               key={value}
               type="button"
@@ -108,6 +131,7 @@ export function TimelineList({
           <TimelineEventRow
             key={event.eventId}
             event={event}
+            stepDiff={diffByStepId?.[event.stepId] ?? null}
             baselineTimestamp={events[0]?.startedAt ?? events[0]?.timestamp ?? null}
             maxDurationMs={maxDurationMs}
             isSelected={selectedEventId === event.eventId}

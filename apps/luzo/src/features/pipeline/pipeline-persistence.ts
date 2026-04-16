@@ -3,6 +3,7 @@ import type {
   ControllerSnapshot,
   PersistedStepArtifact,
   PersistedStepContext,
+  ScriptResult,
   StepAlias,
   StepSnapshot,
 } from "@/types/pipeline-debug";
@@ -98,6 +99,18 @@ export function restoreFromCheckpoint(artifact: CheckpointArtifact): ControllerS
     status: step.status,
     reducedResponse: step.reducedResponse,
     fullHeaders: step.reducedResponse?.headers,
+    preRequestResult:
+      step.preRequestPassed != null
+        ? toPersistedScriptResult(step.preRequestPassed, "Pre-request script failed")
+        : undefined,
+    postRequestResult:
+      step.postRequestPassed != null
+        ? toPersistedScriptResult(step.postRequestPassed, "Post-request script failed")
+        : undefined,
+    testResult:
+      step.testsPassed != null
+        ? toPersistedScriptResult(step.testsPassed, "Tests failed")
+        : undefined,
     variables: buildRuntimeFromArtifact(artifact),
     error: step.error,
     startedAt: null,
@@ -134,6 +147,15 @@ export function restoreFromCheckpoint(artifact: CheckpointArtifact): ControllerS
   };
 }
 
+function toPersistedScriptResult(passed: boolean, failureMessage: string): ScriptResult {
+  return {
+    status: passed ? "success" : "error",
+    logs: [],
+    error: passed ? null : failureMessage,
+    durationMs: 0,
+  };
+}
+
 export function isCheckpointDirty(artifact: CheckpointArtifact): boolean {
   return artifact.isDirty;
 }
@@ -162,6 +184,18 @@ function toStepArtifact(snapshot: StepSnapshot, alias: string): PersistedStepArt
     },
     error: snapshot.error,
     completedAt: snapshot.completedAt != null ? new Date(snapshot.completedAt).toISOString() : null,
+    preRequestPassed:
+      snapshot.preRequestResult != null
+        ? snapshot.preRequestResult.status === "success" && !snapshot.preRequestResult.error
+        : null,
+    postRequestPassed:
+      snapshot.postRequestResult != null
+        ? snapshot.postRequestResult.status === "success" && !snapshot.postRequestResult.error
+        : null,
+    testsPassed:
+      snapshot.testResult != null
+        ? snapshot.testResult.status === "success" && !snapshot.testResult.error
+        : null,
   };
 }
 

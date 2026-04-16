@@ -18,6 +18,10 @@ interface CheckpointArgs {
   currentStepIndex: number;
   totalSteps: number;
   errorMessage: string | null;
+  partialMode: ReturnType<typeof usePipelineExecutionStore.getState>["partialMode"];
+  startStepId: string | null;
+  reusedAliases: string[];
+  staleContextWarning: string | null;
   refreshSignals: (steps: Pipeline["steps"]) => void;
   saveExecutionArtifact: (pipelineId: string, artifact: CheckpointArtifact) => void;
   lastPersistedIdRef: MutableRefObject<string | null>;
@@ -34,6 +38,10 @@ export function usePipelineCheckpointPersistence({
   currentStepIndex,
   totalSteps,
   errorMessage,
+  partialMode,
+  startStepId,
+  reusedAliases,
+  staleContextWarning,
   refreshSignals,
   saveExecutionArtifact,
   lastPersistedIdRef,
@@ -48,11 +56,11 @@ export function usePipelineCheckpointPersistence({
       activePipeline.id,
       buildCheckpointArtifact(executionId, activePipeline.id, snapshots, runtimeVariables, {
         isDirty: true,
-        mode: "full",
+        mode: partialMode,
         originExecutionMode,
-        startStepId: null,
-        reusedAliases: [],
-        staleContextWarning: null,
+        startStepId,
+        reusedAliases,
+        staleContextWarning,
         completedAt: null,
         currentStepIndex,
         totalSteps,
@@ -65,11 +73,15 @@ export function usePipelineCheckpointPersistence({
     currentStepIndex,
     executionId,
     inProgress,
+    partialMode,
     originExecutionMode,
     runtimeVariables,
     saveExecutionArtifact,
     snapshots,
     snapshotsLength,
+    startStepId,
+    reusedAliases,
+    staleContextWarning,
     totalSteps,
   ]);
 
@@ -82,11 +94,11 @@ export function usePipelineCheckpointPersistence({
       activePipeline.id,
       buildCheckpointArtifact(executionId, activePipeline.id, snapshots, runtimeVariables, {
         isDirty: false,
-        mode: "full",
+        mode: partialMode,
         originExecutionMode,
-        startStepId: null,
-        reusedAliases: [],
-        staleContextWarning: null,
+        startStepId,
+        reusedAliases,
+        staleContextWarning,
         completedAt,
         currentStepIndex,
         totalSteps,
@@ -103,12 +115,16 @@ export function usePipelineCheckpointPersistence({
     done,
     errorMessage,
     executionId,
+    partialMode,
     originExecutionMode,
     refreshSignals,
+    reusedAliases,
     runtimeVariables,
     saveExecutionArtifact,
     snapshots,
     snapshotsLength,
+    staleContextWarning,
+    startStepId,
     totalSteps,
     lastPersistedIdRef,
   ]);

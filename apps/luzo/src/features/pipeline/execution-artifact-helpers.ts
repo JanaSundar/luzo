@@ -50,6 +50,18 @@ export function toStepArtifact(snapshot: StepSnapshot, alias: string): Persisted
     error: snapshot.error,
     completedAt:
       snapshot.completedAt !== null ? new Date(snapshot.completedAt).toISOString() : null,
+    preRequestPassed:
+      snapshot.preRequestResult != null
+        ? snapshot.preRequestResult.status === "success" && !snapshot.preRequestResult.error
+        : null,
+    postRequestPassed:
+      snapshot.postRequestResult != null
+        ? snapshot.postRequestResult.status === "success" && !snapshot.postRequestResult.error
+        : null,
+    testsPassed:
+      snapshot.testResult != null
+        ? snapshot.testResult.status === "success" && !snapshot.testResult.error
+        : null,
   };
 }
 

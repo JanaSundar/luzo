@@ -31,6 +31,10 @@ interface LifecycleArgs {
   currentStepIndex: number;
   totalSteps: number;
   errorMessage: string | null;
+  partialMode: ReturnType<typeof usePipelineExecutionStore.getState>["partialMode"];
+  startStepId: string | null;
+  reusedAliases: string[];
+  staleContextWarning: string | null;
   resetExecution: () => void;
   applyControllerSnapshot: ReturnType<
     typeof usePipelineExecutionStore.getState
@@ -59,6 +63,10 @@ export function usePipelinePageLifecycle(args: LifecycleArgs) {
     currentStepIndex,
     totalSteps,
     errorMessage,
+    partialMode,
+    startStepId,
+    reusedAliases,
+    staleContextWarning,
     resetExecution,
     applyControllerSnapshot,
     setHasPersistedExecution,
@@ -157,6 +165,10 @@ export function usePipelinePageLifecycle(args: LifecycleArgs) {
     currentStepIndex,
     totalSteps,
     errorMessage,
+    partialMode,
+    startStepId,
+    reusedAliases,
+    staleContextWarning,
     refreshSignals,
     saveExecutionArtifact,
     lastPersistedIdRef,
@@ -213,6 +225,10 @@ function hydratePersistedArtifact(
       ? new Date(artifact.runtime.completedAt).getTime()
       : null,
     hasPersistedExecution: true,
+    partialMode: (artifact.runtime.mode as "full" | "partial-fresh" | "partial-previous") ?? "full",
+    startStepId: artifact.runtime.startStepId ?? null,
+    reusedAliases: artifact.runtime.reusedAliases ?? [],
+    staleContextWarning: artifact.runtime.staleContextWarning ?? null,
   });
   setExecutionResult(result);
   refreshSignals(activePipeline.steps);

@@ -1,4 +1,5 @@
 import type { HttpMethod, PipelineExecutionResult } from ".";
+import type { PinnedBaselineArtifact } from "./pipeline-diff";
 import type { AIReportCache } from "./pipeline-report";
 import type { DebugRuntimeState, ReducedResponse, StepStatus } from "./pipeline-runtime";
 
@@ -19,6 +20,9 @@ export interface PersistedStepArtifact {
   resolvedRequestSummary: PersistedResolvedRequestSummary;
   error: string | null;
   completedAt: string | null;
+  preRequestPassed: boolean | null;
+  postRequestPassed: boolean | null;
+  testsPassed: boolean | null;
 }
 
 export interface PersistedStepContext {
@@ -48,6 +52,7 @@ export interface PersistedDebuggerArtifact {
 
 export interface PersistedPipelineArtifacts {
   executionByPipelineId: Record<string, PersistedExecutionArtifact>;
+  baselineByPipelineId: Record<string, PinnedBaselineArtifact>;
   reportsByPipelineId: Record<string, PersistedReportArtifact>;
   debuggerByPipelineId: Record<string, PersistedDebuggerArtifact>;
 }

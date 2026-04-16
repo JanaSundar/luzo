@@ -29,6 +29,10 @@ export function usePipelinePageController() {
   const currentStepIndex = usePipelineExecutionStore((state) => state.currentStepIndex);
   const totalSteps = usePipelineExecutionStore((state) => state.totalSteps);
   const errorMessage = usePipelineExecutionStore((state) => state.errorMessage);
+  const partialMode = usePipelineExecutionStore((state) => state.partialMode);
+  const startStepId = usePipelineExecutionStore((state) => state.startStepId);
+  const reusedAliases = usePipelineExecutionStore((state) => state.reusedAliases);
+  const staleContextWarning = usePipelineExecutionStore((state) => state.staleContextWarning);
   const resetExecution = usePipelineExecutionStore((state) => state.reset);
   const applyControllerSnapshot = usePipelineExecutionStore(
     (state) => state.applyControllerSnapshot,
@@ -71,6 +75,10 @@ export function usePipelinePageController() {
     currentStepIndex,
     totalSteps,
     errorMessage,
+    partialMode,
+    startStepId,
+    reusedAliases,
+    staleContextWarning,
     resetExecution,
     applyControllerSnapshot,
     setHasPersistedExecution,
